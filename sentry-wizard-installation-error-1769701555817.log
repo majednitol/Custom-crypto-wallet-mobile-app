@@ -1,0 +1,45 @@
+npm error code ERESOLVE
+npm error ERESOLVE could not resolve
+npm error
+npm error While resolving: @reduxjs/toolkit@2.4.0
+npm error Found: react@19.1.0
+npm error node_modules/react
+npm error   peerOptional react@"*" from @expo/devtools@0.1.8
+npm error   node_modules/@expo/devtools
+npm error     @expo/devtools@"0.1.8" from expo@54.0.32
+npm error     node_modules/expo
+npm error       peerOptional expo@"*" from @expo/metro-config@54.0.14
+npm error       node_modules/@expo/metro-config
+npm error         @expo/metro-config@"54.0.14" from expo@54.0.32
+npm error         1 more (@expo/cli)
+npm error       32 more (@expo/metro-runtime, @expo/prebuild-config, ...)
+npm error   peer react@"*" from @expo/metro-runtime@6.1.2
+npm error   node_modules/@expo/metro-runtime
+npm error     peerOptional @expo/metro-runtime@"*" from expo@54.0.32
+npm error     @expo/metro-runtime@"^6.1.2" from expo-router@6.0.22
+npm error     node_modules/expo-router
+npm error       peerOptional expo-router@"*" from @expo/cli@54.0.22
+npm error       node_modules/expo/node_modules/@expo/cli
+npm error         @expo/cli@"54.0.22" from expo@54.0.32
+npm error       1 more (the root project)
+npm error   75 more (@expo/vector-icons, @gorhom/bottom-sheet, ...)
+npm error
+npm error Could not resolve dependency:
+npm error peerOptional react@"^16.9.0 || ^17.0.0 || ^18" from @reduxjs/toolkit@2.4.0
+npm error node_modules/@reduxjs/toolkit
+npm error   @reduxjs/toolkit@"^2.2.3" from the root project
+npm error
+npm error Conflicting peer dependency: react@18.3.1
+npm error node_modules/react
+npm error   peerOptional react@"^16.9.0 || ^17.0.0 || ^18" from @reduxjs/toolkit@2.4.0
+npm error   node_modules/@reduxjs/toolkit
+npm error     @reduxjs/toolkit@"^2.2.3" from the root project
+npm error
+npm error Fix the upstream dependency conflict, or retry
+npm error this command with --force or --legacy-peer-deps
+npm error to accept an incorrect (and potentially broken) dependency resolution.
+npm error
+npm error
+npm error For a full report see:
+npm error /Users/majedurrahman/.npm/_logs/2026-01-29T15_45_54_868Z-eresolve-report.txt
+npm error A complete log of this run can be found in: /Users/majedurrahman/.npm/_logs/2026-01-29T15_45_54_868Z-debug-0.log
