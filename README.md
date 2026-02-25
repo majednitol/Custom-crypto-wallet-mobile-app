@@ -1,56 +1,49 @@
-# Welcome to your Expo app 👋
+# Custom Wallet (Multi-Chain Crypto Wallet)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A secure **multi-chain mobile wallet** built with **React Native (Expo)** that supports **Ethereum (EVM)** and **Solana**.  
+Includes wallet setup/import, biometric unlock, auto-lock security, multi-account management, and **send/receive for native coins + ERC-20 + SPL tokens + NFTs**.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Key Features
 
-   ```bash
-   npm install
-   ```
+### 🔐 Security
+- **Biometric unlock** (FaceID / TouchID) using Expo Local Authentication
+- **Password unlock** fallback
+- **Auto-lock** after inactivity timeout (configurable)
+- Persisted lock state using AsyncStorage + Redux Persist
 
-2. Start the app
+### 🧩 Wallet Core
+- Create / Import wallet (seed phrase)
+- Seed phrase confirmation flow
+- Multi-account support (EVM + Solana)
+- Token list & token details screens
 
-   ```bash
-   npx expo start
-   ```
+### 💸 Transfers
+- **Send / Receive**
+  - **Ethereum native** (ETH)
+  - **ERC-20 tokens**
+  - **Solana native** (SOL)
+  - **SPL tokens**
+  - **NFTs (EVM + Solana supported by UI/flow)**
 
-In the output, you'll find options to open the app in a
+### 🧭 UX
+- Expo Router navigation
+- Clean theme system + gradient background
+- Toast notifications
+- Sentry error tracking integration
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🛠 Tech Stack
+- **React Native (Expo) + TypeScript**
+- **Redux Toolkit + Redux Persist**
+- Expo Router
+- Expo Local Authentication
+- AsyncStorage
+- Styled Components
+- Sentry
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
-
-java -jar bundletool-all-1.18.3.jar build-apks --bundle="crypto.aab" --output="crypto.apks" --mode=universal
-
-unzip crypto.apks -d crypto_apks
+---
 
 npx expo run:android --variant release
