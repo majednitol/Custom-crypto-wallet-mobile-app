@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native";
 import { router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
-import { useTheme } from "styled-components";
+import { useTheme } from "styled-components/native";
 // import ethService from "../../../services/EthereumService";
 import solanaService from "../../../services/SolanaService";
 import { ThemeType } from "../../../styles/theme";

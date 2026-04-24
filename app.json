@@ -4,12 +4,11 @@
     "slug": "rn-crypto-wallet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.jpg",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "scheme": "rn-crypto-wallet",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/logo.jpg",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#8878F4"
     },
@@ -22,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.jpg",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#8878F4"
       },
       "permissions": [

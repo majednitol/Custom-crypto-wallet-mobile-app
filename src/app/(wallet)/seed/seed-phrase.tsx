@@ -4,7 +4,7 @@ import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import styled from "styled-components/native";
-import { useTheme } from "styled-components";
+import { useTheme } from "styled-components/native";
 import { ThemeType } from "../../../styles/theme";
 import CopyIcon from "../../../assets/svg/copy.svg";
 import Button from "../../../components/Button/Button";

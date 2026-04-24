@@ -3,7 +3,7 @@ import { Dimensions, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import styled from "styled-components/native";
-import { useTheme } from "styled-components";
+import { useTheme } from "styled-components/native";
 import * as Clipboard from "expo-clipboard";
 import { savePhrase } from "../../../hooks/useStorageState";
 import { ThemeType } from "../../../styles/theme";

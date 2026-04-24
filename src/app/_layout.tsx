@@ -247,7 +247,7 @@
   //         headerLeft: () => <ChevronBack direction="left" />,
 
 // @ts-ignore
-global.location = { protocol: "file:" };
+// global.location = { protocol: "file:" };
 
 import "react-native-reanimated";
 import "react-native-gesture-handler";
@@ -267,7 +267,7 @@ import FloatingBackButton from "./FloatingBackButton";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import { lockWallet, UNLOCK_TIMEOUT, unlockWalletFromPersisted } from "../store/biometricsSlice";
-import { ThemeProvider } from "styled-components";
+import { ThemeProvider } from "styled-components/native";
 
 // Prevent auto hide for splash
 SplashScreen.preventAutoHideAsync();
@@ -327,12 +327,15 @@ function InnerApp() {
       <FloatingBackButton />
 
       <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
-        <Stack.Screen name="wallet-setup" />
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(wallet)/setup/wallet-setup" />
         <Stack.Screen name="(wallet)/seed/seed-phrase" />
         <Stack.Screen name="(wallet)/seed/confirm-seed-phrase" />
         <Stack.Screen name="(wallet)/setup/wallet-created-successfully" />
         <Stack.Screen name="(wallet)/setup/wallet-import-options" />
         <Stack.Screen name="(wallet)/seed/wallet-import-seed-phrase" />
+        <Stack.Screen name="(wallet)/unlock" />
+        <Stack.Screen name="(app)/index" />
       </Stack>
     </GestureHandlerRootView>
   );
