@@ -45,5 +45,6 @@ Includes wallet setup/import, biometric unlock, auto-lock security, multi-accoun
 - Sentry
 
 ---
+npx expo run:ios
 
 npx expo run:android --variant release

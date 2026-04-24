@@ -10,6 +10,8 @@ import QRCodeIcon from "../../assets/svg/qr-code.svg";
 import DownArrowIcon from "../../assets/svg/down-arrow.svg";
 import { ROUTES } from "../../constants/routes";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 interface ThemeComponent {
   theme: ThemeType;
 }
@@ -20,7 +22,6 @@ const Container = styled.View<ThemeComponent>`
   align-items: center;
   padding-left: ${(props) => props.theme.spacing.medium};
   padding-right: ${(props) => props.theme.spacing.medium};
-  margin-top: ${Platform.OS === "android" ? "15px" : "60px"};
 `;
 
 const LeftContainer = styled.View<ThemeComponent>``;
@@ -45,6 +46,7 @@ const IconTouchContainer = styled.TouchableOpacity`
 
 const Header: React.FC = () => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   /** ✅ Step 1: active chain */
   const activeChainId = useSelector(
@@ -66,7 +68,7 @@ const Header: React.FC = () => {
 
 
   return (
-    <Container style={{ marginTop: Platform.OS === "android" ? 25 : 0 }}>
+    <Container style={{ paddingTop: insets.top }}>
       <LeftContainer>
         <IconTouchContainer onPress={() => router.push(ROUTES.settings)}>
           <SettingsIcon width={25} height={25} fill={theme.colors.primary} />

@@ -14,7 +14,7 @@ import {
   fetchEvmTransactions,
   fetchEvmTransactionsInterval,
   fetchEvmBalanceInterval,
-    addNetwork,
+  addNetwork,
   removeNetwork,
   setActiveChain,
   updateNetwork,
@@ -49,12 +49,13 @@ import Didcomm from "../../../native-modules/didcomm";
 import { loadTokens } from "../../store/tokenSlice";
 import { loadSolTokens } from "../../store/solTokenSlice";
 
-const ContentContainer = styled.View<{ theme: ThemeType }>`
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const ContentContainer = styled.View<{ theme: ThemeType; topInset: number }>`
   flex: 1;
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) =>
-    Platform.OS === "android" ? "40px" : props.theme.spacing.huge};
+  margin-top: ${(props) => props.topInset + 60}px;
 `;
 const BalanceContainer = styled.View<{ theme: ThemeType }>`
   display: flex;
@@ -112,7 +113,7 @@ const DollarSign = styled.Text<{ theme: ThemeType }>`
   text-align: center;
 `;
 
-const BottomScrollView = styled(BottomSheetScrollView)<{ theme: ThemeType }>`
+const BottomScrollView = styled(BottomSheetScrollView) <{ theme: ThemeType }>`
   padding: ${(props) => props.theme.spacing.tiny};
   padding-top: ${(props) => props.theme.spacing.small};
 `;
@@ -137,41 +138,42 @@ const ErrorText = styled.Text<{ theme: ThemeType }>`
 
 export default function Index() {
   const dispatch = useDispatch<AppDispatch>();
+  const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
   const theme = useTheme();
   const isLoading = useLoadingState();
-const networks = useSelector(
-  (state: RootState) => state.ethereum.networks
-);
+  const networks = useSelector(
+    (state: RootState) => state.ethereum.networks
+  );
 
-const activeEthChainId = useSelector(
-  (state: RootState) => state.ethereum.activeChainId
-);
-console.log("ACTIVE CHAIN (Redux):", activeEthChainId);
+  const activeEthChainId = useSelector(
+    (state: RootState) => state.ethereum.activeChainId
+  );
+  console.log("ACTIVE CHAIN (Redux):", activeEthChainId);
 
-const activeEthIndex = useSelector(
-  (state: RootState) =>
-    state.ethereum.activeIndex ?? 0
-);
-const ethAccount = useSelector((state: RootState) => {
-  const index = state.ethereum.activeIndex ?? 0;
-  return state.ethereum.globalAddresses?.[index];
-});
+  const activeEthIndex = useSelector(
+    (state: RootState) =>
+      state.ethereum.activeIndex ?? 0
+  );
+  const ethAccount = useSelector((state: RootState) => {
+    const index = state.ethereum.activeIndex ?? 0;
+    return state.ethereum.globalAddresses?.[index];
+  });
 
 
-const ethWalletAddress = ethAccount?.address ?? "";
-console.log("activeEthChainId",activeEthChainId)
-// Get balance for the active chain
-const ethBalance =
-  ethAccount?.balanceByChain?.[activeEthChainId] ?? 0;
+  const ethWalletAddress = ethAccount?.address ?? "";
+  console.log("activeEthChainId", activeEthChainId)
+  // Get balance for the active chain
+  const ethBalance =
+    ethAccount?.balanceByChain?.[activeEthChainId] ?? 0;
 
-// Get transactions for the active chain
-const ethTransactions =
-  ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [];
+  // Get transactions for the active chain
+  const ethTransactions =
+    ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [];
 
-// Check if status for the active chain is failed
-const failedEthStatus =
-  ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
+  // Check if status for the active chain is failed
+  const failedEthStatus =
+    ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
 
   // const ethBalance = useSelector(
   //   (state: RootState) => state.ethereum.addresses[activeEthIndex].balance
@@ -188,53 +190,53 @@ const failedEthStatus =
   const prices = useSelector((s: RootState) => s.price.data);
 
   const handleSelectChain = useCallback(
-  (chainId: number, address: string) => {
-   
-    dispatch(setActiveChain(chainId));
-    dispatch(fetchEvmBalance({ chainId, address }));
-    dispatch(fetchEvmTransactions({ chainId, address }));
-  },
-  [dispatch]
-);
+    (chainId: number, address: string) => {
+
+      dispatch(setActiveChain(chainId));
+      dispatch(fetchEvmBalance({ chainId, address }));
+      dispatch(fetchEvmTransactions({ chainId, address }));
+    },
+    [dispatch]
+  );
   useEffect(() => {
-   
+
     dispatch(loadTokens());
     dispatch(loadSolTokens())
   }, [dispatch]);
-const ethereumAssets = useMemo(() => {
-  const list: any[] = [];
+  const ethereumAssets = useMemo(() => {
+    const list: any[] = [];
 
-  Object.values(networks).forEach((network) => {
-    const chainId = network.chainId;
-    const index = ethereum.activeIndex ?? 0;
-    const account = ethereum.globalAddresses?.[index]; // 🔹 use globalAddresses
+    Object.values(networks).forEach((network) => {
+      const chainId = network.chainId;
+      const index = ethereum.activeIndex ?? 0;
+      const account = ethereum.globalAddresses?.[index]; // 🔹 use globalAddresses
 
-    if (!account) return;
+      if (!account) return;
 
-    const price = prices?.[chainId]?.usd ?? 0;
+      const price = prices?.[chainId]?.usd ?? 0;
 
-  
-    const balance = account.balanceByChain?.[chainId] ?? 0;
-    console.log( "proce usd", balance * price)
-    const transactions = account.transactionMetadataByChain?.[chainId]?.transactions ?? [];
-    const status = account.statusByChain?.[chainId] ?? GeneralStatus.Idle;
 
-    list.push({
-      key: `evm-${chainId}`,
-      chainId,
-      name: network.chainName,
-      symbol: network.symbol,
-      balance,
-      usdValue: balance * price,
-      address: account.address,
-      transactions,
-      status,
-      icon: <EthereumIcon width={35} height={35} />,
+      const balance = account.balanceByChain?.[chainId] ?? 0;
+      console.log("proce usd", balance * price)
+      const transactions = account.transactionMetadataByChain?.[chainId]?.transactions ?? [];
+      const status = account.statusByChain?.[chainId] ?? GeneralStatus.Idle;
+
+      list.push({
+        key: `evm-${chainId}`,
+        chainId,
+        name: network.chainName,
+        symbol: network.symbol,
+        balance,
+        usdValue: balance * price,
+        address: account.address,
+        transactions,
+        status,
+        icon: <EthereumIcon width={35} height={35} />,
+      });
     });
-  });
-console.log("list",list)
-  return list;
-}, [ethereum, prices, networks]);
+    console.log("list", list)
+    return list;
+  }, [ethereum, prices, networks]);
 
 
   const activeSolIndex = useSelector(
@@ -260,7 +262,7 @@ console.log("list",list)
 
   // const prices = useSelector((state: RootState) => state.price.data);
   const solPrice = prices;
-   console.log("solPrice",solPrice)
+  console.log("solPrice", solPrice)
   const ethPrice = prices[activeEthChainId]?.usd;
 
   const [refreshing, setRefreshing] = useState(false);
@@ -270,7 +272,7 @@ console.log("list",list)
   const [transactions, setTransactions] = useState([]);
   const [bottomSheetIndex, setBottomSheetIndex, bottomSheetIndexLoading] =
     useStorage(SNAP_POINTS);
-  
+
 
 
   // useEffect(() => {
@@ -278,32 +280,32 @@ console.log("list",list)
   //     router.replace(ROUTES.unlock);
   //   }
   // }, [passwordSet, unlocked]);
-// useEffect(() => {
-//   console.log("===== EVM Networks =====");
-//   Object.values(networks).forEach((network) => {
-//     console.log(`Network: ${network})`);
+  // useEffect(() => {
+  //   console.log("===== EVM Networks =====");
+  //   Object.values(networks).forEach((network) => {
+  //     console.log(`Network: ${network})`);
 
-//     // Get addresses, fallback to dummy if empty
-   
+  //     // Get addresses, fallback to dummy if empty
 
-   
-//   });
-// }, []);
-  const evmStore = useSelector((state: RootState) => state);
+
+
+  //   });
+  // }, []);
+
 
   // console.log("EVM Store:", JSON.stringify(evmStore, null, 2));
   // console.log("===== EVM Networks =====",networks);
   // Object.values(networks).forEach((network) => {
   //   console.log(`Network: ${network})`);
   // });
-  const state = store.getState(); 
+  const state = store.getState();
   const evmChainIds = Object.keys(state.ethereum.networks).map(Number);
   const allChainIds = [...evmChainIds, 101];
   console.log(allChainIds)
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-     
-    dispatch(fetchPrices(allChainIds)); 
+
+    dispatch(fetchPrices(allChainIds));
     fetchTokenBalances();
 
     setTimeout(() => {
@@ -311,42 +313,42 @@ console.log("list",list)
     }, 2000);
   }, [dispatch, solWalletAddress, ethWalletAddress]);
   // console.log("before ",activeEthChainId, ethWalletAddress)
-  
-  // console.log("before222 ",activeEthChainId, ethWalletAddress)
-//   const fetchTokenBalances = useCallback(async () => {
-//   if (ethWalletAddress) {
-//     // console.log("Dispatching fetchEvmBalance for", ethWalletAddress);
-//     await dispatch(fetchEvmBalance({
-//       chainId: activeEthChainId,
-//       address: ethWalletAddress,
-//     }));
-//   }
 
-//   if (solWalletAddress) {
-//     await dispatch(fetchSolanaBalance(solWalletAddress));
-//   }
-// }, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
-const fetchTokenBalances = useCallback(async () => {
-  try {
-    if (ethWalletAddress) {
-      await dispatch(fetchEvmBalance({ chainId: activeEthChainId, address: ethWalletAddress }));
+  // console.log("before222 ",activeEthChainId, ethWalletAddress)
+  //   const fetchTokenBalances = useCallback(async () => {
+  //   if (ethWalletAddress) {
+  //     // console.log("Dispatching fetchEvmBalance for", ethWalletAddress);
+  //     await dispatch(fetchEvmBalance({
+  //       chainId: activeEthChainId,
+  //       address: ethWalletAddress,
+  //     }));
+  //   }
+
+  //   if (solWalletAddress) {
+  //     await dispatch(fetchSolanaBalance(solWalletAddress));
+  //   }
+  // }, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
+  const fetchTokenBalances = useCallback(async () => {
+    try {
+      if (ethWalletAddress) {
+        await dispatch(fetchEvmBalance({ chainId: activeEthChainId, address: ethWalletAddress }));
+      }
+      if (solWalletAddress) {
+        await dispatch(fetchSolanaBalance(solWalletAddress));
+      }
+    } catch (err) {
+      Alert.alert("Error", `Failed to fetch balances: ${err instanceof Error ? err.message : err}`);
+      console.error(err);
     }
-    if (solWalletAddress) {
-      await dispatch(fetchSolanaBalance(solWalletAddress));
-    }
-  } catch (err) {
-    Alert.alert("Error", `Failed to fetch balances: ${err instanceof Error ? err.message : err}`);
-    console.error(err);
-  }
-}, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
+  }, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
 
 
   const fetchTokenBalancesInterval = useCallback(async () => {
     if (ethWalletAddress) {
       dispatch(fetchEvmBalanceInterval({
-    chainId: activeEthChainId,
-    address: ethWalletAddress,
-  }));
+        chainId: activeEthChainId,
+        address: ethWalletAddress,
+      }));
     }
 
     if (solWalletAddress) {
@@ -431,22 +433,22 @@ const fetchTokenBalances = useCallback(async () => {
   // };
 
   const fetchTransactions = async () => {
-  try {
-    if (ethWalletAddress) {
-      await dispatch(fetchEvmTransactions({ chainId: activeEthChainId, address: ethWalletAddress }));
+    try {
+      if (ethWalletAddress) {
+        await dispatch(fetchEvmTransactions({ chainId: activeEthChainId, address: ethWalletAddress }));
+      }
+      if (solWalletAddress) {
+        await dispatch(fetchSolanaTransactions(solWalletAddress));
+      }
+    } catch (err) {
+      Alert.alert("Error", `Failed to fetch transactions: ${err instanceof Error ? err.message : err}`);
+      console.error(err);
     }
-    if (solWalletAddress) {
-      await dispatch(fetchSolanaTransactions(solWalletAddress));
-    }
-  } catch (err) {
-    Alert.alert("Error", `Failed to fetch transactions: ${err instanceof Error ? err.message : err}`);
-    console.error(err);
-  }
-};
+  };
 
 
   const fetchTransactionsInterval = async () => {
-    dispatch(fetchEvmTransactionsInterval({chainId: activeEthChainId,address: ethWalletAddress }));
+    dispatch(fetchEvmTransactionsInterval({ chainId: activeEthChainId, address: ethWalletAddress }));
     dispatch(fetchSolanaTransactionsInterval(solWalletAddress));
   };
 
@@ -454,15 +456,15 @@ const fetchTokenBalances = useCallback(async () => {
   //   await dispatch(fetchPrices(allChainIds));
   //   await fetchTokenBalances();
   // };
-const fetchBalanceAndPrice = async () => {
-  try {
-    await dispatch(fetchPrices(allChainIds));
-    await fetchTokenBalances();
-  } catch (err) {
-    Alert.alert("Error", `Failed to fetch balances or prices: ${err instanceof Error ? err.message : err}`);
-    console.error(err);
-  }
-};
+  const fetchBalanceAndPrice = async () => {
+    try {
+      await dispatch(fetchPrices(allChainIds));
+      await fetchTokenBalances();
+    } catch (err) {
+      Alert.alert("Error", `Failed to fetch balances or prices: ${err instanceof Error ? err.message : err}`);
+      console.error(err);
+    }
+  };
 
   const fetchBalanceAndPriceInterval = async () => {
     await dispatch(fetchPrices(allChainIds));
@@ -488,16 +490,16 @@ const fetchBalanceAndPrice = async () => {
   };
 
   useEffect(() => {
-  const init = async () => {
-    try {
-      await fetchAndUpdatePrices();
-    } catch (err) {
-      Alert.alert("Error", `Initialization failed: ${err instanceof Error ? err.message : err}`);
-      console.error(err);
-    }
-  };
-  init();
-}, [dispatch, ethWalletAddress, solWalletAddress]);
+    const init = async () => {
+      try {
+        await fetchAndUpdatePrices();
+      } catch (err) {
+        Alert.alert("Error", `Initialization failed: ${err instanceof Error ? err.message : err}`);
+        console.error(err);
+      }
+    };
+    init();
+  }, [dispatch, ethWalletAddress, solWalletAddress]);
 
 
   useEffect(() => {
@@ -505,29 +507,29 @@ const fetchBalanceAndPrice = async () => {
       fetchAndUpdatePricesInternal,
       FETCH_PRICES_INTERVAL
     );
-console.log("majedur rahman 2")
+    console.log("majedur rahman 2")
     return () => clearInterval(interval);
   }, [dispatch, ethWalletAddress, solWalletAddress]);
 
   useEffect(() => {
     updatePrices();
-   
-  }, [ethBalance,
-  solBalance,
-  ethPrice,          // ✅ add
-  prices[101]?.usd,]);
 
-const mergedAndSortedTransactions = useMemo(() => {
-  const ethTx = ethTransactions ?? [];
-  const solTx = solTransactions ?? [];
-  return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime);
-}, [solTransactions, ethTransactions]);
+  }, [ethBalance,
+    solBalance,
+    ethPrice,          // ✅ add
+    prices[101]?.usd,]);
+
+  const mergedAndSortedTransactions = useMemo(() => {
+    const ethTx = ethTransactions ?? [];
+    const solTx = solTransactions ?? [];
+    return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime);
+  }, [solTransactions, ethTransactions]);
 
   const renderTx = ({ item }: any) => {
     const sign = item.direction === "received" ? "+" : "-";
     return (
       <CryptoInfoCard
-        icon =""
+        icon=""
         title={capitalizeFirstLetter(item.direction)}
         caption={
           item.direction === "received"
@@ -559,14 +561,39 @@ const mergedAndSortedTransactions = useMemo(() => {
 
   return (
     <SafeAreaContainer>
-      <ContentContainer>
-        {/* <FlatList
+      <ContentContainer topInset={insets.top}>
+        <BalanceContainer>
+          <DollarSign>$</DollarSign>
+          <BalanceText>{formatDollarRaw(usdBalance)}</BalanceText>
+        </BalanceContainer>
+        <ActionContainer>
+          <PrimaryButton
+            icon={
+              <SendIcon
+                width={25}
+                height={25}
+                fill={theme.colors.primary}
+              />
+            }
+            onPress={() => router.push(ROUTES.sendOptions)}
+            btnText="Send "
+          />
+          <View style={{ width: 15 }} />
+          <PrimaryButton
+            icon={
+              <ReceiveIcon
+                width={25}
+                height={25}
+                fill={theme.colors.primary}
+              />
+            }
+            onPress={() => router.push(ROUTES.receiveOptions)}
+            btnText="Receive "
+          />
+        </ActionContainer>
+        <SectionTitle>Recent Activity</SectionTitle>
+        <FlatList
           contentContainerStyle={{ gap: 10 }}
-          data={isLoading ? placeholderArr(8) : mergedAndSortedTransactions}
-          renderItem={renderItem}
-          keyExtractor={(item) => {
-            return item.uniqueId;
-          }}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
@@ -577,73 +604,24 @@ const mergedAndSortedTransactions = useMemo(() => {
               refreshing={refreshing}
               onRefresh={onRefresh}
             />
-          } */}
-          ListHeaderComponent={
-            <>
-              <BalanceContainer>
-                <DollarSign>$</DollarSign>
-                <BalanceText>{formatDollarRaw(usdBalance)}</BalanceText>
-              </BalanceContainer>
-              <ActionContainer>
-                <PrimaryButton
-                  icon={
-                    <SendIcon
-                      width={25}
-                      height={25}
-                      fill={theme.colors.primary}
-                    />
-                  }
-                  onPress={() => router.push(ROUTES.sendOptions)}
-                  btnText="Send "
-                />
-                <View style={{ width: 15 }} />
-                <PrimaryButton
-                  icon={
-                    <ReceiveIcon
-                      width={25}
-                      height={25}
-                      fill={theme.colors.primary}
-                    />
-                  }
-                  onPress={() => router.push(ROUTES.receiveOptions)}
-                  btnText="Receive "
-                />
-              </ActionContainer>
-              <SectionTitle>Recent Activity</SectionTitle>
-            <FlatList
-              contentContainerStyle={{ gap: 10 }}
-               initialNumToRender={10}
-          maxToRenderPerBatch={10}
-          windowSize={5}
-              refreshControl={
-            <RefreshControl
-              tintColor="#fff"
-              titleColor="#fff"
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
           }
-  data={mergedAndSortedTransactions}
-  renderItem={renderTx}
-              keyExtractor={(item, index) =>
-                `${item.hash ?? "no-hash"}-${item.direction ?? "no-dir"}-${index}`
-              }
-  ListEmptyComponent={<InfoBanner />}
-/>
-
-            </>
+          data={mergedAndSortedTransactions}
+          renderItem={renderTx}
+          keyExtractor={(item, index) =>
+            `${item.hash ?? "no-hash"}-${item.direction ?? "no-dir"}-${index}`
           }
-          ListEmptyComponent={
-  failedEthStatus && failedSolStatus ? (
-    <ErrorContainer>
-      <ErrorText>
-        There seems to be a network error, please try again later
-      </ErrorText>
-    </ErrorContainer>
-  ) : null
-}
+          ListEmptyComponent={<InfoBanner />}
+        />
 
-      
+        {failedEthStatus && failedSolStatus && (
+          <ErrorContainer>
+            <ErrorText>
+              There seems to be a network error, please try again later
+            </ErrorText>
+          </ErrorContainer>
+        )}
+
+
       </ContentContainer>
       {!bottomSheetIndexLoading && (
         <BottomSheet
@@ -678,51 +656,51 @@ const mergedAndSortedTransactions = useMemo(() => {
             <CryptoInfoCardContainer>
 
 
-             {ethereumAssets.map((asset) => (
-               <CardView key={asset.key}>
-           {console.log("ethereumAssets",formatDollarRaw(asset.usdValue))}  
-    <CryptoInfoCard
-     onPress={() => {
-  handleSelectChain(asset.chainId, asset.address);
+              {ethereumAssets.map((asset) => (
+                <CardView key={asset.key}>
+                  {console.log("ethereumAssets", formatDollarRaw(asset.usdValue))}
+                  <CryptoInfoCard
+                    onPress={() => {
+                      handleSelectChain(asset.chainId, asset.address);
 
-  router.push({
-    pathname: `/token/${asset.name.toLowerCase()}`,
-    params: {
-      asset: JSON.stringify({
-        symbol: asset.symbol.toUpperCase(),
-        numberOfTokens: asset.balance,
-        chainId: asset.chainId,
-        address: asset.address,
-        price: formatDollarRaw(asset.usdValue),
-      }),
-    },
-  });
-}}
+                      router.push({
+                        pathname: `/token/${asset.name.toLowerCase()}`,
+                        params: {
+                          asset: JSON.stringify({
+                            symbol: asset.symbol.toUpperCase(),
+                            numberOfTokens: asset.balance,
+                            chainId: asset.chainId,
+                            address: asset.address,
+                            price: formatDollarRaw(asset.usdValue),
+                          }),
+                        },
+                      });
+                    }}
 
-  title={asset.name}
-      caption={`${asset.balance} ${asset.symbol}`}
-      details={formatDollar(asset.usdValue)}
-      icon={asset.icon}
-      hideBackground
-    />
-  </CardView>
-))}
+                    title={asset.name}
+                    caption={`${asset.balance} ${asset.symbol}`}
+                    details={formatDollar(asset.usdValue)}
+                    icon={asset.icon}
+                    hideBackground
+                  />
+                </CardView>
+              ))}
 
               <CardView>
                 <CryptoInfoCard
                   onPress={() => router.push(
                     {
                       pathname: ROUTES.solDetails,
-                        params: {
-      asset: JSON.stringify({
-        symbol: "SOL" ,
-        numberOfTokens: solBalance,
-        chainId: 101,
-        address: solWalletAddress,
-        price: formatDollarRaw(prices[101]?.usd * solBalance),
-        
-      }),
-    },
+                      params: {
+                        asset: JSON.stringify({
+                          symbol: "SOL",
+                          numberOfTokens: solBalance,
+                          chainId: 101,
+                          address: solWalletAddress,
+                          price: formatDollarRaw(prices[101]?.usd * solBalance),
+
+                        }),
+                      },
                     }
                   )}
                   title="Solana"
