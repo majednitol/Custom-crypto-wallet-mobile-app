@@ -4356,6 +4356,11 @@
     "@urql/core" "^5.1.2"
     wonka "^6.3.2"
 
+"@vnaidin/react-native-cryptocurrency-icons@^0.0.28":
+  version "0.0.28"
+  resolved "https://registry.npmjs.org/@vnaidin/react-native-cryptocurrency-icons/-/react-native-cryptocurrency-icons-0.0.28.tgz"
+  integrity sha512-OfwmaV4YKfdx0ZmJ72NKvBaUs9tDuXhH1O2jJ1HlqTu+AhYVemq6Tzwz0lwZ9i0os5rTZTvTrqOvyU14/fcN5g==
+
 "@wormhole-foundation/sdk-algorand-core@4.9.1":
   version "4.9.1"
   resolved "https://registry.npmjs.org/@wormhole-foundation/sdk-algorand-core/-/sdk-algorand-core-4.9.1.tgz"

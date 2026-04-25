@@ -9,8 +9,7 @@ import type { ThemeType } from "../../../styles/theme";
 import type { RootState } from "../../../store";
 import type { AddressState, SAddressState } from "../../../store/types";
 import EditIcon from "../../../assets/svg/edit.svg";
-import SolanaIcon from "../../../assets/svg/solana.svg";
-import EthereumPlainIcon from "../../../assets/svg/ethereum_plain.svg";
+import { BlockchainIcon } from "../../../components/BlockchainIcon/BlockchainIcon";
 import CopyIcon from "../../../assets/svg/copy.svg";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 
@@ -187,7 +186,7 @@ const ethereumAccount = useSelector((state: RootState) => {
           <AccountSettingsContainer>
             <CryptoSection isTop>
               <IconContainer>
-                <EthereumPlainIcon width={25} height={25} />
+                <BlockchainIcon symbol="eth" size={25} />
               </IconContainer>
               <CryptoName>Ethereum</CryptoName>
             </CryptoSection>
@@ -210,7 +209,7 @@ const ethereumAccount = useSelector((state: RootState) => {
           <AccountSettingsContainer>
             <CryptoSection isTop>
               <IconContainer>
-                <SolanaIcon width={25} height={25} />
+                <BlockchainIcon symbol="sol" size={25} />
               </IconContainer>
               <CryptoName>Solana</CryptoName>
             </CryptoSection>

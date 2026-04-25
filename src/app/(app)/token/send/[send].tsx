@@ -1,5 +1,5 @@
 import { useState, ChangeEvent, useRef, act } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
@@ -10,8 +10,9 @@ import { TICKERS } from "../../../../constants/tickers";
 import { ROUTES } from "../../../../constants/routes";
 import type { RootState } from "../../../../store";
 import { Chains } from "../../../../types";
-import SolanaIcon from "../../../../assets/svg/solana.svg";
-import EthereumIcon from "../../../../assets/svg/ethereum_plain.svg";
+import { BlockchainIcon } from "../../../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../../../utils/getChainIconSymbol";
+import NETWORKS from "../../../../services/defaultNetwork";
 import { capitalizeFirstLetter } from "../../../../utils/capitalizeFirstLetter";
 import { formatDollar } from "../../../../utils/formatDollars";
 // import ethService from "../../../../services/EthereumService";
@@ -50,22 +51,32 @@ const IconView = styled.View<{ theme: ThemeType }>`
 `;
 
 const IconBackground = styled.View<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.ethereum};
+  background-color: ${(props) => props.theme.colors.lightDark};
   border-radius: 100px;
-  padding: ${(props) => props.theme.spacing.large};
+  width: 100px;
+  height: 100px;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid ${({ theme }) => theme.colors.grey};
+  overflow: hidden;
+  elevation: 5;
+  shadow-color: ${({ theme }) => theme.colors.primary};
+  shadow-offset: 0px 4px;
+  shadow-opacity: 0.3;
+  shadow-radius: 8px;
 `;
 
 const AddressTextInput = styled.TextInput<TextInputProps>`
-  height: 60px;
+  height: 64px;
   background-color: ${({ theme }) => theme.colors.lightDark};
   padding: ${({ theme }) => theme.spacing.medium};
-  border: 1px solid
+  border: 1.5px solid
     ${({ theme, isAddressInputFocused }) =>
       isAddressInputFocused ? theme.colors.primary : theme.colors.grey};
-  border-radius: ${({ theme }) => theme.borderRadius.default};
+  border-radius: ${({ theme }) => theme.borderRadius.large};
   color: ${({ theme }) => theme.fonts.colors.primary};
   font-size: ${(props) => props.theme.fonts.sizes.large};
-  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-family: ${(props) => props.theme.fonts.families.openBold};
 `;
 
 const AmountTextInput = styled.TextInput<TextInputProps>`
@@ -77,15 +88,15 @@ const AmountTextInput = styled.TextInput<TextInputProps>`
 `;
 
 const AmountTextInputContainer = styled.View<TextInputProps>`
-  height: 60px;
+  height: 64px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
   background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid
+  border: 1.5px solid
     ${({ theme, isAmountInputFocused }) =>
       isAmountInputFocused ? theme.colors.primary : theme.colors.grey};
-  border-radius: ${({ theme }) => theme.borderRadius.default};
+  border-radius: ${({ theme }) => theme.borderRadius.large};
 `;
 
 const TextView = styled.View<{ theme: ThemeType }>`
@@ -246,14 +257,25 @@ const tokenChainIdParam = Array.isArray(tokenChainId)
   ? tokenChainId[0]
   : tokenChainId;
 
+  const evmNetwork = NETWORKS.find(n => n.chainId === Number(chainId));
+  const evmChainName = evmNetwork?.chainName || "Ethereum";
+
   const renderIcons = () => {
     switch (currentChainName) {
       
       case Chains.Solana:
         console.log("chainName22",chainName);
-        return <SolanaIcon width={45} height={45} />;
+        return <BlockchainIcon symbol="sol" size={70} />;
       case Chains.EVM:
-        return <EthereumIcon width={45} height={45} />;
+        const iconSymbol = tokenSymbolParam 
+          ? (tokenSymbolParam as string) 
+          : getChainIconSymbol(evmChainName, (nativeTokenSymbol as string) || "eth", Number(chainId));
+        return <BlockchainIcon 
+          symbol={iconSymbol} 
+          size={70} 
+          chainId={chainId}
+          chainName={evmChainName}
+        />;
       default:
         return null;
     }
@@ -602,23 +624,18 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
                   </TransactionDetailsText>
                 </TransactionDetailsContainer>
               </TextContainer>
-              <ButtonView>
-                <ButtonContainer>
-                  <Button
-                    backgroundColor={theme.colors.lightDark}
-                    color={theme.colors.white}
-                    onPress={() => router.back()}
-                    title="Cancel"
-                  />
-                </ButtonContainer>
-                <ButtonContainer>
-                  <Button
-                    backgroundColor={theme.colors.primary}
-                    onPress={handleSubmit}
-                    title="Next"
-                  />
-                </ButtonContainer>
-              </ButtonView>
+              <FooterContainer>
+                <Button
+                  backgroundColor={theme.colors.lightDark}
+                  onPress={() => router.back()}
+                  title="Cancel"
+                />
+                <View style={{ height: 16 }} />
+                <Button
+                  onPress={() => handleSubmit()}
+                  title="Next"
+                />
+              </FooterContainer>
             </FormWrapper>
           )}
         </Formik>
@@ -626,3 +643,8 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
     </SafeAreaContainer>
   );
 }
+
+const FooterContainer = styled.View`
+  margin-top: auto;
+  padding-top: 24px;
+`;

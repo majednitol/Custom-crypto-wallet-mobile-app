@@ -32,8 +32,9 @@ import { truncateWalletAddress } from "../../../utils/truncateWalletAddress";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import SendIcon from "../../../assets/svg/send.svg";
 import ReceiveIcon from "../../../assets/svg/receive.svg";
-import SolanaIcon from "../../../assets/svg/solana.svg";
-import EthereumIcon from "../../../assets/svg/ethereum_plain.svg";
+import { BlockchainIcon } from "../../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../../utils/getChainIconSymbol";
+import NETWORKS from "../../../services/defaultNetwork";
 import TokenInfoCard from "../../../components/TokenInfoCard/TokenInfoCard";
 import CryptoInfoCard from "../../../components/CryptoInfoCard/CryptoInfoCard";
 import CryptoInfoCardSkeleton from "../../../components/CryptoInfoCard/CryptoInfoCardSkeleton";
@@ -342,7 +343,9 @@ useEffect(() => {
   const ticker = TICKERS[chainName];
   const isSolana = chainName === Chains.Solana;
   const isEvm = blockchainVersion === Chains.EVM;
-  const Icon = isSolana ? SolanaIcon : EthereumIcon;
+
+  const evmNetwork = NETWORKS.find(n => n.chainId === Number(chainId));
+  const evmChainName = evmNetwork?.chainName || "Ethereum";
 
   const fetchAndUpdatePrices = async () => {
     await fetchTokenBalance();
@@ -394,7 +397,7 @@ useEffect(() => {
           title={capitalizeFirstLetter(item.direction)}
           caption={`To ${truncateWalletAddress(item.to)}`}
           details={`${sign} ${item.value} ${item.asset}`}
-          icon={<Icon width={35} height={35} fill={theme.colors.white} />}
+          icon={<BlockchainIcon symbol="sol" size={35} />}
         />
       );
     }
@@ -406,7 +409,7 @@ useEffect(() => {
           title={capitalizeFirstLetter(item.direction)}
           caption={`To ${truncateWalletAddress(item.to)}`}
           details={`${sign} ${item.value} ${item.asset}`}
-          icon={<Icon width={35} height={35} fill={theme.colors.white} />}
+          icon={<BlockchainIcon symbol={item.asset} size={35} />}
         />
       );
     }
@@ -601,7 +604,7 @@ useEffect(() => {
                       },
                     })
                   }
-                  icon={<EthereumIcon width={35} height={35} />}
+                  icon={<BlockchainIcon symbol={data.symbol} size={35} />}
                 />
               );
             })}
@@ -621,7 +624,7 @@ useEffect(() => {
           title="SPL Token"
           caption={t.mint.slice(0, 6) + "..."}
           details={`${data.amount}`}
-          icon={<SolanaIcon width={35} height={35} />}
+          icon={<BlockchainIcon symbol="sol" size={35} />}
           onPress={() =>
             router.push({
               pathname: `token/send/solana`,

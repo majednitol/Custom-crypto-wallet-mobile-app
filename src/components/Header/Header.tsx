@@ -76,8 +76,15 @@ const Header: React.FC = () => {
       </LeftContainer>
 
       <CenterContainer onPress={() => router.push(ROUTES.accounts)}>
-        <HeaderText>{activeAccountName}</HeaderText>
-        <DownArrowIcon width={30} height={30} fill={theme.colors.white} />
+        <HeaderText numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: 160 }}>
+          {activeAccountName}
+        </HeaderText>
+        <DownArrowIcon 
+          width={18} 
+          height={18} 
+          fill={theme.colors.white} 
+          style={{ marginLeft: 4, marginTop: 2 }} 
+        />
       </CenterContainer>
 
       <RightContainer>

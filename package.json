@@ -31,6 +31,7 @@
     "@types/react": "~18.3.12",
     "@uniswap/sdk-core": "^7.10.1",
     "@uniswap/v3-sdk": "^3.27.0",
+    "@vnaidin/react-native-cryptocurrency-icons": "^0.0.28",
     "@wormhole-foundation/sdk": "^4.9.1",
     "@wormhole-foundation/sdk-evm": "^4.9.1",
     "@wormhole-foundation/sdk-solana": "^4.9.1",

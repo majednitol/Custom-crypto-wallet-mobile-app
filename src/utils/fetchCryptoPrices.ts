@@ -147,7 +147,7 @@ export const fetchPricesByChainIds = async (
       if (err.response?.status === 429) {
         console.warn("CoinGecko rate limit hit! Returning $0 for all affected chains.");
       } else {
-        console.error("Error fetching CoinGecko prices:", err.message);
+        console.warn("Error fetching CoinGecko prices:", err.message);
       }
       for (const chainId of chainIds) {
         if (!result[chainId]) result[chainId] = { usd: 0 };

@@ -37,9 +37,8 @@ import SendIcon from "../../assets/svg/send.svg";
 import ReceiveIcon from "../../assets/svg/receive.svg";
 import CryptoInfoCard from "../../components/CryptoInfoCard/CryptoInfoCard";
 import CryptoInfoCardSkeleton from "../../components/CryptoInfoCard/CryptoInfoCardSkeleton";
-import SolanaIcon from "../../assets/svg/solana.svg";
-import EthereumPlainIcon from "../../assets/svg/ethereum_plain.svg";
-import EthereumIcon from "../../assets/svg/ethereum.svg";
+import { BlockchainIcon } from "../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../utils/getChainIconSymbol";
 import { FETCH_PRICES_INTERVAL } from "../../constants/price";
 import { TICKERS } from "../../constants/tickers";
 import { SafeAreaContainer } from "../../components/Styles/Layout.styles";
@@ -231,7 +230,12 @@ export default function Index() {
         address: account.address,
         transactions,
         status,
-        icon: <EthereumIcon width={35} height={35} />,
+        icon: <BlockchainIcon 
+                symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
+                chainId={network.chainId}
+                chainName={network.chainName}
+                size={35} 
+              />,
       });
     });
     console.log("list", list)
@@ -358,8 +362,8 @@ export default function Index() {
 
   const updatePrices = () => {
     if (ethWalletAddress && solWalletAddress) {
-      const ethUsd = ethPrice * ethBalance;
-      const solUsd = prices[101]?.usd * solBalance;
+      const ethUsd = (ethPrice ?? 0) * ethBalance;
+      const solUsd = (prices[101]?.usd ?? 0) * solBalance;
 
       setUsdBalance(ethUsd + solUsd);
       setEthUsd(ethUsd);
@@ -388,7 +392,6 @@ export default function Index() {
     const isSolana = item.asset.toLowerCase() === TICKERS.solana.toLowerCase();
     const isEthereum =
       item.asset.toLowerCase() === TICKERS.ethereum.toLowerCase();
-    const Icon = isSolana ? SolanaIcon : EthereumPlainIcon;
     const sign = item.direction === "received" ? "+" : "-";
     if (isSolana) {
       const caption =
@@ -403,7 +406,7 @@ export default function Index() {
           title={capitalizeFirstLetter(item.direction)}
           caption={caption}
           details={`${sign} ${item.value} ${item.asset}`}
-          icon={<Icon width={35} height={35} fill={theme.colors.white} />}
+          icon={<CryptoIcon symbol={item.asset} size={35} />}
         />
       );
     }
@@ -421,7 +424,7 @@ export default function Index() {
           title={capitalizeFirstLetter(item.direction)}
           caption={caption}
           details={`${sign} ${item.value} ${item.asset}`}
-          icon={<Icon width={35} height={35} fill={theme.colors.white} />}
+          icon={<CryptoIcon symbol={item.asset} size={35} />}
         />
       );
     }
@@ -706,7 +709,7 @@ export default function Index() {
                   title="Solana"
                   caption={`${solBalance} SOL`}
                   details={formatDollar(solUsd)}
-                  icon={<SolanaIcon width={25} height={25} fill="#14F195" />}
+                  icon={<BlockchainIcon symbol="SOL" size={25} />}
                   hideBackground
                 />
               </CardView>

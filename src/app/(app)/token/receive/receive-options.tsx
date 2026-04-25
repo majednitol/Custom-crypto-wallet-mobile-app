@@ -5,8 +5,8 @@ import styled, { useTheme } from "styled-components/native";
 import { useRouter } from "expo-router";
 import { ThemeType } from "../../../../styles/theme";
 import type { RootState } from "../../../../store";
-import Ethereum from "../../../../assets/svg/ethereum.svg";
-import Solana from "../../../../assets/svg/solana.svg";
+import { BlockchainIcon } from "../../../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../../../utils/getChainIconSymbol";
 import CopyIcon from "../../../../assets/svg/copy.svg";
 import QRCodeIcon from "../../../../assets/svg/qr-code.svg";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
@@ -144,7 +144,12 @@ export default function ReceiveOptionsPage() {
               key={`evm-receive-${chainId}`}
               chainName={network.chainName}
               address={address}
-              icon={<Ethereum width={35} height={35} />}
+              icon={<BlockchainIcon 
+                symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
+                chainId={network.chainId}
+                chainName={network.chainName}
+                size={35} 
+              />}
             />
           );
         })}
@@ -154,7 +159,7 @@ export default function ReceiveOptionsPage() {
           <ReceiveCard
             chainName="Solana"
             address={solAddress}
-            icon={<Solana width={25} height={25} />}
+            icon={<BlockchainIcon symbol="sol" size={25} />}
           />
         )}
 

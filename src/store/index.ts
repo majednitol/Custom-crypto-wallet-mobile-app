@@ -70,7 +70,21 @@ export const evmWebSocketMiddleware: Middleware =
 
     service.provider.on("block", async () => {
       try {
-        const balance = await service.getBalance(address);
+        // Some RPCs announce a block before it's fully available for balance queries
+        // We add a small retry loop for resilience
+        let balance: bigint;
+        try {
+          balance = await service.getBalance(address);
+        } catch (initialError: any) {
+          if (initialError.message?.includes("block with number") || initialError.code === -32000) {
+            // Wait 1 second and retry once
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            balance = await service.getBalance(address);
+          } else {
+            throw initialError;
+          }
+        }
+
         store.dispatch(
           updateBalance({
             chainId,
@@ -78,8 +92,12 @@ export const evmWebSocketMiddleware: Middleware =
             balance: Number(formatEther(balance)),
           })
         );
-      } catch (e) {
-        console.error("EVM WS balance error:", e);
+      } catch (e: any) {
+        // Suppress transient RPC errors in production/dev UI to avoid red boxes
+        // Only log if it's a persistent or critical issue
+        if (!e.message?.includes("block with number")) {
+          console.warn("EVM WS balance sync warning:", e.message || e);
+        }
       }
     });
 

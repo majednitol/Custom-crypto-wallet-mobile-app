@@ -92,7 +92,10 @@ console.log("network",network)
 
     return allNFTs; 
   } catch (err: any) {
-    console.error(" Failed to fetch wallet NFTs:", err?.message || err);
+    // Only log critical errors, suppress 404/network errors to avoid red boxes
+    if (err.response?.status !== 404) {
+      console.warn(`[getAllWalletNfts] Error for chain ${chainId}:`, err?.message || err);
+    }
     return [];
   }
 }

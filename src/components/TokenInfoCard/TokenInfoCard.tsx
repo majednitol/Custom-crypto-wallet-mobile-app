@@ -87,8 +87,8 @@ const TokenInfoCard: React.FC<TokenInfoCardProps> = ({
     (state: RootState) => state.ethereum.activeChainId
   );
   const prices = useSelector((state: RootState) => state.price.data);
-  const solPrice = prices[101]?.usd;
-  const ethPrice = prices[activeChainId].usd;
+  const solPrice = prices[101]?.usd ?? 0;
+  const ethPrice = prices[activeChainId]?.usd ?? 0;
 console.log("ethPrice",activeChainId,ethPrice,prices)
   const findTokenPrice = (tokenSymbol: string) => {
     if (tokenSymbol === "ETH") {
@@ -115,7 +115,7 @@ console.log("ethPrice",activeChainId,ethPrice,prices)
       <TokenSectionViewBot>
         <TokenNameLabel>Price</TokenNameLabel>
         <TokenNameText>
-          {tokenSymbol === "SOL" ? solPrice : ethPrice}
+          {tokenSymbol === "SOL" ? formatDollar(solPrice) : formatDollar(ethPrice)}
         </TokenNameText>
       </TokenSectionViewBot>
     </TokenInfoCardContainer>

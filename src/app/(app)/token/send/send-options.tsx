@@ -7,8 +7,8 @@ import { ThemeType } from "../../../../styles/theme";
 import type { RootState } from "../../../../store";
 import { formatDollar } from "../../../../utils/formatDollars";
 import CryptoInfoCard from "../../../../components/CryptoInfoCard/CryptoInfoCard";
-import SolanaIcon from "../../../../assets/svg/solana.svg";
-import EthereumIcon from "../../../../assets/svg/ethereum.svg";
+import { BlockchainIcon } from "../../../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../../../utils/getChainIconSymbol";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
@@ -71,7 +71,12 @@ const ethereumAssets = useMemo(() => {
       address: account.address,
       transactions: account.transactionMetadataByChain[chainId]?.transactions,
       status: account.statusByChain[chainId],
-      icon: <EthereumIcon width={35} height={35} />,
+      icon: <BlockchainIcon 
+              symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
+              chainId={network.chainId}
+              chainName={network.chainName}
+              size={35} 
+            />,
     });
   });
 
@@ -154,7 +159,7 @@ const ethBalance = activeEthAccount?.activeBalance ?? 0;
             title="Solana"
             caption={`${solBalance} SOL`}
             details={formatDollar(solUsd)}
-            icon={<SolanaIcon width={25} height={25} fill="#14F195" />}
+            icon={<BlockchainIcon symbol="sol" size={25} />}
           />
         </CardView>
       </ContentContainer>
