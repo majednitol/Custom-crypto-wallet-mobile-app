@@ -1,5 +1,5 @@
-import { useState, ChangeEvent, useRef, act } from "react";
-import { Platform, View } from "react-native";
+import { useState, ChangeEvent, useRef } from "react";
+import { Platform } from "react-native";
 import { useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
@@ -15,7 +15,6 @@ import { getChainIconSymbol } from "../../../../utils/getChainIconSymbol";
 import NETWORKS from "../../../../services/defaultNetwork";
 import { capitalizeFirstLetter } from "../../../../utils/capitalizeFirstLetter";
 import { formatDollar } from "../../../../utils/formatDollars";
-// import ethService from "../../../../services/EthereumService";
 import solanaService from "../../../../services/SolanaService";
 import Button from "../../../../components/Button/Button";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
@@ -40,7 +39,7 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
   margin-top: ${(props) =>
-    Platform.OS === "android" && props.theme.spacing.huge};
+    Platform.OS === "android" ? props.theme.spacing.huge : "0px"};
 `;
 
 const IconView = styled.View<{ theme: ThemeType }>`
@@ -51,52 +50,47 @@ const IconView = styled.View<{ theme: ThemeType }>`
 `;
 
 const IconBackground = styled.View<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.lightDark};
-  border-radius: 100px;
-  width: 100px;
-  height: 100px;
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 28px;
+  width: 80px;
+  height: 80px;
   justify-content: center;
   align-items: center;
-  border: 2px solid ${({ theme }) => theme.colors.grey};
-  overflow: hidden;
-  elevation: 5;
-  shadow-color: ${({ theme }) => theme.colors.primary};
-  shadow-offset: 0px 4px;
-  shadow-opacity: 0.3;
-  shadow-radius: 8px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
 const AddressTextInput = styled.TextInput<TextInputProps>`
-  height: 64px;
-  background-color: ${({ theme }) => theme.colors.lightDark};
+  height: 56px;
+  background-color: ${({ theme }) => theme.colors.cardBackground};
   padding: ${({ theme }) => theme.spacing.medium};
-  border: 1.5px solid
+  border: 1px solid
     ${({ theme, isAddressInputFocused }) =>
-      isAddressInputFocused ? theme.colors.primary : theme.colors.grey};
-  border-radius: ${({ theme }) => theme.borderRadius.large};
-  color: ${({ theme }) => theme.fonts.colors.primary};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  font-family: ${(props) => props.theme.fonts.families.openBold};
+      isAddressInputFocused ? theme.colors.primary : theme.colors.border};
+  border-radius: 16px;
+  color: ${({ theme }) => theme.colors.white};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
 `;
 
 const AmountTextInput = styled.TextInput<TextInputProps>`
-  height: 60px;
-  color: ${({ theme }) => theme.fonts.colors.primary};
+  flex: 1;
+  color: ${({ theme }) => theme.colors.white};
   font-size: ${(props) => props.theme.fonts.sizes.large};
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  padding: ${({ theme }) => theme.spacing.medium};
+  padding-horizontal: ${({ theme }) => theme.spacing.medium};
 `;
 
 const AmountTextInputContainer = styled.View<TextInputProps>`
-  height: 64px;
+
+  height: 56px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1.5px solid
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  border: 1px solid
     ${({ theme, isAmountInputFocused }) =>
-      isAmountInputFocused ? theme.colors.primary : theme.colors.grey};
-  border-radius: ${({ theme }) => theme.borderRadius.large};
+      isAmountInputFocused ? theme.colors.primary : theme.colors.border};
+  border-radius: 16px;
 `;
 
 const TextView = styled.View<{ theme: ThemeType }>`
@@ -109,14 +103,14 @@ const TextContainer = styled.View<{ theme: ThemeType }>`
 
 const TransactionDetailsContainer = styled.View<{ theme: ThemeType }>`
   flex-direction: row;
-  background-color: ${(props) => props.theme.colors.dark};
   justify-content: space-between;
   width: 100%;
+  margin-top: 8px;
 `;
 
 const TransactionDetailsText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${(props) => props.theme.colors.lightGrey};
 `;
 
@@ -129,11 +123,11 @@ const ErrorText = styled.Text<{ theme: ThemeType }>`
 
 const MaxButton = styled.TouchableOpacity<{ theme: ThemeType }>`
   background-color: ${(props) => props.theme.colors.primary};
-  padding: ${(props) => props.theme.spacing.medium};
-  border-radius: ${(props) => props.theme.borderRadius.default};
+  padding: 8px 14px;
+  border-radius: 10px;
   align-items: center;
   justify-content: center;
-  margin-right: 2px;
+  margin-right: 6px;
 `;
 
 const TickerText = styled.Text<{ theme: ThemeType }>`
@@ -146,10 +140,9 @@ const TickerText = styled.Text<{ theme: ThemeType }>`
 
 const MaxText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${(props) => props.theme.colors.white};
   text-align: center;
-  width: 50px;
 `;
 
 const AmountDetailsView = styled.View<{ theme: ThemeType }>`
@@ -157,91 +150,101 @@ const AmountDetailsView = styled.View<{ theme: ThemeType }>`
   align-items: center;
 `;
 
-const ButtonContainer = styled.View<{ theme: ThemeType }>`
-  margin-bottom: ${(props) => props.theme.spacing.medium};
-`;
-
-const ButtonView = styled.View<{ theme: ThemeType }>``;
-
 const FormWrapper = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: space-between;
+`;
+
+const FooterContainer = styled.View`
+  margin-top: auto;
+  padding-top: 24px;
+  gap: 12px;
+`;
+
+const CancelButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: 16px;
+  padding: 16px;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CancelText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.white};
 `;
 
 interface FormValues {
   address: string;
   amount: string;
 }
+
 export default function SendPage() {
-  // const { send, toAddress } = useLocalSearchParams();
-  const { send, toAddress, token, balance,symbol, symbol: tokenSymbol, chainId: tokenChainId,Erc20TokenName,erc20tokenAddress,solAddess,chainId ,nativeTokenSymbol} =
-  useLocalSearchParams();
+  const {
+    send,
+    toAddress,
+    token,
+    balance,
+    symbol: tokenSymbol,
+    Erc20TokenName,
+    erc20tokenAddress,
+    solAddess,
+    chainId,
+    nativeTokenSymbol,
+  } = useLocalSearchParams();
 
   const theme = useTheme();
   const formRef = useRef<FormikProps<FormValues>>(null);
 
   const chainName = send as string;
-  console.log("chainName345", balance);
-  
-  let currentChainName = ""; 
- if (chainName === Chains.Solana) {
+  let currentChainName = "";
+  if (chainName === Chains.Solana) {
     currentChainName = "solana";
- } else {
-   currentChainName = "ethereum";
+  } else {
+    currentChainName = "ethereum";
   }
 
   const toWalletAddress = toAddress as string;
   const ticker = TICKERS[currentChainName];
- console.log("solAddessfe2fer3gfr3gfr3",solAddess)
 
   const activeChainId = useSelector(
-  (state: RootState) => state.ethereum.activeChainId
-);
+    (state: RootState) => state.ethereum.activeChainId
+  );
 
-const activeEthIndex = useSelector(
-  (state: RootState) =>
-    state.ethereum.activeIndex[activeChainId] ?? 0
-);
-  // const service = evmServices[activeChainId];
+  const activeEthIndex = useSelector(
+    (state: RootState) => state.ethereum.activeIndex[activeChainId] ?? 0
+  );
 
-const service = evmServices[activeChainId];
-// check before usage
-if (currentChainName === Chains.EVM && !service) {
-  console.warn(`EVM service not initialized for chain ${activeChainId}`);
-}
+  const service = evmServices[activeChainId];
+  if (currentChainName === Chains.EVM && !service) {
+    console.warn(`EVM service not initialized for chain ${activeChainId}`);
+  }
 
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
-const tokenBalance = useSelector((state: RootState) => {
-  if (currentChainName == "ethereum") {
 
-    const activeEthIndex = state.ethereum.activeIndex[state.ethereum.activeChainId] ?? 0;
-
-    console.log("tokenBalance",state.ethereum.globalAddresses?.[activeEthIndex]. balanceByChain[state.ethereum.activeChainId])  
-    return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[state.ethereum.activeChainId]; 
-  } else if (currentChainName === Chains.Solana) {
-    if (token) {
-      // SPL token balance
-      return tokenParam
-  ? state.solToken.balances[tokenParam]?.amount ?? 0
-  : 0
-
+  const tokenBalance = useSelector((state: RootState) => {
+    if (currentChainName == "ethereum") {
+      const activeEthIndex =
+        state.ethereum.activeIndex[state.ethereum.activeChainId] ?? 0;
+      return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[
+        state.ethereum.activeChainId
+      ];
+    } else if (currentChainName === Chains.Solana) {
+      if (token) {
+        return tokenParam
+          ? state.solToken.balances[tokenParam]?.amount ?? 0
+          : 0;
+      }
+      const activeSolIndex = state.solana.activeIndex ?? 0;
+      return state.solana.addresses[activeSolIndex].balance;
     }
+    return undefined;
+  });
 
-    // Native SOL
-    const activeSolIndex = state.solana.activeIndex ?? 0;
-    return state.solana.addresses[activeSolIndex].balance;
-  }
-  return undefined;
-});
-console.log(currentChainName, activeChainId, activeEthIndex, activeSolIndex, tokenBalance)
- 
-
-
-
-
-// const failedStatus = activeAccount?.status === GeneralStatus.Failed ?? false;
   const address = useSelector(
     (state: RootState) => state["solana"]?.addresses[activeSolIndex]?.address
   );
@@ -251,31 +254,34 @@ console.log(currentChainName, activeChainId, activeEthIndex, activeSolIndex, tok
 
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);
-const tokenParam = Array.isArray(token) ? token[0] : token;
-const tokenSymbolParam = Array.isArray(tokenSymbol) ? tokenSymbol[0] : tokenSymbol;
-const tokenChainIdParam = Array.isArray(tokenChainId)
-  ? tokenChainId[0]
-  : tokenChainId;
+  const tokenParam = Array.isArray(token) ? token[0] : token;
+  const tokenSymbolParam = Array.isArray(tokenSymbol)
+    ? tokenSymbol[0]
+    : tokenSymbol;
 
-  const evmNetwork = NETWORKS.find(n => n.chainId === Number(chainId));
+  const evmNetwork = NETWORKS.find((n) => n.chainId === Number(chainId));
   const evmChainName = evmNetwork?.chainName || "Ethereum";
 
   const renderIcons = () => {
     switch (currentChainName) {
-      
       case Chains.Solana:
-        console.log("chainName22",chainName);
-        return <BlockchainIcon symbol="sol" size={70} />;
+        return <BlockchainIcon symbol="sol" size={56} />;
       case Chains.EVM:
-        const iconSymbol = tokenSymbolParam 
-          ? (tokenSymbolParam as string) 
-          : getChainIconSymbol(evmChainName, (nativeTokenSymbol as string) || "eth", Number(chainId));
-        return <BlockchainIcon 
-          symbol={iconSymbol} 
-          size={70} 
-          chainId={chainId}
-          chainName={evmChainName}
-        />;
+        const iconSymbol = tokenSymbolParam
+          ? (tokenSymbolParam as string)
+          : getChainIconSymbol(
+              evmChainName,
+              (nativeTokenSymbol as string) || "eth",
+              Number(chainId)
+            );
+        return (
+          <BlockchainIcon
+            symbol={iconSymbol}
+            size={56}
+            chainId={chainId}
+            chainName={evmChainName}
+          />
+        );
       default:
         return null;
     }
@@ -283,23 +289,15 @@ const tokenChainIdParam = Array.isArray(tokenChainId)
 
   const renderDollarAmount = (amountValue: string) => {
     if (amountValue === "") return formatDollar(0);
-// Ensure tokenSymbol is a string
-const tokenSymbolStr = Array.isArray(tokenSymbol) ? tokenSymbol[0] : tokenSymbol;
-
-const chainPrice =
-  currentChainName === Chains.Solana
-    ? token
-      ? prices[tokenParam]?.usd ?? 0
-  // SPL token price
-      : solPrice                 // Native SOL
-    : token
-      ? prices[tokenParam]?.usd ?? 0
-
-      : ethPrice;
-
-console.log("chainPrice",chainPrice)
+    const chainPrice =
+      currentChainName === Chains.Solana
+        ? token
+          ? prices[tokenParam]?.usd ?? 0
+          : solPrice
+        : token
+        ? prices[tokenParam]?.usd ?? 0
+        : ethPrice;
     const USDAmount = chainPrice * parseFloat(amountValue);
-    // console.log("USDAmount45",USDAmount)
     return formatDollar(USDAmount);
   };
 
@@ -319,23 +317,13 @@ console.log("chainPrice",chainPrice)
 
   const validateFields = async (values: FormValues) => {
     const errors: Record<string, string> = {};
-
-    if (!values.address) {
-      errors.address = "This field is required";
-    }
-    if (!values.amount) {
-      errors.amount = "This field is required";
-    }
-
+    if (!values.address) errors.address = "This field is required";
+    if (!values.amount) errors.amount = "This field is required";
     const isAddressValid = await validateAddress(values.address);
-    if (!isAddressValid) {
-      errors.address = "Recipient address is invalid";
-    }
-
+    if (!isAddressValid) errors.address = "Recipient address is invalid";
     if (values.amount && parseFloat(values.amount) > 0) {
       await validateFunds(values, errors);
     }
-
     return errors;
   };
 
@@ -344,34 +332,34 @@ console.log("chainPrice",chainPrice)
       ? EVMService.validateAddress(address)
       : await solanaService.validateAddress(address);
   };
- const rawBalance =
-      Array.isArray(balance) ? balance[0] : balance;
-  const balanceNumber = Number(rawBalance);
-  console.log("balanceNumber",balanceNumber)
+
+  const rawBalance = Array.isArray(balance) ? balance[0] : balance;
+
   const validateFunds = async (
-  values: FormValues,
-  errors: Record<string, string>
-) => {
-  const amount = parseFloat(values.amount);
-  const nativeBalance =
-    typeof tokenBalance === "string" ? parseFloat(tokenBalance) : tokenBalance;
-  const erc20Balance = Array.isArray(balance) ? balance[0] : balance;
+    values: FormValues,
+    errors: Record<string, string>
+  ) => {
+    const amount = parseFloat(values.amount);
+    const nativeBalance =
+      typeof tokenBalance === "string"
+        ? parseFloat(tokenBalance)
+        : tokenBalance;
+    const erc20Balance = Array.isArray(balance) ? balance[0] : balance;
 
-  if (!token) {
-    if (amount > Number(nativeBalance)) {
-      errors.amount = "Insufficient funds";
+    if (!token) {
+      if (amount > Number(nativeBalance)) {
+        errors.amount = "Insufficient funds";
+      } else {
+        await calculateCostsAndValidate(amount, values.address, errors);
+      }
     } else {
-      await calculateCostsAndValidate(amount, values.address, errors);
+      if (amount > Number(erc20Balance)) {
+        errors.amount = "Insufficient funds";
+      } else {
+        await calculateCostsAndValidate(amount, values.address, errors);
+      }
     }
-  } else {
-    if (amount > Number(erc20Balance)) {
-      errors.amount = "Insufficient funds";
-    } else {
-      await calculateCostsAndValidate(amount, values.address, errors);
-    }
-  }
-};
-
+  };
 
   const calculateCostsAndValidate = async (
     amount: number,
@@ -382,49 +370,50 @@ console.log("chainPrice",chainPrice)
       const seedPhrase = await getPhrase();
       try {
         if (token) {
-           const nativeBalance =
-        typeof tokenBalance === "string" ? parseFloat(tokenBalance) : tokenBalance;
-           const { wallet } = EVMService.deriveWalletByIndex(
-                    seedPhrase,
-                    activeEthIndex
-           );
-           const ethPrivateKey = wallet.privateKey;
-           const gasResult  = await service.calculateGasAndAmountsForERC20Transfer(ethPrivateKey, erc20tokenAddress as string, toAddress, amount.toString())
-          
-                  if (!gasResult) {
-          errors.amount = "Failed to estimate gas";
-          return;
-        }
-
-        const gasCostEth = Number(gasResult.gasCostEth);
-console.log("gasCostEth",gasCostEth,  nativeBalance)
-        // 3️⃣ Check native balance for gas only
-        if (gasCostEth > nativeBalance) {
-          errors.amount = "Insufficient native balance for gas fees";
-          return;
-        }
+          const nativeBalance =
+            typeof tokenBalance === "string"
+              ? parseFloat(tokenBalance)
+              : tokenBalance;
+          const { wallet } = EVMService.deriveWalletByIndex(
+            seedPhrase,
+            activeEthIndex
+          );
+          const ethPrivateKey = wallet.privateKey;
+          const gasResult = await service.calculateGasAndAmountsForERC20Transfer(
+            ethPrivateKey,
+            erc20tokenAddress as string,
+            toAddress,
+            amount.toString()
+          );
+          if (!gasResult) {
+            errors.amount = "Failed to estimate gas";
             return;
+          }
+          const gasCostEth = Number(gasResult.gasCostEth);
+          if (gasCostEth > nativeBalance) {
+            errors.amount = "Insufficient native balance for gas fees";
+            return;
+          }
+          return;
         }
-      const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-        toAddress,
-        amount.toString()
-      );
-
-      // Compare using parseFloat to handle decimals safely
-      const balanceNumber =
-        typeof tokenBalance === "string" ? parseFloat(tokenBalance) : tokenBalance;
-console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
-      if (parseFloat(totalCostMinusGas) > balanceNumber) {
-        errors.amount = "Insufficient funds for amount plus gas costs";
+        const { totalCostMinusGas } = await service.calculateGasAndAmounts(
+          toAddress,
+          amount.toString()
+        );
+        const balanceNumber =
+          typeof tokenBalance === "string"
+            ? parseFloat(tokenBalance)
+            : tokenBalance;
+        if (parseFloat(totalCostMinusGas) > balanceNumber) {
+          errors.amount = "Insufficient funds for amount plus gas costs";
+        }
+      } catch (error) {
+        console.error("EVM cost validation failed:", error);
+        errors.amount = "Failed to validate transaction costs";
       }
-    } catch (error) {
-      console.error("EVM cost validation failed:", error);
-      errors.amount = "Failed to validate transaction costs";
-    }
     } else if (currentChainName === Chains.Solana) {
       const transactionFeeLamports =
         await solanaService.calculateTransactionFee(address, toAddress, amount);
-
       const tokenBalanceLamports = amount * LAMPORTS_PER_SOL;
       const maxAmountLamports = tokenBalanceLamports - transactionFeeLamports;
       const maxAmount = maxAmountLamports / LAMPORTS_PER_SOL;
@@ -434,44 +423,16 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
     }
   };
 
-// const calculateCostsAndValidate = async (
-//     amount: number,
-//     toAddress: string,
-//     errors: Record<string, string>
-//   ) => {
-//     if (currentChainName === Chains.EVM) {
-//       const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-//         toAddress,
-//         amount.toString()
-//       );
-//      if (Number(totalCostMinusGas) > (typeof tokenBalance === "string" ? parseFloat(tokenBalance) : tokenBalance)) {
-//   errors.amount = "Insufficient funds for amount plus gas costs";
-// }
-//     } else if (currentChainName === Chains.Solana) {
-//       const transactionFeeLamports =
-//         await solanaService.calculateTransactionFee(address, toAddress, amount);
-
-//       const tokenBalanceLamports = amount * LAMPORTS_PER_SOL;
-//       const maxAmountLamports = tokenBalanceLamports - transactionFeeLamports;
-//       const maxAmount = maxAmountLamports / LAMPORTS_PER_SOL;
-//       if (maxAmount > amount) {
-//         errors.amount = "Insufficient funds for amount plus transaction fees";
-//       }
-//     }
-//   };
-
   const calculateMaxAmount = async (
     setFieldValue: (field: string, value: any) => void,
     tokenBalance: string,
     address: string
   ) => {
     const toAddress = formRef.current?.values?.address || "";
-
     const isAddressValid =
       currentChainName === Chains.EVM
-        ?  EVMService.validateAddress(toAddress)
+        ? EVMService.validateAddress(toAddress)
         : await solanaService.validateAddress(toAddress);
-
     if (!isAddressValid) {
       formRef.current?.setFieldError(
         "address",
@@ -479,50 +440,44 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
       );
       return;
     }
-
     try {
       if (currentChainName === Chains.EVM) {
-        const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-          address,
-          rawBalance
-        );
-
         if (!token) {
-  // native ETH, subtract gas
-  const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-    address,
-    tokenBalance
-  ); setFieldValue("amount", totalCostMinusGas);
-} else {
-  setFieldValue("amount", tokenBalance);
-}
-        // setFieldValue("amount", totalCostMinusGas);
-      }  else if (currentChainName === Chains.Solana) {
-  if (token) {
-    // SPL token → no fee subtraction
-    setFieldValue("amount", tokenBalance);
-    return;
-  }
-
-  // Native SOL
-  const balanceLamports = Number(tokenBalance) * LAMPORTS_PER_SOL;
-  const feeLamports =
-    await solanaService.calculateTransactionFee(address, toAddress, balanceLamports);
-
-  const maxLamports = balanceLamports - feeLamports;
-  setFieldValue(
-    "amount",
-    Math.max(maxLamports / LAMPORTS_PER_SOL, 0).toString()
-  );
-}
-
+          const { totalCostMinusGas } = await service.calculateGasAndAmounts(
+            address,
+            tokenBalance
+          );
+          setFieldValue("amount", totalCostMinusGas);
+        } else {
+          setFieldValue("amount", tokenBalance);
+        }
+      } else if (currentChainName === Chains.Solana) {
+        if (token) {
+          setFieldValue("amount", tokenBalance);
+          return;
+        }
+        const balanceLamports = Number(tokenBalance) * LAMPORTS_PER_SOL;
+        const feeLamports = await solanaService.calculateTransactionFee(
+          address,
+          toAddress,
+          balanceLamports
+        );
+        const maxLamports = balanceLamports - feeLamports;
+        setFieldValue(
+          "amount",
+          Math.max(maxLamports / LAMPORTS_PER_SOL, 0).toString()
+        );
+      }
     } catch (error) {
       console.error("Failed to calculate max amount:", error);
       setFieldValue("amount", "0");
     }
   };
 
-  const handleSubmit = async (values: { address: string; amount: string }) => {
+  const handleSubmit = async (values: {
+    address: string;
+    amount: string;
+  }) => {
     router.push({
       pathname: ROUTES.sendConfirmation,
       params: {
@@ -534,7 +489,6 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
         token: token,
         erc20tokenAddress: erc20tokenAddress,
         solAddess: solAddess,
-        
       },
     });
   };
@@ -591,15 +545,14 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
                       onEndEditing={() => setIsAmountInputFocused(false)}
                       placeholderTextColor={theme.colors.lightGrey}
                       keyboardType="numeric"
-                    /> 
+                    />
                     <AmountDetailsView>
-                     <TickerText>
-  {tokenSymbolParam || (currentChainName === Chains.Solana ? "SOL" : nativeTokenSymbol)}
-
-
-</TickerText>
-
-
+                      <TickerText>
+                        {tokenSymbolParam ||
+                          (currentChainName === Chains.Solana
+                            ? "SOL"
+                            : nativeTokenSymbol)}
+                      </TickerText>
                       <MaxButton
                         onPress={() =>
                           calculateMaxAmount(
@@ -620,21 +573,20 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
                     {renderDollarAmount(values.amount)}
                   </TransactionDetailsText>
                   <TransactionDetailsText>
-                     Available {token ?balance  : tokenBalance} {tokenSymbol || nativeTokenSymbol}
+                    Available {token ? balance : tokenBalance}{" "}
+                    {tokenSymbol || nativeTokenSymbol}
                   </TransactionDetailsText>
                 </TransactionDetailsContainer>
               </TextContainer>
               <FooterContainer>
                 <Button
-                  backgroundColor={theme.colors.lightDark}
-                  onPress={() => router.back()}
-                  title="Cancel"
-                />
-                <View style={{ height: 16 }} />
-                <Button
+                  backgroundColor={theme.colors.primary}
                   onPress={() => handleSubmit()}
                   title="Next"
                 />
+                <CancelButton onPress={() => router.back()}>
+                  <CancelText>Cancel</CancelText>
+                </CancelButton>
               </FooterContainer>
             </FormWrapper>
           )}
@@ -643,8 +595,3 @@ console.log(" totalCostMinusGas ",totalCostMinusGas,balanceNumber )
     </SafeAreaContainer>
   );
 }
-
-const FooterContainer = styled.View`
-  margin-top: auto;
-  padding-top: 24px;
-`;

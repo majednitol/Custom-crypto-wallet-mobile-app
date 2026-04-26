@@ -1,6 +1,5 @@
 import { TouchableOpacity } from "react-native";
 import styled from "styled-components/native";
-// import { scale, verticalScale, moderateScale } from "react-native-size-matters";
 import { ThemeType } from "../../styles/theme";
 
 interface BubbleContainerProps {
@@ -9,37 +8,39 @@ interface BubbleContainerProps {
 }
 
 const BubbleContainer = styled.View<BubbleContainerProps>`
-  background-color: ${({ theme }) => theme.colors.dark};
+  background-color: ${({ theme }) => theme.colors.cardBackground};
   padding: ${({ theme, smallBubble }) =>
     smallBubble ? "0px" : theme.spacing.small};
-  border-radius: ${({ theme }) => theme.borderRadius.extraLarge};
+  border-radius: 16px;
   border-width: 1px;
-  border-color: ${({ theme }) => theme.colors.grey};
+  border-color: ${({ theme }) => theme.colors.border};
   margin: 5px;
-  height: ${({ smallBubble }) => (smallBubble ? "40px" : "60px")};
+  height: ${({ smallBubble }) => (smallBubble ? "40px" : "56px")};
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-around;
-  width: ${({ smallBubble }) => (smallBubble ? "100px" : "150px")};
+  width: ${({ smallBubble }) => (smallBubble ? "100px" : "148px")};
+`;
+
+const BubbleNumber = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.primary};
+  min-width: 22px;
+  text-align: center;
 `;
 
 const BubbleText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  color: ${(props) => props.theme.colors.white};
 `;
 
-const BubbleNumber = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
-`;
-
-const Line = styled.Text`
-  background-color: ${({ theme }) => theme.colors.grey};
+const Line = styled.View`
+  background-color: ${({ theme }) => theme.colors.border};
   height: 50%;
-  width: 2px;
+  width: 1px;
 `;
 
 interface BubbleProps {
@@ -59,10 +60,10 @@ const Bubble = ({
 }: BubbleProps) => {
   const num = number.toString();
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       <BubbleContainer smallBubble={smallBubble}>
         {!hideDetails ? <BubbleNumber>{num}</BubbleNumber> : null}
-        {!hideDetails ? <Line></Line> : null}
+        {!hideDetails ? <Line /> : null}
         <BubbleText>{word}</BubbleText>
       </BubbleContainer>
     </TouchableOpacity>

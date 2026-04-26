@@ -1,17 +1,17 @@
 // components/EvmWallet.tsx
 import React, { useState } from "react";
-
 import {
   View,
-  Text,
   FlatList,
-  TouchableOpacity,
   TextInput,
   Modal,
-  Button,
   Alert,
-  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
+import styled, { useTheme } from "styled-components/native";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { CustomNetwork } from "../store/types";
@@ -21,10 +21,200 @@ import {
   setActiveChain,
   updateNetwork,
 } from "../store/ethereumSlice";
+import { ThemeType } from "../styles/theme";
+import EditIcon from "../assets/svg/edit.svg";
+import TrashIcon from "../assets/svg/clear.svg";
+import CloseIcon from "../assets/svg/close.svg";
+import CheckIcon from "../assets/svg/check.svg";
+import { BlockchainIcon } from "./BlockchainIcon/BlockchainIcon";
+
+const ScrollWrapper = styled.ScrollView`
+  flex: 1;
+`;
+
+const ListContent = styled.View`
+  padding: 16px;
+  padding-top: 8px;
+  padding-bottom: 32px;
+`;
+
+const SectionTitle = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.header};
+  color: ${(props) => props.theme.fonts.colors.primary};
+  margin-bottom: 16px;
+`;
+
+const NetworkCard = styled.TouchableOpacity<{ theme: ThemeType; isActive?: boolean }>`
+  flex-direction: row;
+  align-items: center;
+  background-color: ${({ theme, isActive }) =>
+    isActive ? "rgba(240, 185, 11, 0.1)" : theme.colors.cardBackground};
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid ${({ theme, isActive }) =>
+    isActive ? "rgba(240, 185, 11, 0.4)" : theme.colors.border};
+`;
+
+const NetworkIconContainer = styled.View`
+  justify-content: center;
+  align-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background-color: rgba(240, 185, 11, 0.12);
+  margin-right: 14px;
+`;
+
+const NetworkInfo = styled.View`
+  flex: 1;
+  margin-right: 12px;
+`;
+
+const NetworkName = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.white};
+  margin-bottom: 2px;
+`;
+
+const NetworkMeta = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
+`;
+
+const ActionButtons = styled.View`
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+`;
+
+const IconButton = styled.TouchableOpacity`
+  justify-content: center;
+  align-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background-color: ${({ theme }) => theme.colors.primary};
+`;
+
+const AddButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.primary};
+  border-radius: 12px;
+  padding: 16px;
+  align-items: center;
+  margin-top: 8px;
+`;
+
+const AddButtonText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.dark};
+`;
+
+const EmptyState = styled.View`
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+`;
+
+const EmptyText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.lightGrey};
+`;
+
+const ModalOverlay = styled.View`
+  flex: 1;
+  background-color: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+`;
+
+const ModalContent = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ModalHeader = styled.View`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const ModalTitle = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.title};
+  color: ${(props) => props.theme.colors.white};
+`;
+
+const CloseButton = styled.TouchableOpacity`
+  justify-content: center;
+  align-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-color: ${({ theme }) => theme.colors.grey};
+`;
+
+const Input = styled.TextInput<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.dark};
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: ${(props) => props.theme.colors.white};
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  margin-bottom: 12px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ModalButtons = styled.View`
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 8px;
+`;
+
+const CancelButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  flex: 1;
+  background-color: ${(props) => props.theme.colors.grey};
+  border-radius: 12px;
+  padding: 14px;
+  align-items: center;
+`;
+
+const CancelButtonText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.white};
+`;
+
+const SaveButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  flex: 1;
+  background-color: ${(props) => props.theme.colors.primary};
+  border-radius: 12px;
+  padding: 14px;
+  align-items: center;
+`;
+
+const SaveButtonText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.dark};
+`;
 
 export const EvmWallet = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const theme = useTheme();
   const networks = useSelector((state: RootState) => state.ethereum.networks);
+  const activeChainId = useSelector((state: RootState) => state.ethereum.activeChainId);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [networkName, setNetworkName] = useState("");
@@ -33,12 +223,11 @@ export const EvmWallet = () => {
   const [symbol, setSymbol] = useState("");
   const [editingNetworkId, setEditingNetworkId] = useState<number | null>(null);
 
-  // -------------------- Add / Update Network --------------------
   const handleSaveNetwork = () => {
     if (!networkName || !chainId || !rpcUrl || !symbol) return;
 
     const network: CustomNetwork = {
-      chainType : "EVM",
+      chainType: "EVM",
       chainId: Number(chainId),
       chainName: networkName,
       rpcUrl,
@@ -51,6 +240,10 @@ export const EvmWallet = () => {
       dispatch(addNetwork(network));
     }
 
+    resetForm();
+  };
+
+  const resetForm = () => {
     setNetworkName("");
     setChainId("");
     setRpcUrl("");
@@ -68,137 +261,172 @@ export const EvmWallet = () => {
     setModalVisible(true);
   };
 
-  const handleRemoveNetwork = (chainId: number) => {
+  const handleRemoveNetwork = (network: CustomNetwork) => {
     Alert.alert(
       "Remove Network",
-      "Are you sure you want to remove this network?",
+      `Are you sure you want to remove ${network.chainName}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => dispatch(removeNetwork(chainId)),
+          onPress: () => dispatch(removeNetwork(network.chainId)),
         },
       ]
     );
   };
 
-  const handleSetActiveNetwork = (chainId: number) => {
+  const handleSetActive = (chainId: number) => {
     dispatch(setActiveChain(chainId));
   };
 
-  // -------------------- Render Network --------------------
-  const renderNetwork = (network: CustomNetwork) => {
+  const renderNetwork = ({ item }: { item: CustomNetwork }) => {
+    const isActive = item.chainId === activeChainId;
+
     return (
-      <View key={network.chainId} style={styles.networkContainer}>
-        
-        <View style={styles.networkActions}>
-          <Button title="Edit" onPress={() => handleEditNetwork(network)} />
-          <Button
-            title="Remove"
-            color="red"
-            onPress={() => handleRemoveNetwork(network.chainId)}
-          />
-        </View>
-      </View>
+      <NetworkCard
+        isActive={isActive}
+        onPress={() => handleSetActive(item.chainId)}
+        activeOpacity={0.7}
+      >
+        <NetworkIconContainer>
+          <BlockchainIcon symbol={item.symbol} size={28} />
+        </NetworkIconContainer>
+        <NetworkInfo>
+          <NetworkName>
+            {item.chainName} {isActive && "• Active"}
+          </NetworkName>
+          <NetworkMeta>
+            Chain ID: {item.chainId} · {item.symbol}
+          </NetworkMeta>
+        </NetworkInfo>
+        <ActionButtons>
+          <IconButton onPress={() => handleEditNetwork(item)}>
+            <EditIcon width={16} height={16} fill={theme.colors.lightGrey} />
+          </IconButton>
+          <IconButton onPress={() => handleRemoveNetwork(item)}>
+            <TrashIcon width={16} height={16} fill={theme.colors.error} />
+          </IconButton>
+        </ActionButtons>
+      </NetworkCard>
     );
   };
 
+  const networkList = Object.values(networks);
+
   return (
-    <View style={{ flex: 1 }}>
-      {Object.keys(networks).length === 0 && (
-        <View style={styles.center}>
-          <Text style={styles.infoText}>No EVM network added</Text>
-        </View>
-      )}
+    <ScrollWrapper showsVerticalScrollIndicator={false}>
+      <ListContent>
+        <SectionTitle>Networks</SectionTitle>
 
-      <FlatList
-        data={Object.values(networks)}
-        keyExtractor={(item) => item.chainId?.toString()}
-        renderItem={({ item }) => renderNetwork(item)}
-        contentContainerStyle={styles.listContainer}
-      />
+        {networkList.length === 0 ? (
+          <EmptyState>
+            <EmptyText>No custom networks added yet</EmptyText>
+          </EmptyState>
+        ) : (
+          networkList.map((item) => (
+            <NetworkCard
+              key={item.chainId}
+              isActive={item.chainId === activeChainId}
+              onPress={() => handleSetActive(item.chainId)}
+              activeOpacity={0.7}
+            >
+              <NetworkIconContainer>
+                <BlockchainIcon symbol={item.symbol} size={28} />
+              </NetworkIconContainer>
+          <NetworkInfo>
+            <NetworkName numberOfLines={1} ellipsizeMode="tail">
+              {item.chainName} {item.chainId === activeChainId && "• Active"}
+            </NetworkName>
+            <NetworkMeta numberOfLines={1} ellipsizeMode="tail">
+              Chain ID: {item.chainId} · {item.symbol}
+            </NetworkMeta>
+          </NetworkInfo>
+              <ActionButtons>
+                <IconButton onPress={() => handleEditNetwork(item)}>
+                  <EditIcon width={16} height={16} fill={theme.colors.dark} />
+                </IconButton>
+                <IconButton onPress={() => handleRemoveNetwork(item)}>
+                  <TrashIcon width={16} height={16} fill={theme.colors.dark} />
+                </IconButton>
+              </ActionButtons>
+            </NetworkCard>
+          ))
+        )}
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.addButtonText}>Add Network</Text>
-      </TouchableOpacity>
+        <AddButton onPress={() => setModalVisible(true)}>
+          <AddButtonText>Add Network</AddButtonText>
+        </AddButton>
+      </ListContent>
 
-      {/* Add / Edit Network Modal */}
       <Modal
         visible={modalVisible}
         transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        animationType="fade"
+        onRequestClose={resetForm}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingNetworkId !== null ? "Edit EVM Network" : "Add EVM Network"}
-            </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ModalOverlay>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ width: "100%", maxWidth: 400 }}
+            >
+              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+                <ModalContent>
+                  <ModalHeader>
+                    <ModalTitle>
+                      {editingNetworkId !== null ? "Edit Network" : "Add EVM Network"}
+                    </ModalTitle>
+                    <CloseButton onPress={resetForm}>
+                      <CloseIcon width={18} height={18} fill={theme.colors.lightGrey} />
+                    </CloseButton>
+                  </ModalHeader>
 
-            <TextInput
-              placeholder="Network Name"
-              style={styles.input}
-              value={networkName}
-              onChangeText={setNetworkName}
-            />
-            <TextInput
-              placeholder="Chain ID"
-              style={styles.input}
-              value={chainId}
-              onChangeText={setChainId}
-              keyboardType="numeric"
-              editable={editingNetworkId === null}
-            />
-            <TextInput
-              placeholder="RPC URL"
-              style={styles.input}
-              value={rpcUrl}
-              onChangeText={setRpcUrl}
-            />
-            <TextInput
-              placeholder="Symbol"
-              style={styles.input}
-              value={symbol}
-              onChangeText={setSymbol}
-            />
+                  <Input
+                    placeholder="Network Name"
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={networkName}
+                    onChangeText={setNetworkName}
+                  />
+                  <Input
+                    placeholder="Chain ID"
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={chainId}
+                    onChangeText={setChainId}
+                    keyboardType="numeric"
+                    editable={editingNetworkId === null}
+                  />
+                  <Input
+                    placeholder="RPC URL"
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={rpcUrl}
+                    onChangeText={setRpcUrl}
+                    autoCapitalize="none"
+                  />
+                  <Input
+                    placeholder="Symbol"
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={symbol}
+                    onChangeText={setSymbol}
+                    autoCapitalize="characters"
+                  />
 
-            <View style={styles.modalButtons}>
-              <Button title="Cancel" onPress={() => setModalVisible(false)} />
-              <Button
-                title={editingNetworkId !== null ? "Update" : "Add"}
-                onPress={handleSaveNetwork}
-              />
-            </View>
-          </View>
-        </View>
+                  <ModalButtons>
+                    <CancelButton onPress={resetForm}>
+                      <CancelButtonText>Cancel</CancelButtonText>
+                    </CancelButton>
+                    <SaveButton onPress={handleSaveNetwork}>
+                      <SaveButtonText>
+                        {editingNetworkId !== null ? "Update" : "Add"}
+                      </SaveButtonText>
+                    </SaveButton>
+                  </ModalButtons>
+                </ModalContent>
+              </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+          </ModalOverlay>
+        </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </ScrollWrapper>
   );
 };
-
-// -------------------- Styles --------------------
-const styles = StyleSheet.create({
-  listContainer: { padding: 16 },
-  networkContainer: { marginBottom: 24 },
-  networkTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 8 },
-  networkActions: { flexDirection: "row", gap: 8, justifyContent: "space-between" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
-  infoText: { fontSize: 14, color: "#555" },
-  addButton: {
-    backgroundColor: "#4A90E2",
-    padding: 12,
-    borderRadius: 10,
-    alignItems: "center",
-    margin: 16,
-  },
-  addButtonText: { color: "#fff", fontWeight: "bold" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "center", alignItems: "center" },
-  modalContent: { backgroundColor: "#fff", padding: 24, borderRadius: 12, width: "90%" },
-  modalTitle: { fontSize: 16, fontWeight: "bold", marginBottom: 16, textAlign: "center" },
-  input: { borderWidth: 1, borderColor: "#ccc", borderRadius: 8, padding: 8, marginBottom: 12 },
-  modalButtons: { flexDirection: "row", justifyContent: "space-between" },
-});

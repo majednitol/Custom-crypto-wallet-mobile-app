@@ -1,5 +1,5 @@
 import * as Clipboard from "expo-clipboard";
-import { Platform } from "react-native";
+import { Platform, ScrollView } from "react-native";
 import { useSelector } from "react-redux";
 import styled, { useTheme } from "styled-components/native";
 import { useRouter } from "expo-router";
@@ -15,55 +15,63 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => Platform.OS === "android" && "75px"};
+  padding-top: 50px;
+  padding-bottom: 32px;
+`;
+
+const ScrollContainer = styled(ScrollView)`
+  flex: 1;
 `;
 
 const ReceiveCardsContainer = styled.View<{ theme: ThemeType }>`
-  height: 75px;
+  min-height: 80px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background-color: ${(props) => props.theme.colors.lightDark};
+  background-color: ${(props) => props.theme.colors.cardBackground};
   margin-bottom: ${(props) => props.theme.spacing.medium};
-  border-radius: ${(props) => props.theme.borderRadius.large};
-  padding: ${(props) => props.theme.spacing.medium};
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const ReceiveText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.white};
+  flex-shrink: 1;
 `;
 
 const TextContainer = styled.View<{ theme: ThemeType }>`
   flex-direction: row;
   align-items: center;
+  flex: 1;
+  margin-right: 12px;
 `;
 
 const IconContainer = styled.View<{ theme: ThemeType }>`
   justify-content: center;
   align-items: center;
-  width: 45px;
-  height: 45px;
-  border-radius: 100px;
-  margin-right: 5px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background-color: rgba(240, 185, 11, 0.12);
+  margin-right: 14px;
 `;
 
 const IconView = styled.TouchableOpacity<{ theme: ThemeType }>`
-  flex-direction: row;
   justify-content: center;
   align-items: center;
   background-color: ${(props) => props.theme.colors.primary};
-  border-radius: 50px;
-  padding: ${(props) => props.theme.spacing.medium};
-  height: 45px;
-  width: 45px;
-  margin-right: ${(props) => props.theme.spacing.small};
+  border-radius: 12px;
+  height: 40px;
+  width: 40px;
+  margin-left: 8px;
 `;
 
 const ActionContainer = styled.View<{ theme: ThemeType }>`
-  display: flex;
   flex-direction: row;
+  align-items: center;
 `;
 
 interface ReceiveCardsProps {
@@ -87,7 +95,7 @@ const ReceiveCard: React.FC<ReceiveCardsProps> = ({
     <ReceiveCardsContainer>
       <TextContainer>
         <IconContainer>{icon}</IconContainer>
-        <ReceiveText>{chainName}</ReceiveText>
+        <ReceiveText numberOfLines={1} ellipsizeMode="tail">{chainName}</ReceiveText>
       </TextContainer>
       <ActionContainer>
         <IconView
@@ -126,44 +134,46 @@ export default function ReceiveOptionsPage() {
 
   return (
     <SafeAreaContainer>
-      <ContentContainer>
+      <ScrollContainer showsVerticalScrollIndicator={false}>
+        <ContentContainer>
 
-        {/* 🔹 Dynamic EVM receive cards */}
-        {Object.values(networks).map((network) => {
-          const chainId = network.chainId;
-          const activeIndex =
-            ethereum.activeIndex ?? 0;
+          {/* 🔹 Dynamic EVM receive cards */}
+          {Object.values(networks).map((network) => {
+            const chainId = network.chainId;
+            const activeIndex =
+              ethereum.activeIndex ?? 0;
 
-          const address =
-            ethereum.globalAddresses?.[activeIndex]?.address;
+            const address =
+              ethereum.globalAddresses?.[activeIndex]?.address;
 
-          if (!address) return null;
+            if (!address) return null;
 
-          return (
-            <ReceiveCard
-              key={`evm-receive-${chainId}`}
-              chainName={network.chainName}
-              address={address}
-              icon={<BlockchainIcon 
-                symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
-                chainId={network.chainId}
+            return (
+              <ReceiveCard
+                key={`evm-receive-${chainId}`}
                 chainName={network.chainName}
-                size={35} 
-              />}
+                address={address}
+                icon={<BlockchainIcon 
+                  symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
+                  chainId={network.chainId}
+                  chainName={network.chainName}
+                  size={35} 
+                />}
+              />
+            );
+          })}
+
+          {/* 🔹 Solana (unchanged) */}
+          {solAddress && (
+            <ReceiveCard
+              chainName="Solana"
+              address={solAddress}
+              icon={<BlockchainIcon symbol="sol" size={25} />}
             />
-          );
-        })}
+          )}
 
-        {/* 🔹 Solana (unchanged) */}
-        {solAddress && (
-          <ReceiveCard
-            chainName="Solana"
-            address={solAddress}
-            icon={<BlockchainIcon symbol="sol" size={25} />}
-          />
-        )}
-
-      </ContentContainer>
+        </ContentContainer>
+      </ScrollContainer>
     </SafeAreaContainer>
   );
 }

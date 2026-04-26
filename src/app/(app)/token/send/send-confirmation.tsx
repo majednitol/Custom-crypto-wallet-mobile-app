@@ -35,9 +35,14 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
 `;
 
 const IconBackground = styled.View<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.ethereum};
-  border-radius: 100px;
-  padding: ${(props) => props.theme.spacing.large};
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 32px;
+  width: 80px;
+  height: 80px;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  
 `;
 
 const IconView = styled.View<{ theme: ThemeType }>`
@@ -84,7 +89,12 @@ const ErrorText = styled.Text<{ theme: ThemeType }>`
   text-align: center;
 `;
 
-const ButtonView = styled.View<{ theme: ThemeType }>``;
+const ButtonView = styled.View<{ theme: ThemeType }>`
+  width: 100%;
+  padding-horizontal: ${(props) => props.theme.spacing.medium};
+`;
+
+
 
 export default function SendConfirmationPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -367,13 +377,14 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
       <ContentContainer>
         <IconView>
           <IconBackground>
-            <ConfirmSend width={45} height={45} fill={theme.colors.primary} />
+            <ConfirmSend width={40} height={40} fill={theme.colors.primary} />
           </IconBackground>
         </IconView>
         <BalanceContainer>
           <CryptoBalanceText>{chainBalance}</CryptoBalanceText>
           <UsdBalanceText>{totalCost}</UsdBalanceText>
         </BalanceContainer>
+
         <CryptoInfoCardContainer>
           <SendConfCard
             toAddress={truncateWalletAddress(address)}

@@ -5,70 +5,49 @@ import { formatDollar } from "../../utils/formatDollars";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 
-interface ButtonContainerProps {
-  backgroundColor?: string;
-  theme: ThemeType;
-}
-
-const TokenInfoCardContainer = styled.View<ButtonContainerProps>`
-  flex-direction: column;
-  justify-content: space-between;
+const CardContainer = styled.View<{ theme: ThemeType }>`
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  border-radius: 20px;
+  padding: 8px 20px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
   width: 100%;
 `;
 
-const TokenSectionViewTop = styled.View<{ theme: ThemeType }>`
+const InfoRow = styled.View<{ theme: ThemeType; isLast?: boolean }>`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid ${({ theme }) => theme.colors.dark};
-  border-top-left-radius: ${(props) => props.theme.borderRadius.large};
-  border-top-right-radius: ${(props) => props.theme.borderRadius.large};
+  padding-vertical: 16px;
+  border-bottom-width: ${({ isLast }) => (isLast ? "0px" : "1px")};
+  border-bottom-color: ${({ theme }) => theme.colors.border};
 `;
 
-const TokenSectionViewMid = styled.View<{ theme: ThemeType }>`
+const LabelContainer = styled.View`
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-
-  border: 1px solid ${({ theme }) => theme.colors.dark};
 `;
 
-const TokenSectionViewBot = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid ${({ theme }) => theme.colors.dark};
-  border-bottom-left-radius: ${(props) => props.theme.borderRadius.large};
-  border-bottom-right-radius: ${(props) => props.theme.borderRadius.large};
+const LabelDot = styled.View<{ theme: ThemeType }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: ${({ theme }) => theme.colors.primary};
+  margin-right: 12px;
 `;
 
-const TokenNameLabel = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+const LabelText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${({ theme }) => theme.colors.lightGrey};
 `;
 
-const TokenNameText = styled.Text<{ theme: ThemeType }>`
+const ValueText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${({ theme }) => theme.colors.white};
+  text-align: right;
+  flex-shrink: 1;
+  margin-left: 16px;
 `;
 
 interface TokenInfoCardProps {
@@ -89,36 +68,28 @@ const TokenInfoCard: React.FC<TokenInfoCardProps> = ({
   const prices = useSelector((state: RootState) => state.price.data);
   const solPrice = prices[101]?.usd ?? 0;
   const ethPrice = prices[activeChainId]?.usd ?? 0;
-console.log("ethPrice",activeChainId,ethPrice,prices)
-  const findTokenPrice = (tokenSymbol: string) => {
-    if (tokenSymbol === "ETH") {
-      return ethPrice;
-    } else if (tokenSymbol === "SOL") {
-      return solPrice;
-    } else {
-      return 0;
-    }
-  };
+
+  const rows = [
+    { label: "Token Name", value: `${tokenName} (${tokenSymbol})` },
+    { label: "Network", value: network },
+    {
+      label: "Price",
+      value: tokenSymbol === "SOL" ? formatDollar(solPrice) : formatDollar(ethPrice),
+    },
+  ];
 
   return (
-    <TokenInfoCardContainer>
-      <TokenSectionViewTop>
-        <TokenNameLabel>Token Name</TokenNameLabel>
-        <TokenNameText>
-          {tokenName} ({tokenSymbol})
-        </TokenNameText>
-      </TokenSectionViewTop>
-      <TokenSectionViewMid>
-        <TokenNameLabel>Network</TokenNameLabel>
-        <TokenNameText>{network}</TokenNameText>
-      </TokenSectionViewMid>
-      <TokenSectionViewBot>
-        <TokenNameLabel>Price</TokenNameLabel>
-        <TokenNameText>
-          {tokenSymbol === "SOL" ? formatDollar(solPrice) : formatDollar(ethPrice)}
-        </TokenNameText>
-      </TokenSectionViewBot>
-    </TokenInfoCardContainer>
+    <CardContainer>
+      {rows.map((row, index) => (
+        <InfoRow key={row.label} isLast={index === rows.length - 1}>
+          <LabelContainer>
+            <LabelDot />
+            <LabelText>{row.label}</LabelText>
+          </LabelContainer>
+          <ValueText numberOfLines={1} ellipsizeMode="tail">{row.value}</ValueText>
+        </InfoRow>
+      ))}
+    </CardContainer>
   );
 };
 

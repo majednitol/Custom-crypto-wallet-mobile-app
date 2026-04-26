@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { BackHandler, SafeAreaView } from "react-native";
-import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "moti";
 import styled, { useTheme } from "styled-components/native";
-import Button from "../../../components/Button/Button"; 
+import Button from "../../../components/Button/Button";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 import { ThemeType } from "../../../styles/theme";
 import { ROUTES } from "../../../constants/routes";
-import CheckMark from "../../../assets/svg/check-mark.svg"; 
+import CheckMark from "../../../assets/svg/check-mark.svg";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
@@ -19,23 +17,41 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: center;
   align-items: center;
+  padding-horizontal: ${(props) => props.theme.spacing.large};
 `;
 
-const TextContainer = styled.View<{ theme: ThemeType }>`
-  padding: ${(props) => props.theme.spacing.large};
+const HeroSection = styled.View`
+  align-items: center;
+  margin-bottom: 32px;
+`;
+
+const SuccessCircle = styled.View<{ theme: ThemeType }>`
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  background-color: rgba(240, 185, 11, 0.15);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 28px;
+`;
+
+const SuccessIcon = styled.Text`
+  font-size: 44px;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: 32px;
-  color: ${(props) => props.theme.fonts.colors.primary};
-  margin-bottom: ${(props) => props.theme.spacing.small};
+  color: ${(props) => props.theme.colors.white};
+  margin-bottom: 12px;
+  text-align: center;
 `;
 
 const Subtitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.lightGrey};
+  text-align: center;
 `;
 
 const ButtonContainer = styled.View<{ theme: ThemeType }>`
@@ -43,18 +59,6 @@ const ButtonContainer = styled.View<{ theme: ThemeType }>`
   padding-right: ${(props) => props.theme.spacing.large};
   padding-bottom: ${(props) => props.theme.spacing.large};
   padding-top: ${(props) => props.theme.spacing.small};
-`;
-
-const ExpoImage = styled(Image)`
-  flex: 1;
-  width: 100%;
-`;
-
-const ImageContainer = styled(View)<{ theme: ThemeType }>`
-  flex: 1;
-  width: 100%;
-  justify-content: center;
-  align-items: center;
 `;
 
 export default function WalletCreationSuccessPage() {
@@ -73,39 +77,23 @@ export default function WalletCreationSuccessPage() {
       );
     }
   }, [successState]);
-useEffect(() => {
-  const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
-  return () => sub.remove();
-}, []);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => sub.remove();
+  }, []);
 
   return (
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaContainer>
         <ContentContainer>
-          <ImageContainer
-            from={{
-              translateY: -25,
-            }}
-            animate={{
-              translateY: 50,
-            }}
-            transition={{
-              loop: true,
-              type: "timing",
-              duration: 3000,
-              delay: 100,
-            }}
-          >
-            <ExpoImage
-              source={require("../../../assets/images/wallet_success.png")}
-              contentFit="cover"
-            />
-          </ImageContainer>
-
-          <TextContainer>
+          <HeroSection>
+            <SuccessCircle>
+              <SuccessIcon>🎉</SuccessIcon>
+            </SuccessCircle>
             <Title>{title}</Title>
             <Subtitle>{subtitle}</Subtitle>
-          </TextContainer>
+          </HeroSection>
         </ContentContainer>
         <ButtonContainer>
           <Button

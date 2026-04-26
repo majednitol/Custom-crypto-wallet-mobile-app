@@ -115,7 +115,9 @@ console.log("wsfrwegergerthgterhtrht45rjh5ytjy5j")
     } finally {
       setAppReady(true);
       await SplashScreen.hideAsync();
+
     }
+
   };
 
   SystemUI.setBackgroundColorAsync("black");
@@ -162,9 +164,8 @@ const onLayoutRootView = useCallback(async () => {
       >
         <Stack
           screenOptions={{
-            headerTransparent: true,
+            headerShown: false,
             gestureEnabled: true,
-            headerTitle: "",
           }}
         >
           <Stack.Screen
@@ -172,7 +173,6 @@ const onLayoutRootView = useCallback(async () => {
             options={{
               headerShown: true,
               headerTransparent: true,
-              headerTitle: "",
               gestureEnabled: true,
               header: (props) => <Header {...props} />,
             }}
@@ -180,138 +180,89 @@ const onLayoutRootView = useCallback(async () => {
           <Stack.Screen
             name="token/[id]"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
+              headerShown: false,
               gestureEnabled: true,
-              headerRight: null,
-              
             }}
           />
           <Stack.Screen
             name="token/send/send-options"
             options={{
-              headerShown: true,
-              headerTransparent: true,
+              headerShown: false,
               gestureEnabled: true,
               presentation: "modal",
-              headerRight: null,
-              
             }}
           />
           <Stack.Screen
             name="token/send/[send]"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
+              headerShown: false,
               gestureEnabled: true,
               presentation: "modal",
-              headerLeft: null,
-              headerRight: null,
-              header: () => null,
             }}
           />
           <Stack.Screen
             name="token/receive/[receive]"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
+              headerShown: false,
               gestureEnabled: true,
-              headerTitleStyle: {
-                color: theme.colors.white,
-              },
               presentation: "modal",
-              headerRight: null,
-             
             }}
           />
           <Stack.Screen
             name="token/send/send-confirmation"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
+              headerShown: false,
               gestureEnabled: true,
               presentation: "modal",
-              headerRight: null,
-              
             }}
           />
           <Stack.Screen
             name="token/receive/receive-options"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "",
+              headerShown: false,
               gestureEnabled: true,
               presentation: "modal",
-              headerRight: null,
-            
             }}
           />
           <Stack.Screen
             name="camera/index"
             options={{
               headerShown: false,
-              headerTransparent: true,
-              headerTitle: "",
               gestureEnabled: true,
-              headerRight: null,
-          
             }}
           />
           <Stack.Screen
             name="settings/settings-modal"
             options={{
               headerShown: false,
-              headerTransparent: true,
               gestureEnabled: true,
               presentation: "modal",
-              headerLeft: null,
-              headerRight: null,
             }}
           />
           <Stack.Screen
             name="accounts/accounts"
             options={{
-              headerShown: true,
-              headerTransparent: true,
-              headerTitle: "Manage Wallets",
-              headerTitleStyle: {
-                color: "white",
-                fontSize: 18,
-              },
+              headerShown: false,
               gestureEnabled: true,
-              headerRight: null,
-             
             }}
           />
           <Stack.Screen
             name="accounts/account-modal"
             options={{
-              headerShown: true,
-              headerTitleStyle: {
-                color: theme.colors.white,
-              },
+              headerShown: false,
+              gestureEnabled: true,
               presentation: "modal",
-            
             }}
           />
           <Stack.Screen
             name="accounts/account-name-modal"
             options={{
-              headerShown: true,
-              headerTitle: "Edit Account Name",
-              headerTitleStyle: {
-                color: theme.colors.white,
-              },
+              headerShown: false,
+              gestureEnabled: true,
               presentation: "modal",
               contentStyle: {
-      paddingTop: 0, // IMPORTANT
-    },
-             
+                paddingTop: 0,
+              },
             }}
           />
         </Stack>

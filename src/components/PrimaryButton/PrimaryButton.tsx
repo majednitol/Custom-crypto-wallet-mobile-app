@@ -1,6 +1,7 @@
-import styled from "styled-components/native";
+import styled, { useTheme } from "styled-components/native";
 import { ThemeType } from "../../styles/theme";
 import React from "react";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface ButtonTextProps {
   color?: string;
@@ -11,41 +12,54 @@ interface ButtonTextProps {
 interface ButtonContainerProps {
   backgroundColor?: string;
   theme: ThemeType;
-}
-
-interface CircleProps {
-  iconBackgroundColor?: string;
-  theme: ThemeType;
+  variant?: "primary" | "secondary" | "outline";
 }
 
 const PrimaryButtonContainer = styled.TouchableOpacity<ButtonContainerProps>`
   flex: 1;
   flex-direction: row;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border-radius: ${(props) => props.theme.borderRadius.large};
-  height: 65px;
-  padding: ${(props) => props.theme.spacing.medium};
-  padding-left: 15px;
+  justify-content: center;
+  background-color: ${({ theme, variant }) =>
+    variant === "outline"
+      ? "transparent"
+      : theme.colors.cardBackground};
+  border-radius: ${(props) => props.theme.borderRadius.medium};
+  height: 50px;
+  padding: 0 16px;
+  border: ${({ theme, variant }) =>
+    variant === "outline" ? `1.5px solid ${theme.colors.border}` : "none"};
 `;
 
-const PrimaryButtonText = styled.Text<ButtonTextProps>`
+const GradientContainer = styled(LinearGradient)`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  border-radius: ${(props) => props.theme.borderRadius.medium};
+  height: 50px;
+  padding: 0 16px;
+`;
+
+const PrimaryButtonText = styled.Text<ButtonTextProps & { variant?: string }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${({ theme }) => theme.colors.white};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${({ theme, variant }) =>
+    variant === "primary" ? theme.colors.dark : theme.colors.white};
+  letter-spacing: 0.5px;
+  text-align: center;
+  flex: 1;
 `;
 
-const PrimaryTextContainer = styled.View<{ theme: ThemeType }>`
-  flex-direction: column;
-`;
-
-const Circle = styled.View<CircleProps>`
+const Circle = styled.View`
   justify-content: center;
   align-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 100px;
-  margin-right: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background-color: rgba(240, 185, 11, 0.15);
+  margin-right: 6px;
+  flex-shrink: 0;
 `;
 
 interface ButtonProps {
@@ -56,6 +70,8 @@ interface ButtonProps {
   backgroundColor?: string;
   icon: React.ReactNode;
   iconBackgroundColor?: string;
+  variant?: "primary" | "secondary" | "outline";
+  useGradient?: boolean;
 }
 
 const PrimaryButton: React.FC<ButtonProps> = ({
@@ -64,18 +80,34 @@ const PrimaryButton: React.FC<ButtonProps> = ({
   backgroundColor,
   disabled = false,
   icon,
-  iconBackgroundColor,
+  variant = "secondary",
+  useGradient = false,
 }) => {
+  const theme = useTheme();
+
+  if (useGradient) {
+    return (
+      <GradientContainer
+        colors={["#F0B90B", "#D4A009"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Circle style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>{icon}</Circle>
+        <PrimaryButtonText variant="primary">{btnText}</PrimaryButtonText>
+      </GradientContainer>
+    );
+  }
+
   return (
     <PrimaryButtonContainer
       disabled={disabled}
       backgroundColor={backgroundColor}
-      onPress={disabled ? null : onPress}
+      onPress={disabled ? undefined : onPress}
+      variant={variant}
+      activeOpacity={0.7}
     >
-      <Circle iconBackgroundColor={iconBackgroundColor}>{icon}</Circle>
-      <PrimaryTextContainer>
-        <PrimaryButtonText>{btnText}</PrimaryButtonText>
-      </PrimaryTextContainer>
+      <Circle>{icon}</Circle>
+      <PrimaryButtonText variant={variant}>{btnText}</PrimaryButtonText>
     </PrimaryButtonContainer>
   );
 };

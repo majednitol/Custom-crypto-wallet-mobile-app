@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, useMemo, act } from "react";
-import { View, ScrollView, RefreshControl, Platform, Modal, TextInput } from "react-native";
+import { View, ScrollView, RefreshControl, Platform, Modal, TextInput, Text, TouchableOpacity } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
@@ -94,9 +94,31 @@ const CryptoInfoCardContainer = styled.View<{ theme: ThemeType }>`
 const SectionTitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.header};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  color: ${(props) => props.theme.colors.white};
   margin-left: ${(props) => props.theme.spacing.small};
   margin-bottom: ${(props) => props.theme.spacing.medium};
+`;
+
+const SectionHeader = styled.View<{ theme: ThemeType }>`
+  flex-direction: row;
+  align-items: center;
+  margin-left: ${(props) => props.theme.spacing.small};
+  margin-bottom: ${(props) => props.theme.spacing.medium};
+  margin-top: ${(props) => props.theme.spacing.large};
+`;
+
+const SectionDot = styled.View<{ theme: ThemeType }>`
+  width: 10px;
+  height: 10px;
+  border-radius: 5px;
+  background-color: ${({ theme }) => theme.colors.primary};
+  margin-right: 10px;
+`;
+
+const SectionHeaderText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.header};
+  color: ${(props) => props.theme.colors.white};
 `;
 
 const ComingSoonView = styled.View<{ theme: ThemeType }>`
@@ -156,6 +178,31 @@ const SortText = styled.Text<{ theme: ThemeType }>`
   font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${(props) => props.theme.colors.white};
   text-align: center;
+`;
+
+const AddTokenButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  border: 1px dashed ${({ theme }) => theme.colors.primary};
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: ${({ theme }) => theme.spacing.medium};
+  width: 100%;
+`;
+
+const AddTokenIcon = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: 22px;
+  color: ${({ theme }) => theme.colors.primary};
+  margin-right: 10px;
+`;
+
+const AddTokenText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${({ theme }) => theme.colors.primary};
 `;
 
 enum FilterTypes {
@@ -572,10 +619,10 @@ useEffect(() => {
               network={capitalizeFirstLetter(chainName)}
             />
           </CryptoInfoCardContainer>
-          <Button
-            title="Add New Token"
-            onPress={() => setErc20ModalVisible(true)}
-          />
+          <AddTokenButton onPress={() => setErc20ModalVisible(true)}>
+            <AddTokenIcon>+</AddTokenIcon>
+            <AddTokenText>Add New Token</AddTokenText>
+          </AddTokenButton>
 
           <CryptoInfoCardContainer>
             {erc20Tokens?.map(t => {
@@ -640,11 +687,11 @@ useEffect(() => {
     })}
 
           </CryptoInfoCardContainer>
-          <SectionTitle>Your owned NFTs</SectionTitle>
+          <SectionHeader>
+            <SectionDot />
+            <SectionHeaderText>Your owned NFTs</SectionHeaderText>
+          </SectionHeader>
           <Nfts wallet={tokenAddress} chainId={activeChainId} isEvm={isEvm} />
-          <SectionTitle></SectionTitle>
-          <SectionTitle></SectionTitle>
-          <SectionTitle></SectionTitle>
         </ContentContainer>
       </ScrollView>
 
@@ -652,55 +699,70 @@ useEffect(() => {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View
             style={{
-              position: "absolute",   
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: "rgba(0,0,0,0.65)",
+              backgroundColor: "rgba(0,0,0,0.7)",
               justifyContent: "center",
               alignItems: "center",
-              zIndex: 9999,         
+              zIndex: 9999,
             }}
           >
             <KeyboardAvoidingView
               behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={{
-                width: "100%",
-                alignItems: "center",
-                paddingHorizontal: 20,
-              }}
+              style={{ width: "100%", maxWidth: 400, paddingHorizontal: 20 }}
             >
               <View
                 style={{
-                  width: "90%",
-                  maxWidth: 420,
-                  backgroundColor: theme.colors.dark,
-                  borderRadius: 16,
-                  padding: 20,
+                  backgroundColor: theme.colors.cardBackground,
+                  borderRadius: 20,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: theme.colors.border,
                 }}
               >
-                <SectionTitle>Add {isSolana ? "SPL" : "ERC-20"} Token</SectionTitle>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                  <Text style={{ fontFamily: theme.fonts.families.openBold, fontSize: 18, color: theme.colors.white }}>
+                    Add {isSolana ? "SPL" : "ERC-20"} Token
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setErc20ModalVisible(false)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      backgroundColor: theme.colors.grey,
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ color: theme.colors.white, fontSize: 18, fontWeight: "bold" }}>×</Text>
+                  </TouchableOpacity>
+                </View>
 
                 <TextInput
-                  placeholder="ERC-20 contract address"
-                  placeholderTextColor="#888"
+                  placeholder={`Paste ${isSolana ? "SPL" : "ERC-20"} contract address`}
+                  placeholderTextColor={theme.colors.lightGrey}
                   value={erc20Contract}
                   autoCapitalize="none"
                   autoCorrect={false}
                   onChangeText={setErc20Contract}
                   style={{
+                    backgroundColor: theme.colors.dark,
                     borderWidth: 1,
-                    borderColor: "#444",
+                    borderColor: theme.colors.border,
                     padding: 14,
-                    borderRadius: 10,
-                    color: "#fff",
+                    borderRadius: 12,
+                    color: theme.colors.white,
                     marginBottom: 16,
+                    fontFamily: theme.fonts.families.openRegular,
+                    fontSize: 14,
                   }}
                 />
 
-                <Button
-                  title="Add Token"
+                <TouchableOpacity
                   onPress={() => {
                     if (!erc20Contract) return;
                     if (isSolana) {
@@ -716,14 +778,32 @@ useEffect(() => {
                     setErc20Contract("");
                     setErc20ModalVisible(false);
                   }}
-                />
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: 12,
+                    padding: 14,
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ fontFamily: theme.fonts.families.openBold, fontSize: 14, color: theme.colors.dark }}>
+                    Add Token
+                  </Text>
+                </TouchableOpacity>
 
-                <View style={{ height: 10 }} />
-
-                <Button
-                  title="Cancel"
+                <TouchableOpacity
                   onPress={() => setErc20ModalVisible(false)}
-                />
+                  style={{
+                    backgroundColor: theme.colors.grey,
+                    borderRadius: 12,
+                    padding: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ fontFamily: theme.fonts.families.openBold, fontSize: 14, color: theme.colors.white }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
               </View>
             </KeyboardAvoidingView>
           </View>

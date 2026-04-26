@@ -340,21 +340,36 @@ class SolanaService {
 
   async confirmTransaction(signature: string): Promise<boolean> {
     try {
-      const latestBlockhash = await this.connection.getLatestBlockhash();
+      // Poll for confirmation instead of using signatureSubscribe (not supported by Alchemy)
+      const maxRetries = 30;
+      const delayMs = 2000;
 
-      const strategy: TransactionConfirmationStrategy = {
-        signature: signature,
-        blockhash: latestBlockhash.blockhash,
-        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-      };
+      for (let i = 0; i < maxRetries; i++) {
+        const status = await this.connection.getSignatureStatus(signature);
 
-      const result = await this.connection.confirmTransaction(strategy);
-      return result.value.err === null;
+        if (status?.value?.err) {
+          console.error("Transaction failed:", status.value.err);
+          return false;
+        }
+
+        if (
+          status?.value?.confirmationStatus === "confirmed" ||
+          status?.value?.confirmationStatus === "finalized"
+        ) {
+          return true;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+
+      console.warn("Transaction confirmation timed out");
+      return false;
     } catch (error) {
       console.error("Error confirming Solana transaction:", error);
       return false;
     }
   }
+
 }
 
 const  EXPO_PUBLIC_ALCHEMY_SOL_URL = "https://solana-devnet.g.alchemy.com/v2/"

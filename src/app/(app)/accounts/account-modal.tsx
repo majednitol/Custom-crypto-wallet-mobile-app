@@ -1,22 +1,28 @@
 import { router } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
+import { useState } from "react";
+import { Alert } from "react-native";
 import { ROUTES } from "../../../constants/routes";
 import type { ThemeType } from "../../../styles/theme";
-import type { RootState } from "../../../store";
+import type { RootState, AppDispatch } from "../../../store";
 import type { AddressState, SAddressState } from "../../../store/types";
 import EditIcon from "../../../assets/svg/edit.svg";
 import { BlockchainIcon } from "../../../components/BlockchainIcon/BlockchainIcon";
 import CopyIcon from "../../../assets/svg/copy.svg";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
+import { authenticateBiometric } from "../../../store/biometricsSlice";
+import { deriveEthPrivateKey, deriveSolPrivateKey } from "../../../utils/privateKeyUtils";
+import { getImportedEvmKey, getImportedSolKey } from "../../../utils/importedKeyStorage";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
+  padding-top: 50px;
 `;
 const SectionTitle = styled.Text<{ theme: ThemeType }>`
   color: ${(props) => props.theme.fonts.colors.primary};
@@ -119,19 +125,33 @@ const IconOnPressView = styled.TouchableOpacity`
   height: 50px;
 `;
 
+const RevealButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  background-color: ${({ theme }) => theme.colors.primary};
+  border-radius: 10px;
+  padding: 8px 16px;
+  margin-left: ${(props) => props.theme.spacing.small};
+`;
+
+const RevealButtonText = styled.Text<{ theme: ThemeType }>`
+  color: ${({ theme }) => theme.colors.dark};
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+`;
+
 const AccountsModalIndex = () => {
   const theme = useTheme();
+  const dispatch = useDispatch<AppDispatch>();
   const { ethAddress, solAddress, balance } = useLocalSearchParams();
   const chainId = useSelector(
-  (state: RootState) => state.ethereum.activeChainId
-);
-console.log("acc-model8686",chainId)
-const ethereumAccount = useSelector((state: RootState) => {
-  return state.ethereum.globalAddresses.find(
-    (item: AddressState) => item.address === ethAddress
+    (state: RootState) => state.ethereum.activeChainId
   );
-});
+  console.log("acc-model8686", chainId);
 
+  const ethereumAccount = useSelector((state: RootState) => {
+    return state.ethereum.globalAddresses.find(
+      (item: AddressState) => item.address === ethAddress
+    );
+  });
 
   const solanaAccount = useSelector((state: RootState) =>
     state.solana.addresses.find(
@@ -139,13 +159,95 @@ const ethereumAccount = useSelector((state: RootState) => {
     )
   );
 
-  const handleCopy = async (path: string) => {
-    await Clipboard.setStringAsync(path);
+  const importedAccount = useSelector((state: RootState) =>
+    state.importedAccounts?.accounts?.find(
+      (acc) => acc.evmAddress === ethAddress || acc.solAddress === solAddress
+    )
+  );
+
+  const isImported = !!importedAccount;
+
+  // Get account indices for private key derivation (seed-based only)
+  const ethIndex = useSelector((state: RootState) =>
+    state.ethereum.globalAddresses.findIndex(
+      (item: AddressState) => item.address === ethAddress
+    )
+  );
+
+  // Private key reveal state
+  const [ethKeyRevealed, setEthKeyRevealed] = useState(false);
+  const [solKeyRevealed, setSolKeyRevealed] = useState(false);
+  const [ethPrivateKey, setEthPrivateKey] = useState("");
+  const [solPrivateKey, setSolPrivateKey] = useState("");
+
+  const handleCopy = async (text: string) => {
+    await Clipboard.setStringAsync(text);
     Toast.show({
       type: "success",
       text1: `Copied!`,
     });
   };
+
+  const authenticateAndReveal = async (type: "eth" | "sol") => {
+    try {
+      const result = await dispatch(authenticateBiometric()).unwrap();
+      if (result) {
+        if (type === "eth") {
+          if (isImported && ethAddress) {
+            const key = await getImportedEvmKey(ethAddress as string);
+            if (key) {
+              setEthPrivateKey(key);
+              setEthKeyRevealed(true);
+            } else {
+              Alert.alert("Error", "Failed to retrieve imported private key");
+            }
+          } else {
+            const key = await deriveEthPrivateKey(ethIndex);
+            if (key) {
+              setEthPrivateKey(key);
+              setEthKeyRevealed(true);
+            } else {
+              Alert.alert("Error", "Failed to derive private key");
+            }
+          }
+        } else {
+          if (isImported && solAddress) {
+            const key = await getImportedSolKey(solAddress as string);
+            if (key) {
+              setSolPrivateKey(key);
+              setSolKeyRevealed(true);
+            } else {
+              Alert.alert("Error", "Failed to retrieve imported private key");
+            }
+          } else {
+            const key = await deriveSolPrivateKey(solanaAccount?.derivationPath ?? "");
+            if (key) {
+              setSolPrivateKey(key);
+              setSolKeyRevealed(true);
+            } else {
+              Alert.alert("Error", "Failed to derive private key");
+            }
+          }
+        }
+      }
+    } catch (error) {
+      Alert.alert(
+        "Authentication Failed",
+        "Biometric authentication is required to view private keys."
+      );
+    }
+  };
+
+  // Build display objects for imported accounts
+  const displayEthAccount = ethereumAccount || (ethAddress ? {
+    accountName: importedAccount?.accountName || "Imported Account",
+    address: ethAddress,
+  } as AddressState : undefined);
+
+  const displaySolAccount = solanaAccount || (solAddress ? {
+    accountName: importedAccount?.accountName || "Imported Account",
+    address: solAddress,
+  } as SAddressState : undefined);
 
   return (
     <>
@@ -158,22 +260,24 @@ const ethereumAccount = useSelector((state: RootState) => {
                 <Col>
                   <SectionCaption>Account Name</SectionCaption>
                   <AccountDetailsText>
-                    {ethereumAccount.accountName}
+                    {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
                   </AccountDetailsText>
                 </Col>
-                <IconOnPressView
-                  onPress={() =>
-                    router.push({
-                      pathname: ROUTES.accountNameModal,
-                      params: {
-                        ethAddress: ethereumAccount.address,
-                        solAddress: solanaAccount.address,
-                      },
-                    })
-                  }
-                >
-                  <EditIcon width={25} height={25} fill={theme.colors.white} />
-                </IconOnPressView>
+                {!isImported && (
+                  <IconOnPressView
+                    onPress={() =>
+                      router.push({
+                        pathname: ROUTES.accountNameModal,
+                        params: {
+                          ethAddress: displayEthAccount?.address || "",
+                          solAddress: displaySolAccount?.address || "",
+                        },
+                      })
+                    }
+                  >
+                    <EditIcon width={25} height={25} fill={theme.colors.white} />
+                  </IconOnPressView>
+                )}
               </Row>
             </AccountSection>
             <AccountSection isBottom>
@@ -183,52 +287,117 @@ const ethereumAccount = useSelector((state: RootState) => {
           </AccountSettingsContainer>
 
           <SectionTitle>Advanced Settings</SectionTitle>
-          <AccountSettingsContainer>
-            <CryptoSection isTop>
-              <IconContainer>
-                <BlockchainIcon symbol="eth" size={25} />
-              </IconContainer>
-              <CryptoName>Ethereum</CryptoName>
-            </CryptoSection>
-            <AccountSection isBottom>
-              <Row>
-                <Col>
-                  <SectionCaption>Derivation Path</SectionCaption>
-                  <AccountDetailsText>
-                    {ethereumAccount.derivationPath}
-                  </AccountDetailsText>
-                </Col>
-                <IconOnPressView
-                  onPress={() => handleCopy(ethereumAccount.derivationPath)}
-                >
-                  <CopyIcon width={25} height={25} fill={theme.colors.white} />
-                </IconOnPressView>
-              </Row>
-            </AccountSection>
-          </AccountSettingsContainer>
-          <AccountSettingsContainer>
-            <CryptoSection isTop>
-              <IconContainer>
-                <BlockchainIcon symbol="sol" size={25} />
-              </IconContainer>
-              <CryptoName>Solana</CryptoName>
-            </CryptoSection>
-            <AccountSection isBottom>
-              <Row>
-                <Col>
-                  <SectionCaption>Derivation Path</SectionCaption>
-                  <AccountDetailsText>
-                    {solanaAccount.derivationPath}
-                  </AccountDetailsText>
-                </Col>
-                <IconOnPressView
-                  onPress={() => handleCopy(solanaAccount.derivationPath)}
-                >
-                  <CopyIcon width={25} height={25} fill={theme.colors.white} />
-                </IconOnPressView>
-              </Row>
-            </AccountSection>
-          </AccountSettingsContainer>
+          {/* Ethereum Private Key */}
+          {ethAddress && (
+            <AccountSettingsContainer>
+              <CryptoSection isTop>
+                <IconContainer>
+                  <BlockchainIcon symbol="eth" size={25} />
+                </IconContainer>
+                <CryptoName>Ethereum</CryptoName>
+              </CryptoSection>
+              <AccountSection isBottom>
+                <Row>
+                  <Col style={{ flex: 1 }}>
+                    <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
+                    <AccountDetailsText
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                    >
+                      {ethKeyRevealed
+                        ? ethPrivateKey
+                        : "••••••••••••••••••••••••••••••••"}
+                    </AccountDetailsText>
+                  </Col>
+                  <Row>
+                    {ethKeyRevealed ? (
+                      <>
+                        <IconOnPressView
+                          onPress={() => setEthKeyRevealed(false)}
+                        >
+                          <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
+                            HIDE
+                          </AccountDetailsText>
+                        </IconOnPressView>
+                        <IconOnPressView
+                          onPress={() => handleCopy(ethPrivateKey)}
+                        >
+                          <CopyIcon
+                            width={22}
+                            height={22}
+                            fill={theme.colors.white}
+                          />
+                        </IconOnPressView>
+                      </>
+                    ) : (
+                      <RevealButton
+                        theme={theme}
+                        onPress={() => authenticateAndReveal("eth")}
+                      >
+                        <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
+                      </RevealButton>
+                    )}
+                  </Row>
+                </Row>
+              </AccountSection>
+            </AccountSettingsContainer>
+          )}
+
+          {/* Solana Private Key */}
+          {solAddress && (
+            <AccountSettingsContainer>
+              <CryptoSection isTop>
+                <IconContainer>
+                  <BlockchainIcon symbol="sol" size={25} />
+                </IconContainer>
+                <CryptoName>Solana</CryptoName>
+              </CryptoSection>
+              <AccountSection isBottom>
+                <Row>
+                  <Col style={{ flex: 1 }}>
+                    <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
+                    <AccountDetailsText
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                    >
+                      {solKeyRevealed
+                        ? solPrivateKey
+                        : "••••••••••••••••••••••••••••••••"}
+                    </AccountDetailsText>
+                  </Col>
+                  <Row>
+                    {solKeyRevealed ? (
+                      <>
+                        <IconOnPressView
+                          onPress={() => setSolKeyRevealed(false)}
+                        >
+                          <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
+                            HIDE
+                          </AccountDetailsText>
+                        </IconOnPressView>
+                        <IconOnPressView
+                          onPress={() => handleCopy(solPrivateKey)}
+                        >
+                          <CopyIcon
+                            width={22}
+                            height={22}
+                            fill={theme.colors.white}
+                          />
+                        </IconOnPressView>
+                      </>
+                    ) : (
+                      <RevealButton
+                        theme={theme}
+                        onPress={() => authenticateAndReveal("sol")}
+                      >
+                        <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
+                      </RevealButton>
+                    )}
+                  </Row>
+                </Row>
+              </AccountSection>
+            </AccountSettingsContainer>
+          )}
         </ContentContainer>
       </SafeAreaContainer>
     </>

@@ -24,7 +24,11 @@ if(isEvm){
   if (!allNfts?.length && !solNfts?.length) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyText}>No NFTs found</Text>
+        <View style={styles.emptyIconCircle}>
+          <Text style={styles.emptyIcon}>🖼️</Text>
+        </View>
+        <Text style={styles.emptyTitle}>No NFTs Yet</Text>
+        <Text style={styles.emptySub}>Your NFT collection will appear here</Text>
       </View>
     );
   }
@@ -55,9 +59,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: 40,
   },
-  emptyText: {
-    color: "#888",
+  emptyIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "rgba(240, 185, 11, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  emptyIcon: {
+    fontSize: 28,
+  },
+  emptyTitle: {
+    color: "#fff",
     fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  emptySub: {
+    color: "#888",
+    fontSize: 14,
   },
 });

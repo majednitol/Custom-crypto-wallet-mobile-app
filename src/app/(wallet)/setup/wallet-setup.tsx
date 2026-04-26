@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { SafeAreaView } from "react-native";
+import { SafeAreaView, Text } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { Image } from "expo-image";
 import { router } from "expo-router";
-import { View } from "moti";
 import styled, { useTheme } from "styled-components/native";
-// import ethService from "../../../services/EthereumService";
 import solanaService from "../../../services/SolanaService";
 import Button from "../../../components/Button/Button";
 import { ThemeType } from "../../../styles/theme";
-import saveEthereumAddresses, { saveAddresses } from "../../../store/ethereumSlice"
+import { saveAddresses } from "../../../store/ethereumSlice"
 import { saveSolanaAddresses } from "../../../store/solanaSlice";
 import type { AddressState, SAddressState } from "../../../store/types";
 import { GeneralStatus } from "../../../store/types";
@@ -28,23 +25,62 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: center;
   align-items: center;
+  padding-horizontal: ${(props) => props.theme.spacing.large};
 `;
 
-const TextContainer = styled.View<{ theme: ThemeType }>`
-  padding: ${(props) => props.theme.spacing.large};
+const HeroSection = styled.View`
+  align-items: center;
+  margin-bottom: 32px;
+`;
+
+const IconGrid = styled.View`
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const IconCircle = styled.View<{ theme: ThemeType }>`
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background-color: rgba(240, 185, 11, 0.15);
+  justify-content: center;
+  align-items: center;
+  margin-horizontal: 8px;
+`;
+
+const IconCircleSecondary = styled.View<{ theme: ThemeType }>`
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background-color: rgba(240, 185, 11, 0.08);
+  justify-content: center;
+  align-items: center;
+  margin-horizontal: 8px;
+`;
+
+const Emoji = styled.Text`
+  font-size: 24px;
+`;
+
+const EmojiLarge = styled.Text`
+  font-size: 28px;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: 32px;
-  color: ${(props) => props.theme.fonts.colors.primary};
-  margin-bottom: ${(props) => props.theme.spacing.small};
+  color: ${(props) => props.theme.colors.white};
+  text-align: center;
+  margin-bottom: 12px;
 `;
 
 const Subtitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.lightGrey};
+  text-align: center;
 `;
 
 const ButtonContainer = styled.View<{ theme: ThemeType }>`
@@ -54,41 +90,30 @@ const ButtonContainer = styled.View<{ theme: ThemeType }>`
   padding-top: ${(props) => props.theme.spacing.small};
 `;
 
-const ExpoImage = styled(Image)`
-  flex: 1;
-  width: 100%;
-`;
-
-const ImageContainer = styled(View)<{ theme: ThemeType }>`
-  flex: 1;
-  width: 100%;
-  justify-content: center;
+const SecondaryButtonContainer = styled.TouchableOpacity<{ theme: ThemeType }>`
+  padding: 14px 20px;
+  border-radius: 14px;
   align-items: center;
-`;
-
-const SecondaryButtonContainer = styled.TouchableOpacity`
-  padding: 10px 20px;
-  border-radius: 5px;
-  align-items: center;
-  height: 60px;
   justify-content: center;
   width: 100%;
-  border-radius: ${(props) => props.theme.borderRadius.large};
+  margin-top: 12px;
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const SecondaryButtonText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.header};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.white};
 `;
 
 export default function WalletSetup() {
   const theme = useTheme();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
-const chainId = useSelector(
-  (state: RootState) => state.ethereum.activeChainId
-);
+  const chainId = useSelector(
+    (state: RootState) => state.ethereum.activeChainId
+  );
   const walletSetup = async () => {
     setLoading(true);
     try {
@@ -100,42 +125,29 @@ const chainId = useSelector(
 
       const activeChainId = chainId ?? 1;
 
-const ethereumAccount: AddressState = {
-  accountName: "Account 1",
-  derivationPath: `m/44'/60'/0'/0/0`,
-  address: ethWallet.address,
-  publicKey: ethWallet.publicKey,
-
-  // 🔹 Per-chain balances
-  balanceByChain: {
-    [activeChainId]: 0,
-  },
-
-  // 🔹 Per-chain loading status
-  statusByChain: {
-    [activeChainId]: GeneralStatus.Idle,
-  },
-
-  // 🔹 Per-chain network error flags
-  failedNetworkRequestByChain: {
-    [activeChainId]: false,
-  },
-
-  // 🔹 Per-chain transactions
-  transactionMetadataByChain: {
-    [activeChainId]: {
-      paginationKey: undefined,
-      transactions: [],
-    },
-  },
-
-  // 🔹 Convenience value for UI
-  activeBalance: 0,
-
-  // 🔹 Global confirmations
-  transactionConfirmations: [],
-};
-
+      const ethereumAccount: AddressState = {
+        accountName: "Account 1",
+        derivationPath: `m/44'/60'/0'/0/0`,
+        address: ethWallet.address,
+        publicKey: ethWallet.publicKey,
+        balanceByChain: {
+          [activeChainId]: 0,
+        },
+        statusByChain: {
+          [activeChainId]: GeneralStatus.Idle,
+        },
+        failedNetworkRequestByChain: {
+          [activeChainId]: false,
+        },
+        transactionMetadataByChain: {
+          [activeChainId]: {
+            paginationKey: undefined,
+            transactions: [],
+          },
+        },
+        activeBalance: 0,
+        transactionConfirmations: [],
+      };
 
       const solanaAccount: SAddressState = {
         accountName: "Account 1",
@@ -152,11 +164,11 @@ const ethereumAccount: AddressState = {
         transactionConfirmations: [],
       };
 
-    dispatch(
-  saveAddresses({
-    addresses: [ethereumAccount],
-  })
-);
+      dispatch(
+        saveAddresses({
+          addresses: [ethereumAccount],
+        })
+      );
 
       dispatch(saveSolanaAddresses([solanaAccount]));
 
@@ -174,33 +186,24 @@ const ethereumAccount: AddressState = {
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaContainer>
         <ContentContainer>
-          <ImageContainer
-            from={{
-              translateY: 0,
-            }}
-            animate={{
-              translateY: 50,
-            }}
-            transition={{
-              loop: true,
-              type: "timing",
-              duration: 2500,
-              delay: 100,
-            }}
-          >
-            <ExpoImage
-              source={require("../../../assets/images/wallet_alt.png")}
-              contentFit="cover"
-            />
-          </ImageContainer>
-
-          <TextContainer>
+          <HeroSection>
+            <IconGrid>
+              <IconCircleSecondary>
+                <Emoji>🔐</Emoji>
+              </IconCircleSecondary>
+              <IconCircle>
+                <EmojiLarge>👛</EmojiLarge>
+              </IconCircle>
+              <IconCircleSecondary>
+                <Emoji>🪙</Emoji>
+              </IconCircleSecondary>
+            </IconGrid>
             <Title>Get Started with Ease</Title>
             <Subtitle>
               Secure your financial future with a few easy steps. Your
               decentralized wallet awaits.
             </Subtitle>
-          </TextContainer>
+          </HeroSection>
         </ContentContainer>
         <ButtonContainer>
           <Button

@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import styled, { useTheme } from "styled-components/native";
+import { LinearGradient } from "expo-linear-gradient";
 import { ROUTES } from "../../constants/routes";
 import type { ThemeType } from "../../styles/theme";
 import { type RootState, type AppDispatch, store } from "../../store";
@@ -14,10 +15,7 @@ import {
   fetchEvmTransactions,
   fetchEvmTransactionsInterval,
   fetchEvmBalanceInterval,
-  addNetwork,
-  removeNetwork,
   setActiveChain,
-  updateNetwork,
 } from "../../store/ethereumSlice";
 import {
   fetchSolanaBalance,
@@ -30,7 +28,6 @@ import { GeneralStatus } from "../../store/types";
 import { capitalizeFirstLetter } from "../../utils/capitalizeFirstLetter";
 import { truncateWalletAddress } from "../../utils/truncateWalletAddress";
 import { formatDollar, formatDollarRaw } from "../../utils/formatDollars";
-import { placeholderArr } from "../../utils/placeholder";
 import { useStorage } from "../../hooks/useStorageState";
 import PrimaryButton from "../../components/PrimaryButton/PrimaryButton";
 import SendIcon from "../../assets/svg/send.svg";
@@ -44,29 +41,45 @@ import { TICKERS } from "../../constants/tickers";
 import { SafeAreaContainer } from "../../components/Styles/Layout.styles";
 import InfoBanner from "../../components/InfoBanner/InfoBanner";
 import { SNAP_POINTS } from "../../constants/storage";
-import Didcomm from "../../../native-modules/didcomm";
 import { loadTokens } from "../../store/tokenSlice";
 import { loadSolTokens } from "../../store/solTokenSlice";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Didcomm from "../../../native-modules/didcomm";
 
 const ContentContainer = styled.View<{ theme: ThemeType; topInset: number }>`
   flex: 1;
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => props.topInset + 60}px;
+  margin-top: ${(props) => props.topInset + 20}px;
 `;
+
+
 const BalanceContainer = styled.View<{ theme: ThemeType }>`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  margin-bottom: ${(props) => props.theme.spacing.huge};
+  align-items: center;
+  margin-bottom: ${(props) => props.theme.spacing.large};
+`;
+
+const BalanceLabel = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
 `;
 
 const BalanceText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.uberHuge};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  color: ${(props) => props.theme.colors.white};
+  text-align: center;
+  letter-spacing: -1px;
+`;
+
+const DollarSign = styled.Text<{ theme: ThemeType }>`
+  color: ${(props) => props.theme.colors.primary};
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.huge};
   text-align: center;
 `;
 
@@ -75,7 +88,32 @@ const ActionContainer = styled.View<{ theme: ThemeType }>`
   justify-content: center;
   align-items: center;
   width: 100%;
+  margin-bottom: ${(props) => props.theme.spacing.large};
+  gap: 10px;
+`;
+
+const SectionHeader = styled.View<{ theme: ThemeType }>`
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: ${(props) => props.theme.spacing.medium};
+  margin-top: ${(props) => props.theme.spacing.small};
+`;
+
+const SectionTitle = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.header};
+  color: ${(props) => props.theme.colors.white};
+  letter-spacing: 0.3px;
+  flex: 1;
+`;
+
+const SectionAction = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.primary};
+  flex-shrink: 0;
+  margin-left: ${(props) => props.theme.spacing.small};
 `;
 
 const CryptoInfoCardContainer = styled.View<{ theme: ThemeType }>`
@@ -85,31 +123,18 @@ const CryptoInfoCardContainer = styled.View<{ theme: ThemeType }>`
 `;
 
 const CardView = styled.View<{ theme: ThemeType }>`
-  margin-bottom: ${(props) => props.theme.spacing.medium};
+  margin-bottom: ${(props) => props.theme.spacing.small};
   width: 100%;
-`;
-
-const SectionTitle = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.header};
-  color: ${(props) => props.theme.fonts.colors.primary};
-  margin-bottom: ${(props) => props.theme.spacing.medium};
-  margin-left: ${(props) => props.theme.spacing.small};
 `;
 
 const BottomSectionTitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.title};
-  color: ${(props) => props.theme.fonts.colors.primary};
+  color: ${(props) => props.theme.colors.white};
   margin-bottom: ${(props) => props.theme.spacing.medium};
-  margin-left: ${(props) => props.theme.spacing.huge};
-`;
-
-const DollarSign = styled.Text<{ theme: ThemeType }>`
-  color: ${(props) => props.theme.colors.lightGrey};
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.uberHuge};
-  text-align: center;
+  margin-left: ${(props) => props.theme.spacing.small};
+  letter-spacing: 0.3px;
+  flex: 1;
 `;
 
 const BottomScrollView = styled(BottomSheetScrollView) <{ theme: ThemeType }>`
@@ -118,21 +143,36 @@ const BottomScrollView = styled(BottomSheetScrollView) <{ theme: ThemeType }>`
 `;
 
 const ErrorContainer = styled.View<{ theme: ThemeType }>`
-  flex: 1;
+  flex-direction: row;
   justify-content: center;
   align-items: center;
   width: 100%;
-  background-color: rgba(255, 0, 0, 0.3);
-  border: 2px solid rgba(255, 0, 0, 0.4);
-  border-radius: ${(props) => props.theme.borderRadius.large};
-  height: 85px;
+  background-color: rgba(255, 77, 79, 0.15);
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: ${(props) => props.theme.borderRadius.medium};
+  height: 56px;
   padding: ${(props) => props.theme.spacing.medium};
+  margin-top: ${(props) => props.theme.spacing.medium};
 `;
 
 const ErrorText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.colors.white};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.error};
+`;
+
+const AssetCountBadge = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: ${(props) => props.theme.borderRadius.pill};
+  padding-horizontal: 10px;
+  padding-vertical: 4px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const AssetCountText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
 `;
 
 export default function Index() {
@@ -148,75 +188,50 @@ export default function Index() {
   const activeEthChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
   );
-  console.log("ACTIVE CHAIN (Redux):", activeEthChainId);
 
   const activeEthIndex = useSelector(
-    (state: RootState) =>
-      state.ethereum.activeIndex ?? 0
+    (state: RootState) => state.ethereum.activeIndex ?? 0
   );
   const ethAccount = useSelector((state: RootState) => {
     const index = state.ethereum.activeIndex ?? 0;
     return state.ethereum.globalAddresses?.[index];
   });
 
+  const importedEvmAddress = useSelector((state: RootState) => state.importedAccounts?.activeEvmAddress);
+  const importedSolAddress = useSelector((state: RootState) => state.importedAccounts?.activeSolAddress);
+  const isImportedActive = !!importedEvmAddress || !!importedSolAddress;
+  const ethWalletAddress = isImportedActive ? (importedEvmAddress || "") : (ethAccount?.address || "");
+  const ethBalance = ethAccount?.balanceByChain?.[activeEthChainId] ?? 0;
+  const ethTransactions = ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [];
+  const failedEthStatus = ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
 
-  const ethWalletAddress = ethAccount?.address ?? "";
-  console.log("activeEthChainId", activeEthChainId)
-  // Get balance for the active chain
-  const ethBalance =
-    ethAccount?.balanceByChain?.[activeEthChainId] ?? 0;
-
-  // Get transactions for the active chain
-  const ethTransactions =
-    ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [];
-
-  // Check if status for the active chain is failed
-  const failedEthStatus =
-    ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
-
-  // const ethBalance = useSelector(
-  //   (state: RootState) => state.ethereum.addresses[activeEthIndex].balance
-  // );
-  // const ethTransactions = useSelector(
-  //   (state: RootState) =>
-  //     state.ethereum.addresses[activeEthIndex].transactionMetadata.transactions
-  // );
-  // const failedEthStatus = useSelector(
-  //   (state: RootState) =>
-  //     state.ethereum.addresses[activeEthIndex].status === GeneralStatus.Failed
-  // );
   const ethereum = useSelector((s: RootState) => s.ethereum);
   const prices = useSelector((s: RootState) => s.price.data);
 
   const handleSelectChain = useCallback(
     (chainId: number, address: string) => {
-
       dispatch(setActiveChain(chainId));
       dispatch(fetchEvmBalance({ chainId, address }));
       dispatch(fetchEvmTransactions({ chainId, address }));
     },
     [dispatch]
   );
-  useEffect(() => {
 
+  useEffect(() => {
     dispatch(loadTokens());
-    dispatch(loadSolTokens())
+    dispatch(loadSolTokens());
   }, [dispatch]);
+
   const ethereumAssets = useMemo(() => {
     const list: any[] = [];
-
     Object.values(networks).forEach((network) => {
       const chainId = network.chainId;
       const index = ethereum.activeIndex ?? 0;
-      const account = ethereum.globalAddresses?.[index]; // 🔹 use globalAddresses
-
+      
+      const account = importedEvmAddress ? { address: importedEvmAddress, balanceByChain: {}, statusByChain: {}, transactionMetadataByChain: {} } : ethereum.globalAddresses?.[index];
       if (!account) return;
-
       const price = prices?.[chainId]?.usd ?? 0;
-
-
       const balance = account.balanceByChain?.[chainId] ?? 0;
-      console.log("proce usd", balance * price)
       const transactions = account.transactionMetadataByChain?.[chainId]?.transactions ?? [];
       const status = account.statusByChain?.[chainId] ?? GeneralStatus.Idle;
 
@@ -230,108 +245,62 @@ export default function Index() {
         address: account.address,
         transactions,
         status,
-        icon: <BlockchainIcon 
-                symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)} 
-                chainId={network.chainId}
-                chainName={network.chainName}
-                size={35} 
-              />,
+        icon: (
+          <BlockchainIcon
+            symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)}
+            chainId={network.chainId}
+            chainName={network.chainName}
+            size={35}
+          />
+        ),
       });
     });
-    console.log("list", list)
     return list;
-  }, [ethereum, prices, networks]);
-
+  }, [ethereum, prices, networks, importedEvmAddress]);
 
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
-  const solWalletAddress = useSelector(
-    (state: RootState) => state.solana.addresses[activeSolIndex].address
+  const solWalletAddressSeed = useSelector(
+    (state: RootState) => state.solana.addresses[activeSolIndex]?.address || ""
   );
+  const solWalletAddress = isImportedActive ? (importedSolAddress || "") : solWalletAddressSeed;
   const solBalance = useSelector(
-    (state: RootState) => state.solana.addresses[activeSolIndex].balance
+    (state: RootState) => state.solana.addresses[activeSolIndex]?.balance || 0
   );
-
   const solTransactions = useSelector(
     (state: RootState) =>
-      state.solana.addresses[activeSolIndex].transactionMetadata.transactions
+      state.solana.addresses[activeSolIndex]?.transactionMetadata?.transactions || []
   );
   const failedSolStatus = useSelector(
     (state: RootState) =>
-      state.solana.addresses[activeSolIndex].status === GeneralStatus.Failed
+      (state.solana.addresses[activeSolIndex]?.status === GeneralStatus.Failed) || false
   );
 
   const snapPoints = useMemo(() => ["10%", "33%", "69%", "88%"], []);
-
-  // const prices = useSelector((state: RootState) => state.price.data);
   const solPrice = prices;
-  console.log("solPrice", solPrice)
   const ethPrice = prices[activeEthChainId]?.usd;
 
   const [refreshing, setRefreshing] = useState(false);
   const [usdBalance, setUsdBalance] = useState(0);
   const [solUsd, setSolUsd] = useState(0);
   const [ethUsd, setEthUsd] = useState(0);
-  const [transactions, setTransactions] = useState([]);
   const [bottomSheetIndex, setBottomSheetIndex, bottomSheetIndexLoading] =
     useStorage(SNAP_POINTS);
 
-
-
-  // useEffect(() => {
-  //   if (passwordSet && !unlocked) {
-  //     router.replace(ROUTES.unlock);
-  //   }
-  // }, [passwordSet, unlocked]);
-  // useEffect(() => {
-  //   console.log("===== EVM Networks =====");
-  //   Object.values(networks).forEach((network) => {
-  //     console.log(`Network: ${network})`);
-
-  //     // Get addresses, fallback to dummy if empty
-
-
-
-  //   });
-  // }, []);
-
-
-  // console.log("EVM Store:", JSON.stringify(evmStore, null, 2));
-  // console.log("===== EVM Networks =====",networks);
-  // Object.values(networks).forEach((network) => {
-  //   console.log(`Network: ${network})`);
-  // });
   const state = store.getState();
   const evmChainIds = Object.keys(state.ethereum.networks).map(Number);
   const allChainIds = [...evmChainIds, 101];
-  console.log(allChainIds)
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-
     dispatch(fetchPrices(allChainIds));
     fetchTokenBalances();
-
     setTimeout(() => {
       setRefreshing(false);
     }, 2000);
   }, [dispatch, solWalletAddress, ethWalletAddress]);
-  // console.log("before ",activeEthChainId, ethWalletAddress)
 
-  // console.log("before222 ",activeEthChainId, ethWalletAddress)
-  //   const fetchTokenBalances = useCallback(async () => {
-  //   if (ethWalletAddress) {
-  //     // console.log("Dispatching fetchEvmBalance for", ethWalletAddress);
-  //     await dispatch(fetchEvmBalance({
-  //       chainId: activeEthChainId,
-  //       address: ethWalletAddress,
-  //     }));
-  //   }
-
-  //   if (solWalletAddress) {
-  //     await dispatch(fetchSolanaBalance(solWalletAddress));
-  //   }
-  // }, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
   const fetchTokenBalances = useCallback(async () => {
     try {
       if (ethWalletAddress) {
@@ -346,7 +315,6 @@ export default function Index() {
     }
   }, [dispatch, activeEthChainId, ethWalletAddress, solWalletAddress]);
 
-
   const fetchTokenBalancesInterval = useCallback(async () => {
     if (ethWalletAddress) {
       dispatch(fetchEvmBalanceInterval({
@@ -354,7 +322,6 @@ export default function Index() {
         address: ethWalletAddress,
       }));
     }
-
     if (solWalletAddress) {
       dispatch(fetchSolanaBalanceInterval(solWalletAddress));
     }
@@ -364,7 +331,6 @@ export default function Index() {
     if (ethWalletAddress && solWalletAddress) {
       const ethUsd = (ethPrice ?? 0) * ethBalance;
       const solUsd = (prices[101]?.usd ?? 0) * solBalance;
-
       setUsdBalance(ethUsd + solUsd);
       setEthUsd(ethUsd);
       setSolUsd(solUsd);
@@ -385,55 +351,26 @@ export default function Index() {
     return url;
   };
 
-  const renderItem = ({ item }) => {
-    if (isLoading) {
-      return <CryptoInfoCardSkeleton />;
-    }
-    const isSolana = item.asset.toLowerCase() === TICKERS.solana.toLowerCase();
-    const isEthereum =
-      item.asset.toLowerCase() === TICKERS.ethereum.toLowerCase();
+  const renderTx = ({ item }: any) => {
     const sign = item.direction === "received" ? "+" : "-";
-    if (isSolana) {
-      const caption =
-        item.direction === "received"
-          ? `from ${truncateWalletAddress(item.from)}`
-          : `To ${truncateWalletAddress(item.to)}`;
-      return (
-        <CryptoInfoCard
-          onPress={() =>
-            _handlePressButtonAsync(urlBuilder(item.hash, item.asset))
-          }
-          title={capitalizeFirstLetter(item.direction)}
-          caption={caption}
-          details={`${sign} ${item.value} ${item.asset}`}
-          icon={<CryptoIcon symbol={item.asset} size={35} />}
-        />
-      );
-    }
-
-    if (isEthereum) {
-      const caption =
-        item.direction === "received"
-          ? `from ${truncateWalletAddress(item.from)}`
-          : `To ${truncateWalletAddress(item.to)}`;
-      return (
-        <CryptoInfoCard
-          onPress={() =>
-            _handlePressButtonAsync(urlBuilder(item.hash, item.asset))
-          }
-          title={capitalizeFirstLetter(item.direction)}
-          caption={caption}
-          details={`${sign} ${item.value} ${item.asset}`}
-          icon={<CryptoIcon symbol={item.asset} size={35} />}
-        />
-      );
-    }
+    return (
+      <CryptoInfoCard
+        icon=""
+        title={capitalizeFirstLetter(item.direction)}
+        caption={
+          item.direction === "received"
+            ? `From ${truncateWalletAddress(item.from)}`
+            : `To ${truncateWalletAddress(item.to)}`
+        }
+        details={`${sign} ${item.value}`}
+        onPress={() =>
+          WebBrowser.openBrowserAsync(
+            `https://etherscan.io/tx/${item.hash}`
+          )
+        }
+      />
+    );
   };
-
-  // const fetchTransactions = async () => {
-  //   dispatch(fetchEvmTransactions({chainId: activeEthChainId, address: ethWalletAddress }));
-  //   dispatch(fetchSolanaTransactions(solWalletAddress));
-  // };
 
   const fetchTransactions = async () => {
     try {
@@ -449,16 +386,11 @@ export default function Index() {
     }
   };
 
-
   const fetchTransactionsInterval = async () => {
     dispatch(fetchEvmTransactionsInterval({ chainId: activeEthChainId, address: ethWalletAddress }));
     dispatch(fetchSolanaTransactionsInterval(solWalletAddress));
   };
 
-  // const fetchBalanceAndPrice = async () => {
-  //   await dispatch(fetchPrices(allChainIds));
-  //   await fetchTokenBalances();
-  // };
   const fetchBalanceAndPrice = async () => {
     try {
       await dispatch(fetchPrices(allChainIds));
@@ -504,106 +436,91 @@ export default function Index() {
     init();
   }, [dispatch, ethWalletAddress, solWalletAddress]);
 
-
   useEffect(() => {
     const interval = setInterval(
       fetchAndUpdatePricesInternal,
       FETCH_PRICES_INTERVAL
     );
-    console.log("majedur rahman 2")
     return () => clearInterval(interval);
   }, [dispatch, ethWalletAddress, solWalletAddress]);
 
   useEffect(() => {
     updatePrices();
-
-  }, [ethBalance,
-    solBalance,
-    ethPrice,          // ✅ add
-    prices[101]?.usd,]);
+  }, [ethBalance, solBalance, ethPrice, prices[101]?.usd]);
 
   const mergedAndSortedTransactions = useMemo(() => {
     const ethTx = ethTransactions ?? [];
     const solTx = solTransactions ?? [];
-    return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime);
+    return [...solTx, ...ethTx].filter((tx) => tx return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime);return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime); tx.blockTime != null).sort((a, b) => b.blockTime - a.blockTime);
   }, [solTransactions, ethTransactions]);
-
-  const renderTx = ({ item }: any) => {
-    const sign = item.direction === "received" ? "+" : "-";
-    return (
-      <CryptoInfoCard
-        icon=""
-        title={capitalizeFirstLetter(item.direction)}
-        caption={
-          item.direction === "received"
-            ? `From ${truncateWalletAddress(item.from)}`
-            : `To ${truncateWalletAddress(item.to)}`
-        }
-        details={`${sign} ${item.value}`}
-        onPress={() =>
-          WebBrowser.openBrowserAsync(
-            `https://etherscan.io/tx/${item.hash}`
-          )
-        }
-      />
-    );
-  };
 
   useEffect(() => {
     const initDidcomm = async () => {
       try {
         const result = await Didcomm.helloWorld();
-        // console.log("result:", result);
       } catch (err) {
         console.error(err);
       }
     };
-
     initDidcomm();
   }, []);
+
+  const totalAssets = ethereumAssets.length + 1;
 
   return (
     <SafeAreaContainer>
       <ContentContainer topInset={insets.top}>
         <BalanceContainer>
-          <DollarSign>$</DollarSign>
-          <BalanceText>{formatDollarRaw(usdBalance)}</BalanceText>
+          <BalanceLabel>Total Balance</BalanceLabel>
+          <BalanceText>
+            <DollarSign>$</DollarSign>
+            {formatDollarRaw(usdBalance)}
+          </BalanceText>
         </BalanceContainer>
+
         <ActionContainer>
           <PrimaryButton
             icon={
               <SendIcon
-                width={25}
-                height={25}
+                width={20}
+                height={20}
                 fill={theme.colors.primary}
               />
             }
             onPress={() => router.push(ROUTES.sendOptions)}
-            btnText="Send "
+            btnText="Send"
+            useGradient
           />
-          <View style={{ width: 15 }} />
           <PrimaryButton
             icon={
               <ReceiveIcon
-                width={25}
-                height={25}
+                width={20}
+                height={20}
                 fill={theme.colors.primary}
               />
             }
             onPress={() => router.push(ROUTES.receiveOptions)}
-            btnText="Receive "
+            btnText="Receive"
+            variant="outline"
           />
         </ActionContainer>
-        <SectionTitle>Recent Activity</SectionTitle>
+
+        <SectionHeader>
+          <SectionTitle>Recent Activity</SectionTitle>
+          {mergedAndSortedTransactions.length > 0 && (
+            <SectionAction>View All</SectionAction>
+          )}
+        </SectionHeader>
+
         <FlatList
-          contentContainerStyle={{ gap: 10 }}
+          contentContainerStyle={{ gap: 8 }}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
           refreshControl={
             <RefreshControl
-              tintColor="#fff"
-              titleColor="#fff"
+              tintColor={theme.colors.primary}
+              titleColor={theme.colors.white}
               refreshing={refreshing}
               onRefresh={onRefresh}
             />
@@ -619,13 +536,12 @@ export default function Index() {
         {failedEthStatus && failedSolStatus && (
           <ErrorContainer>
             <ErrorText>
-              There seems to be a network error, please try again later
+              ⚠️  Network error — please try again later
             </ErrorText>
           </ErrorContainer>
         )}
-
-
       </ContentContainer>
+
       {!bottomSheetIndexLoading && (
         <BottomSheet
           ref={sheetRef}
@@ -636,36 +552,36 @@ export default function Index() {
             borderTopLeftRadius: 30,
             borderTopRightRadius: 30,
             backgroundColor: theme.colors.lightDark,
-            opacity: 0.98,
             shadowColor: "#000",
-            shadowOffset: {
-              width: 0,
-              height: 12,
-            },
-            shadowOpacity: 0.58,
-            shadowRadius: 16.0,
-
+            shadowOffset: { width: 0, height: -8 },
+            shadowOpacity: 0.4,
+            shadowRadius: 20,
             elevation: 24,
           }}
           handleIndicatorStyle={{
-            backgroundColor: theme.colors.white,
+            backgroundColor: theme.colors.muted,
+            width: 40,
+            height: 4,
+            borderRadius: 2,
           }}
           handleStyle={{
-            marginTop: 6,
+            marginTop: 8,
+            paddingVertical: 8,
           }}
         >
           <BottomScrollView>
-            <BottomSectionTitle>Assets</BottomSectionTitle>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingRight: 20, paddingLeft: 4 }}>
+              <BottomSectionTitle>Assets</BottomSectionTitle>
+              <AssetCountBadge>
+                <AssetCountText>{totalAssets}</AssetCountText>
+              </AssetCountBadge>
+            </View>
             <CryptoInfoCardContainer>
-
-
               {ethereumAssets.map((asset) => (
                 <CardView key={asset.key}>
-                  {console.log("ethereumAssets", formatDollarRaw(asset.usdValue))}
                   <CryptoInfoCard
                     onPress={() => {
                       handleSelectChain(asset.chainId, asset.address);
-
                       router.push({
                         pathname: `/token/${asset.name.toLowerCase()}`,
                         params: {
@@ -679,7 +595,6 @@ export default function Index() {
                         },
                       });
                     }}
-
                     title={asset.name}
                     caption={`${asset.balance} ${asset.symbol}`}
                     details={formatDollar(asset.usdValue)}
@@ -691,21 +606,18 @@ export default function Index() {
 
               <CardView>
                 <CryptoInfoCard
-                  onPress={() => router.push(
-                    {
-                      pathname: ROUTES.solDetails,
-                      params: {
-                        asset: JSON.stringify({
-                          symbol: "SOL",
-                          numberOfTokens: solBalance,
-                          chainId: 101,
-                          address: solWalletAddress,
-                          price: formatDollarRaw(prices[101]?.usd * solBalance),
-
-                        }),
-                      },
-                    }
-                  )}
+                  onPress={() => router.push({
+                    pathname: ROUTES.solDetails,
+                    params: {
+                      asset: JSON.stringify({
+                        symbol: "SOL",
+                        numberOfTokens: solBalance,
+                        chainId: 101,
+                        address: solWalletAddress,
+                        price: formatDollarRaw(prices[101]?.usd * solBalance),
+                      }),
+                    },
+                  })}
                   title="Solana"
                   caption={`${solBalance} SOL`}
                   details={formatDollar(solUsd)}
@@ -720,6 +632,3 @@ export default function Index() {
     </SafeAreaContainer>
   );
 }
-
-
-

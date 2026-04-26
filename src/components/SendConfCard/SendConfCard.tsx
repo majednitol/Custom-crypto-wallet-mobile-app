@@ -2,70 +2,42 @@ import React from "react";
 import styled from "styled-components/native";
 import { ThemeType } from "../../styles/theme";
 
-interface ButtonContainerProps {
-  backgroundColor?: string;
-  theme: ThemeType;
-}
-
-const SendConfCardContainer = styled.View<ButtonContainerProps>`
-  flex-direction: column;
-  justify-content: space-between;
+const SendConfCardContainer = styled.View`
   width: 100%;
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  border-radius: 20px;
+  border: 1px solid ${({ theme }) => theme.colors.border};
+  overflow: hidden;
 `;
 
-const TokenSectionViewTop = styled.View<{ theme: ThemeType }>`
+const TokenSectionRow = styled.View<{ theme: ThemeType; isFirst?: boolean; isLast?: boolean }>`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid ${({ theme }) => theme.colors.dark};
-  border-top-left-radius: ${(props) => props.theme.borderRadius.large};
-  border-top-right-radius: ${(props) => props.theme.borderRadius.large};
-`;
-
-const TokenSectionViewMid = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-
-  border: 1px solid ${({ theme }) => theme.colors.dark};
-`;
-
-const TokenSectionViewBot = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  height: 60px;
-  width: 100%;
-  padding-left: 20px;
-  padding-right: 20px;
-
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid ${({ theme }) => theme.colors.dark};
-  border-bottom-left-radius: ${(props) => props.theme.borderRadius.large};
-  border-bottom-right-radius: ${(props) => props.theme.borderRadius.large};
+  padding: 16px 20px;
+  border-bottom-width: ${({ isLast }) => (isLast ? "0px" : "1px")};
+  border-bottom-color: ${({ theme }) => theme.colors.border};
 `;
 
 const TokenNameLabel = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${({ theme }) => theme.colors.lightGrey};
 `;
 
 const TokenNameText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${({ theme }) => theme.colors.white};
+  max-width: 60%;
+  text-align: right;
+`;
+
+const TokenNameTextGold = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${({ theme }) => theme.colors.primary};
+  text-align: right;
 `;
 
 interface SendConfCardProps {
@@ -81,18 +53,18 @@ const SendConfCard: React.FC<SendConfCardProps> = ({
 }) => {
   return (
     <SendConfCardContainer>
-      <TokenSectionViewTop>
+      <TokenSectionRow isFirst>
         <TokenNameLabel>Address</TokenNameLabel>
         <TokenNameText>{toAddress}</TokenNameText>
-      </TokenSectionViewTop>
-      <TokenSectionViewMid>
+      </TokenSectionRow>
+      <TokenSectionRow>
         <TokenNameLabel>Network</TokenNameLabel>
         <TokenNameText>{network}</TokenNameText>
-      </TokenSectionViewMid>
-      <TokenSectionViewBot>
+      </TokenSectionRow>
+      <TokenSectionRow isLast>
         <TokenNameLabel>Network Fee</TokenNameLabel>
-        <TokenNameText>{networkFee}</TokenNameText>
-      </TokenSectionViewBot>
+        <TokenNameTextGold>{networkFee}</TokenNameTextGold>
+      </TokenSectionRow>
     </SendConfCardContainer>
   );
 };

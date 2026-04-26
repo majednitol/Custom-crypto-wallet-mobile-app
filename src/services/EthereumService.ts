@@ -411,10 +411,11 @@ export const registerEvmService = (network: CustomNetwork) => {
 
 
 
-export const getEvmService = (chainId: number): EVMService => {
+export const getEvmService = (chainId: number): EVMService | null => {
   const service = evmServices[chainId];
   if (!service) {
-    throw new Error(`EVM service not initialized for chain ${chainId}`);
+    console.warn(`EVM service not initialized for chain ${chainId}`);
+    return null;
   }
   return service;
 };

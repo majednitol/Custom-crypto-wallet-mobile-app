@@ -11,90 +11,112 @@ import { capitalizeFirstLetter } from "../../../../utils/capitalizeFirstLetter";
 import { truncateWalletAddress } from "../../../../utils/truncateWalletAddress";
 import Button from "../../../../components/Button/Button";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
-const qrWidth = Dimensions.get("window").width * 0.8;
-const qrContainerWidth = Dimensions.get("window").width * 0.9;
-interface TextInputProps {
-  isAddressInputFocused?: boolean;
-  isAmountInputFocused?: boolean;
-  theme: ThemeType;
-}
+import { BlockchainIcon } from "../../../../components/BlockchainIcon/BlockchainIcon";
+
+const qrSize = Dimensions.get("window").width * 0.65;
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
-  justify-content: center;
   align-items: center;
-  padding: ${(props) => props.theme.spacing.medium};
+  padding: ${(props) => props.theme.spacing.large};
   margin-top: ${(props) =>
-    Platform.OS === "android" && props.theme.spacing.huge};
+    Platform.OS === "android" ? props.theme.spacing.huge : "0px"};
 `;
 
-const ImageContainer = styled.View<{ theme: ThemeType }>`
-  width: 100%;
+const HeaderSection = styled.View`
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const ChainIconCircle = styled.View<{ theme: ThemeType }>`
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  background-color: rgba(240, 185, 11, 0.12);
   justify-content: center;
   align-items: center;
-  height: ${qrContainerWidth}px;
-  width: ${qrContainerWidth}px;
-  border-radius: ${(props) => props.theme.spacing.medium};
-  background-color: ${(props) => props.theme.colors.white};
+  margin-bottom: 12px;
 `;
 
-const CopyButton = styled.TouchableOpacity<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.primary};
-  padding: ${(props) => props.theme.spacing.medium};
-  border-radius: ${(props) => props.theme.borderRadius.default};
-  align-items: center;
-  justify-content: center;
-  margin-right: 2px;
-`;
-
-const MaxText = styled.Text<{ theme: ThemeType }>`
+const HeaderTitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: 24px;
   color: ${(props) => props.theme.colors.white};
   text-align: center;
-  width: 75px;
 `;
 
-const ReceiveButtonView = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
+const QRCodeCard = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 24px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  padding: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const QRCodeContainer = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.white};
+  border-radius: 20px;
+  padding: 16px;
+  justify-content: center;
   align-items: center;
 `;
 
-const ReceiveTextInput = styled.TextInput<TextInputProps>`
-  height: 60px;
-  color: ${({ theme }) => theme.colors.lightGrey};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+const QRCodeLabel = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  padding: ${({ theme }) => theme.spacing.medium};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
+  margin-top: 12px;
+  text-align: center;
 `;
 
-const ReceiveTextInputContainer = styled.View<TextInputProps>`
-  height: 60px;
+const AddressCard = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 16px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  padding: 0 4px 0 16px;
   flex-direction: row;
-  justify-content: space-between;
   align-items: center;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  border: 1px solid
-    ${({ theme, isAmountInputFocused }) =>
-      isAmountInputFocused ? theme.colors.primary : theme.colors.grey};
-  border-radius: ${({ theme }) => theme.borderRadius.default};
   width: 100%;
-  margin-top: ${({ theme }) => theme.spacing.huge};
+  height: 56px;
+  margin-bottom: 16px;
+`;
+
+const AddressText = styled.Text<{ theme: ThemeType }>`
+  flex: 1;
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.lightGrey};
+`;
+
+const CopyButton = styled.TouchableOpacity<{ copied: boolean; theme: ThemeType }>`
+  background-color: ${({ copied, theme }) =>
+    copied ? "#22c55e" : theme.colors.primary};
+  padding: 10px 18px;
+  border-radius: 12px;
+  align-items: center;
+  justify-content: center;
+`;
+
+const CopyButtonText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.dark};
 `;
 
 const InfoText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${(props) => props.theme.colors.lightGrey};
   text-align: center;
-  margin-top: ${(props) => props.theme.spacing.medium};
+  margin-bottom: 24px;
 `;
 
 const ButtonContainer = styled.View<{ theme: ThemeType }>`
   padding-left: ${(props) => props.theme.spacing.large};
   padding-right: ${(props) => props.theme.spacing.large};
   padding-bottom: ${(props) => props.theme.spacing.large};
-  padding-top: ${(props) => props.theme.spacing.small};
+  width: 100%;
 `;
 
 export default function ReceivePage() {
@@ -102,41 +124,34 @@ export default function ReceivePage() {
   const { receive } = useLocalSearchParams();
   const chainName = receive as string;
   const navigation = useNavigation();
-  const activeChainId = useSelector(
-  (state: RootState) => state.ethereum.activeChainId
-);
 
   const tokenAddress = useSelector((state: RootState) => {
-   let blockchainVersion = chainName
-  ? chainName === "solana"
-    ? "solana"
-    : "ethereum"
-  : "";
-    
-  if (blockchainVersion === "ethereum") {
-    const chainId = state.ethereum.activeChainId;
-    const index =
-      state.ethereum.activeIndex ?? 0;
-console.log("indedefgberfghbetrhtrhtrhjtrjyrtjytjy",index)
-    return state.ethereum.globalAddresses?.[index]?.address;
-  }
+    let blockchainVersion = chainName
+      ? chainName === "solana"
+        ? "solana"
+        : "ethereum"
+      : "";
 
-  if (blockchainVersion === "solana") {
-    const index = state.solana.activeIndex ?? 0;
-    return state.solana.addresses?.[index]?.address;
-  }
+    if (blockchainVersion === "ethereum") {
+      const index = state.ethereum.activeIndex ?? 0;
+      return state.ethereum.globalAddresses?.[index]?.address;
+    }
 
-  return undefined;
-});
+    if (blockchainVersion === "solana") {
+      const index = state.solana.activeIndex ?? 0;
+      return state.solana.addresses?.[index]?.address;
+    }
 
-  const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);
-  const [buttonText, setButtonText] = useState("Copy");
-console.log("tokenAddress",tokenAddress)
+    return undefined;
+  });
+
+  const [copied, setCopied] = useState(false);
+
   const handleCopy = async () => {
     await Clipboard.setStringAsync(tokenAddress);
-    setButtonText("Copied!");
+    setCopied(true);
     setTimeout(() => {
-      setButtonText("Copy");
+      setCopied(false);
     }, 4000);
   };
 
@@ -155,37 +170,43 @@ console.log("tokenAddress",tokenAddress)
       title: `Receive ${capitalizeFirstLetter(chainName)}`,
     });
   }, [navigation]);
+
+  const chainSymbol = chainName === "solana" ? "sol" : "eth";
+
   return (
     <SafeAreaContainer>
       <ContentContainer>
-        <ImageContainer>
-          <QRCode value={tokenAddress} size={qrWidth} />
-        </ImageContainer>
+        <HeaderSection>
+          <ChainIconCircle>
+            <BlockchainIcon symbol={chainSymbol} size={28} />
+          </ChainIconCircle>
+          <HeaderTitle>Receive {capitalizeFirstLetter(chainName)}</HeaderTitle>
+        </HeaderSection>
 
-        <ReceiveTextInputContainer>
-          <ReceiveTextInput
-            isAmountInputFocused={isAmountInputFocused}
-            value={truncateWalletAddress(tokenAddress, 8, 8)}
-            editable={false}
-            onEndEditing={() => setIsAmountInputFocused(false)}
-            placeholderTextColor={theme.colors.lightGrey}
-            keyboardType="numeric"
-          />
-          <ReceiveButtonView>
-            <CopyButton onPress={() => handleCopy()}>
-              <MaxText>{buttonText}</MaxText>
-            </CopyButton>
-          </ReceiveButtonView>
-        </ReceiveTextInputContainer>
+        <QRCodeCard>
+          <QRCodeContainer>
+            <QRCode value={tokenAddress} size={qrSize} />
+          </QRCodeContainer>
+          <QRCodeLabel>Scan to receive</QRCodeLabel>
+        </QRCodeCard>
+
+        <AddressCard>
+          <AddressText>{truncateWalletAddress(tokenAddress, 10, 10)}</AddressText>
+          <CopyButton onPress={handleCopy} copied={copied}>
+            <CopyButtonText>{copied ? "Copied!" : "Copy"}</CopyButtonText>
+          </CopyButton>
+        </AddressCard>
+
         <InfoText>
           Share this address to receive {capitalizeFirstLetter(chainName)}
         </InfoText>
       </ContentContainer>
+
       <ButtonContainer>
         <Button
           backgroundColor={theme.colors.primary}
           onPress={onShare}
-          title="Share"
+          title="Share Address"
         />
       </ButtonContainer>
     </SafeAreaContainer>

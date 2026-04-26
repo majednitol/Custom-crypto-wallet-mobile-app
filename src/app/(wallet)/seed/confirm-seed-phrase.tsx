@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Dimensions, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native";
+import { Dimensions, ScrollView, SafeAreaView } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import styled from "styled-components/native";
 import { useTheme } from "styled-components/native";
@@ -10,83 +9,140 @@ import { ThemeType } from "../../../styles/theme";
 import Button from "../../../components/Button/Button";
 import Bubble from "../../../components/Bubble/Bubble";
 import { ROUTES } from "../../../constants/routes";
-import { Title, Subtitle } from "../../../components/Styles/Text.styles";
-import {
-  ErrorTextCenter,
-  ErrorTextContainer,
-} from "../../../components/Styles/Errors.styles";
 import PasteIcon from "../../../assets/svg/paste.svg";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
-  background-color: ${(props) => props.theme.colors.lightDark};
-  justify-content: center;
-  align-items: center;
+  background-color: ${(props) => props.theme.colors.dark};
 `;
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
-  justify-content: center;
   align-items: center;
   padding: ${(props) => props.theme.spacing.medium};
 `;
 
-const TextContainer = styled.View<{ theme: ThemeType }>`
-  margin-bottom: ${(props) => props.theme.spacing.huge};
+const HeaderSection = styled.View`
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const IconCircle = styled.View<{ theme: ThemeType }>`
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-color: rgba(240, 185, 11, 0.12);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+`;
+
+const VerifyIcon = styled.Text`
+  font-size: 24px;
+`;
+
+const Title = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: 24px;
+  color: ${(props) => props.theme.colors.white};
+  text-align: center;
+  margin-bottom: 8px;
+`;
+
+const Subtitle = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.lightGrey};
+  text-align: center;
+  padding-horizontal: ${(props) => props.theme.spacing.small};
+`;
+
+const SelectedCard = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 20px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  padding: 16px;
+  min-height: 120px;
+  width: 100%;
+  margin-bottom: 16px;
+`;
+
+const SelectedLabel = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+`;
+
+const SelectedWordsRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
+
+const WordBankCard = styled.View<{ theme: ThemeType }>`
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 20px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  padding: 16px;
+  width: 100%;
+  flex: 1;
+  margin-bottom: 16px;
+`;
+
+const WordBankLabel = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: ${(props) => props.theme.colors.lightGrey};
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+`;
+
+const WordBankRow = styled.View`
+  flex-direction: row;
+  flex-wrap: wrap;
+`;
+
+const PasteButton = styled.TouchableOpacity<{ theme: ThemeType }>`
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border: 1px dashed ${(props) => props.theme.colors.primary};
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin-bottom: 16px;
+`;
+
+const PasteButtonText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${(props) => props.theme.colors.primary};
+  margin-left: 8px;
+`;
+
+const ErrorContainer = styled.View<{ theme: ThemeType }>`
+  background-color: rgba(255, 82, 82, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  width: 100%;
+`;
+
+const ErrorText = styled.Text<{ theme: ThemeType }>`
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
+  font-size: ${(props) => props.theme.fonts.sizes.small};
+  color: #ff5252;
+  text-align: center;
 `;
 
 const ButtonContainer = styled.View<{ theme: ThemeType }>`
   padding-left: ${(props) => props.theme.spacing.large};
   padding-right: ${(props) => props.theme.spacing.large};
-  padding-bottom: ${(props) => props.theme.spacing.large};
-  padding-top: ${(props) => props.theme.spacing.small};
+  padding-bottom: ${(props) => props.theme.spacing.medium};
   width: 100%;
-`;
-
-const SeedPhraseContainer = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  margin-right: ${(props) => props.theme.spacing.medium};
-  margin-left: ${(props) => props.theme.spacing.medium};
-  height: 220px;
-`;
-
-const ConfirmSeedContainer = styled.View<{ theme: ThemeType }>`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  padding: ${(props) => props.theme.spacing.medium};
-  background-color: ${(props) => props.theme.colors.dark};
-  border-radius: ${(props) => props.theme.borderRadius.extraLarge};
-  height: 235px;
-  width: ${(Dimensions.get("window").width * 0.9).toFixed(0)}px;
-`;
-
-const SecondaryButtonContainer = styled.TouchableOpacity`
-  padding: 10px 10px;
-  border-radius: 5px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  height: 60px;
-  width: 100%;
-  border-radius: ${(props) => props.theme.borderRadius.large};
-  margin-bottom: ${(props) => props.theme.spacing.small};
-  margin-top: ${(props) => props.theme.spacing.small};
-`;
-
-const SecondaryButtonText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
-`;
-
-const IconContainer = styled.View`
-  margin-right: ${(props) => props.theme.spacing.small};
 `;
 
 export default function Page() {
@@ -102,19 +158,20 @@ export default function Page() {
 
   const handleSelectedWord = (word: string) => {
     if (selectedWords.length === 12) return;
-
     setSelectedWords([...selectedWords, word]);
     setSeedPhrase(seedPhrase.filter((w) => w !== word));
+    setError("");
   };
 
   const handleRemoveSelectedWord = (word: string) => {
     setSelectedWords(selectedWords.filter((w) => w !== word));
     setSeedPhrase([...seedPhrase, word]);
+    setError("");
   };
 
   const handleVerifySeedPhrase = async () => {
     if (selectedWords.length !== 12) {
-      setError("Please select all the words to verify your seed phrase");
+      setError("Please select all 12 words in the correct order");
       return;
     }
 
@@ -131,7 +188,7 @@ export default function Page() {
         params: { successState: "CREATED_WALLET" },
       });
     } else {
-      setError("Looks like the seed phrase is incorrect. Please try again.");
+      setError("The seed phrase order is incorrect. Please try again.");
     }
   };
 
@@ -143,57 +200,76 @@ export default function Page() {
     if (isValid) {
       setSelectedWords(copiedText.split(" "));
       setSeedPhrase([]);
+      setError("");
+    } else {
+      setError("Clipboard does not contain the correct phrase");
     }
   };
 
   return (
     <SafeAreaContainer>
-      <ScrollView contentContainerStyle={{ paddingTop: 50 }}>
+      <ScrollView contentContainerStyle={{ paddingTop: 30, paddingBottom: 20 }}>
         <ContentContainer>
-          <TextContainer>
+          <HeaderSection>
+            <IconCircle>
+              <VerifyIcon>✅</VerifyIcon>
+            </IconCircle>
             <Title>Verify you saved it correctly</Title>
             <Subtitle>
-              Tap the words in the correct numerical order to verify you saved
-              your secret recovery phrase.
+              Tap the words in the correct order to verify you saved your secret
+              recovery phrase.
             </Subtitle>
-          </TextContainer>
-          <ConfirmSeedContainer>
-            {selectedWords.map((word, index) => (
-              <Bubble
-                smallBubble
-                hideDetails
-                key={index}
-                word={word}
-                number={index + 1}
-                onPress={() => handleRemoveSelectedWord(word)}
-              />
-            ))}
-          </ConfirmSeedContainer>
-          <SecondaryButtonContainer onPress={() => fetchCopiedText()}>
-            <IconContainer>
-              <PasteIcon fill={theme.colors.white} />
-            </IconContainer>
-            <SecondaryButtonText>Paste Phrase</SecondaryButtonText>
-          </SecondaryButtonContainer>
-          <SeedPhraseContainer>
-            {seedPhrase.map((word, index) => (
-              <Bubble
-                onPress={() => handleSelectedWord(word)}
-                smallBubble
-                hideDetails
-                key={index}
-                word={word}
-                number={index + 1}
-              />
-            ))}
-          </SeedPhraseContainer>
+          </HeaderSection>
+
+          <SelectedCard>
+            <SelectedLabel>
+              {selectedWords.length > 0
+                ? `Selected (${selectedWords.length}/12)`
+                : "Tap words below to select"}
+            </SelectedLabel>
+            <SelectedWordsRow>
+              {selectedWords.map((word, index) => (
+                <Bubble
+                  smallBubble
+                  hideDetails
+                  key={`sel-${index}`}
+                  word={word}
+                  number={index + 1}
+                  onPress={() => handleRemoveSelectedWord(word)}
+                />
+              ))}
+            </SelectedWordsRow>
+          </SelectedCard>
+
+          <PasteButton onPress={fetchCopiedText}>
+            <PasteIcon fill={theme.colors.primary} width={18} height={18} />
+            <PasteButtonText>Paste Phrase</PasteButtonText>
+          </PasteButton>
+
+          <WordBankCard>
+            <WordBankLabel>Word Bank</WordBankLabel>
+            <WordBankRow>
+              {seedPhrase.map((word, index) => (
+                <Bubble
+                  onPress={() => handleSelectedWord(word)}
+                  smallBubble
+                  hideDetails
+                  key={`bank-${index}`}
+                  word={word}
+                  number={index + 1}
+                />
+              ))}
+            </WordBankRow>
+          </WordBankCard>
+
+          {error && (
+            <ErrorContainer>
+              <ErrorText>{error}</ErrorText>
+            </ErrorContainer>
+          )}
         </ContentContainer>
       </ScrollView>
-      {error && (
-        <ErrorTextContainer>
-          <ErrorTextCenter>{error}</ErrorTextCenter>
-        </ErrorTextContainer>
-      )}
+
       <ButtonContainer>
         <Button
           color={theme.colors.white}
