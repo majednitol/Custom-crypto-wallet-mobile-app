@@ -122,12 +122,19 @@ export default function ReceiveOptionsPage() {
   const ethereum = useSelector((state: RootState) => state.ethereum);
   const networks = useSelector((state: RootState) => state.ethereum.networks);
 
+  const importedEvmAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeEvmAddress
+  );
+
   /* ---------- SOLANA (keep same) ---------- */
+  const importedSolAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeSolAddress
+  );
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
 
-  const solAddress = useSelector(
+  const solAddress = importedSolAddress || useSelector(
     (state: RootState) =>
       state.solana.addresses?.[activeSolIndex]?.address
   );
@@ -144,7 +151,7 @@ export default function ReceiveOptionsPage() {
               ethereum.activeIndex ?? 0;
 
             const address =
-              ethereum.globalAddresses?.[activeIndex]?.address;
+              importedEvmAddress || ethereum.globalAddresses?.[activeIndex]?.address;
 
             if (!address) return null;
 

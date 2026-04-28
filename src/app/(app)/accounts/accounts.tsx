@@ -202,6 +202,12 @@ const AccountsIndex = () => {
   const importedAccounts = useSelector(
     (state: RootState) => state.importedAccounts?.accounts ?? []
   );
+  const activeImportedEvmAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeEvmAddress
+  );
+  const activeImportedSolAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeSolAddress
+  );
 
   const prices = useSelector((state: RootState) => state.price.data);
 
@@ -586,15 +592,23 @@ const AccountsIndex = () => {
       solAcc: SAddressState[],
       activeEthAddress: string | null,
       activeSolAddress: string | null,
-      importedAcc: { id: string; accountName: string; evmAddress?: string; solAddress?: string }[]
+      importedAcc: { id: string; accountName: string; evmAddress?: string; solAddress?: string }[],
+      activeImportedEvm?: string,
+      activeImportedSol?: string
     ) => {
       const mergedWalletPairs: WalletPairs[] = [];
       const highestAccAmount = Math.max(ethAcc.length, solAcc.length);
 
+      // Determine "true" active addresses (imported takes precedence)
+      const trueActiveEth = activeImportedEvm || activeEthAddress;
+      const trueActiveSol = activeImportedSol || activeSolAddress;
+
       for (let i = 0; i < highestAccAmount; i++) {
         const eth = ethAcc[i] ?? null;
         const sol = solAcc[i] ?? null;
+        // Seed-derived account is active ONLY when no imported account is active
         const isActiveAccount =
+          !activeImportedEvm && !activeImportedSol &&
           eth?.address === activeEthAddress && sol?.address === activeSolAddress;
 
         mergedWalletPairs.push({
@@ -609,8 +623,8 @@ const AccountsIndex = () => {
       // Add imported accounts
       for (const imported of importedAcc) {
         const isActiveAccount =
-          (imported.evmAddress (imported.evmAddress && imported.evmAddress === activeEthAddress) ||(imported.evmAddress && imported.evmAddress === activeEthAddress) || imported.evmAddress === activeEthAddress?.address) ||
-          (imported.solAddress (imported.solAddress && imported.solAddress === activeSolAddress) ||(imported.solAddress && imported.solAddress === activeSolAddress) || imported.solAddress === activeSolAddress?.address) ||
+          (imported.evmAddress && imported.evmAddress === trueActiveEth) ||
+          (imported.solAddress && imported.solAddress === trueActiveSol) ||
           false;
 
         mergedWalletPairs.push({
@@ -642,7 +656,9 @@ const AccountsIndex = () => {
           solana,
           activeEthAddress?.address ?? null,
           activeSolAddress?.address ?? null,
-          importedAccounts
+          importedAccounts,
+          activeImportedEvmAddress,
+          activeImportedSolAddress
         );
 
         setAccounts(merged);
@@ -660,6 +676,8 @@ const AccountsIndex = () => {
     activeEthAddress,
     activeSolAddress,
     importedAccounts,
+    activeImportedEvmAddress,
+    activeImportedSolAddress,
     compileAddressesConcurrently,
     compileInactiveAddresses
   ]);

@@ -184,6 +184,9 @@ const onLayoutRootView = useCallback(async () => {
               gestureEnabled: true,
             }}
           />
+
+
+
           <Stack.Screen
             name="token/send/send-options"
             options={{

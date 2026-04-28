@@ -201,8 +201,8 @@ export default function Index() {
   const importedSolAddress = useSelector((state: RootState) => state.importedAccounts?.activeSolAddress);
   const isImportedActive = !!importedEvmAddress || !!importedSolAddress;
   const ethWalletAddress = isImportedActive ? (importedEvmAddress || "") : (ethAccount?.address || "");
-  const ethBalance = ethAccount?.balanceByChain?.[activeEthChainId] ?? 0;
-  const ethTransactions = ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [];
+  const ethBalance = isImportedActive ? 0 : (ethAccount?.balanceByChain?.[activeEthChainId] ?? 0);
+  const ethTransactions = isImportedActive ? [] : (ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? []);
   const failedEthStatus = ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
 
   const ethereum = useSelector((s: RootState) => s.ethereum);
@@ -265,13 +265,15 @@ export default function Index() {
     (state: RootState) => state.solana.addresses[activeSolIndex]?.address || ""
   );
   const solWalletAddress = isImportedActive ? (importedSolAddress || "") : solWalletAddressSeed;
-  const solBalance = useSelector(
+  const solBalanceSeed = useSelector(
     (state: RootState) => state.solana.addresses[activeSolIndex]?.balance || 0
   );
-  const solTransactions = useSelector(
+  const solBalance = isImportedActive ? 0 : solBalanceSeed;
+  const solTransactionsRaw = useSelector(
     (state: RootState) =>
       state.solana.addresses[activeSolIndex]?.transactionMetadata?.transactions || []
   );
+  const solTransactions = isImportedActive ? [] : solTransactionsRaw;
   const failedSolStatus = useSelector(
     (state: RootState) =>
       (state.solana.addresses[activeSolIndex]?.status === GeneralStatus.Failed) || false
@@ -328,13 +330,11 @@ export default function Index() {
   }, [ethBalance, solBalance, dispatch]);
 
   const updatePrices = () => {
-    if (ethWalletAddress && solWalletAddress) {
-      const ethUsd = (ethPrice ?? 0) * ethBalance;
-      const solUsd = (prices[101]?.usd ?? 0) * solBalance;
-      setUsdBalance(ethUsd + solUsd);
-      setEthUsd(ethUsd);
-      setSolUsd(solUsd);
-    }
+    const ethUsd = ethWalletAddress ? (ethPrice ?? 0) * ethBalance : 0;
+    const solUsd = solWalletAddress ? (prices[101]?.usd ?? 0) * solBalance : 0;
+    setUsdBalance(ethUsd + solUsd);
+    setEthUsd(ethUsd);
+    setSolUsd(solUsd);
   };
 
   const _handlePressButtonAsync = async (url: string) => {
@@ -451,7 +451,7 @@ export default function Index() {
   const mergedAndSortedTransactions = useMemo(() => {
     const ethTx = ethTransactions ?? [];
     const solTx = solTransactions ?? [];
-    return [...solTx, ...ethTx].filter((tx) => tx return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime);return [...solTx, ...ethTx].sort((a, b) => b.blockTime - a.blockTime); tx.blockTime != null).sort((a, b) => b.blockTime - a.blockTime);
+    return [...solTx, ...ethTx].filter((tx) => tx && tx.blockTime != null).sort((a, b) => b.blockTime - a.blockTime);
   }, [solTransactions, ethTransactions]);
 
   useEffect(() => {
@@ -590,8 +590,9 @@ export default function Index() {
                             numberOfTokens: asset.balance,
                             chainId: asset.chainId,
                             address: asset.address,
-                            price: formatDollarRaw(asset.usdValue),
+                            price: prices[asset.chainId]?.usd ?? 0,
                           }),
+
                         },
                       });
                     }}
@@ -614,7 +615,7 @@ export default function Index() {
                         numberOfTokens: solBalance,
                         chainId: 101,
                         address: solWalletAddress,
-                        price: formatDollarRaw(prices[101]?.usd * solBalance),
+                        price: prices[101]?.usd ?? 0,
                       }),
                     },
                   })}

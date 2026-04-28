@@ -8,22 +8,20 @@ import {
   Commitment,
 } from "@solana/web3.js";
 
-
 import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
+
 
 /* ---------------- CONFIG ---------------- */
 
-// Switch easily between devnet / mainnet
 const RPC_URL = "https://api.devnet.solana.com";
 const COMMITMENT: Commitment = "confirmed";
 
-// 🔑 Helius (works on mobile)
-const HELIUS_API_KEY = "YOUR_HELIUS_API_KEY";
 const HELIUS_RPC = "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
 
 export const connection = new Connection(RPC_URL, COMMITMENT);
@@ -77,39 +75,135 @@ export async function getSplTokenBalance(
   try {
     const walletPubkey = new PublicKey(wallet);
     const mintPubkey = new PublicKey(mint);
-console.log("walletPubkey, mintPubkey,ata,balance1",walletPubkey, mintPubkey)
-    const ata = await getAssociatedTokenAddress(
-      mintPubkey,
-      walletPubkey
-    );
-console.log("walletPubkey, mintPubkey,ata,balance2",walletPubkey, mintPubkey,ata)
-    const balance = await connection.getTokenAccountBalance(ata);
-console.log("walletPubkey, mintPubkey,ata,balance23",walletPubkey, mintPubkey,ata,balance)
 
-    return {
-      mint,
-      ata: ata.toBase58(),
-      amount: balance.value.uiAmount ?? 0,
-      decimals: balance.value.decimals,
-    };
+    // Try Token Program first
+    let ata = await getAssociatedTokenAddress(
+      mintPubkey,
+      walletPubkey,
+      false,
+      TOKEN_PROGRAM_ID
+    );
+
+    try {
+      const balance = await connection.getTokenAccountBalance(ata);
+      return {
+        mint,
+        ata: ata.toBase58(),
+        amount: balance.value.uiAmount ?? 0,
+        decimals: balance.value.decimals,
+      };
+    } catch {
+      // Try Token 2022 Program
+      ata = await getAssociatedTokenAddress(
+        mintPubkey,
+        walletPubkey,
+        false,
+        TOKEN_2022_PROGRAM_ID
+      );
+      const balance = await connection.getTokenAccountBalance(ata);
+      return {
+        mint,
+        ata: ata.toBase58(),
+        amount: balance.value.uiAmount ?? 0,
+        decimals: balance.value.decimals,
+      };
+    }
   } catch {
     return null;
   }
 }
 
+/* ---------------- SPL TOKEN TRANSFER FEE ---------------- */
 
+export async function calculateSplTokenTransactionFee(params: {
+  mint: string;
+  fromPubkey: PublicKey;
+  toAddress: string;
+  amount: number;
+  decimals: number;
+}): Promise<{
+  lamports: number;
+  sol: number;
+}> {
+  const { mint, fromPubkey, toAddress, amount, decimals } = params;
+
+  const mintPubkey = new PublicKey(mint);
+  const toPubkey = new PublicKey(toAddress);
+
+  const senderAta = await getAssociatedTokenAddress(
+    mintPubkey,
+    fromPubkey
+  );
+
+  const receiverAta = await getAssociatedTokenAddress(
+    mintPubkey,
+    toPubkey
+  );
+
+  const instructions = [];
+
+  const receiverInfo = await connection.getAccountInfo(receiverAta);
+  if (!receiverInfo) {
+    instructions.push(
+      createAssociatedTokenAccountInstruction(
+        fromPubkey,
+        receiverAta,
+        toPubkey,
+        mintPubkey
+      )
+    );
+  }
+
+  const amountInBaseUnits = BigInt(
+    Math.round(amount * Math.pow(10, decimals))
+  );
+
+  instructions.push(
+    createTransferInstruction(
+      senderAta,
+      receiverAta,
+      fromPubkey,
+      amountInBaseUnits
+    )
+  );
+
+  const tx = new Transaction().add(...instructions);
+  tx.feePayer = fromPubkey;
+
+  const { blockhash } = await connection.getLatestBlockhash();
+  tx.recentBlockhash = blockhash;
+
+  const fee = await connection.getFeeForMessage(
+    tx.compileMessage()
+  );
+
+  const lamports = fee.value ?? 0;
+
+  return {
+    lamports,
+    sol: lamports / LAMPORTS_PER_SOL,
+  };
+}
+
+/* ---------------- SPL TOKENS (ALL) ---------------- */
 
 export async function getAllSplTokens(
   wallet: string
 ): Promise<SplTokenAccount[]> {
   const walletPubkey = new PublicKey(wallet);
 
-  const tokenAccounts =
-    await connection.getParsedTokenAccountsByOwner(walletPubkey, {
+  const [tokenAccounts, token2022Accounts] = await Promise.all([
+    connection.getParsedTokenAccountsByOwner(walletPubkey, {
       programId: TOKEN_PROGRAM_ID,
-    });
+    }),
+    connection.getParsedTokenAccountsByOwner(walletPubkey, {
+      programId: TOKEN_2022_PROGRAM_ID,
+    }),
+  ]);
 
-  return tokenAccounts.value.map(acc => {
+  const allAccounts = [...tokenAccounts.value, ...token2022Accounts.value];
+
+  return allAccounts.map(acc => {
     const info = acc.account.data.parsed.info;
     return {
       mint: info.mint,
@@ -119,7 +213,7 @@ export async function getAllSplTokens(
   });
 }
 
-
+/* ---------------- NFTs (Helius DAS) ---------------- */
 
 export async function getWalletNFTs(
   wallet: string
@@ -191,7 +285,6 @@ export async function sendSplToken(
     );
   }
 
- 
   const amountInBaseUnits = BigInt(
     Math.round(amount * Math.pow(10, decimals))
   );

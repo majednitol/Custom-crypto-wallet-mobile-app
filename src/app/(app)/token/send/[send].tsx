@@ -1,5 +1,6 @@
 import { useState, ChangeEvent, useRef } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
+
 import { useSelector } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
@@ -60,7 +61,7 @@ const IconBackground = styled.View<{ theme: ThemeType }>`
 `;
 
 const AddressTextInput = styled.TextInput<TextInputProps>`
-  height: 56px;
+  height: 60px;
   background-color: ${({ theme }) => theme.colors.cardBackground};
   padding: ${({ theme }) => theme.spacing.medium};
   border: 1px solid
@@ -82,7 +83,7 @@ const AmountTextInput = styled.TextInput<TextInputProps>`
 
 const AmountTextInputContainer = styled.View<TextInputProps>`
 
-  height: 56px;
+  height: 60px;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
@@ -158,23 +159,30 @@ const FormWrapper = styled.View<{ theme: ThemeType }>`
 const FooterContainer = styled.View`
   margin-top: auto;
   padding-top: 24px;
+  flex-direction: row;
   gap: 12px;
+  align-items: center;
 `;
 
 const CancelButton = styled.TouchableOpacity<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.cardBackground};
-  border: 1px solid ${(props) => props.theme.colors.border};
+  flex: 1;
+  height: 60px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: 16px;
-  padding: 16px;
   align-items: center;
   justify-content: center;
 `;
 
+
 const CancelText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.colors.white};
+  color: #ef4444;
 `;
+
+
+
 
 interface FormValues {
   address: string;
@@ -213,6 +221,9 @@ export default function SendPage() {
     (state: RootState) => state.ethereum.activeChainId
   );
 
+  const importedEvmAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeEvmAddress
+  );
   const activeEthIndex = useSelector(
     (state: RootState) => state.ethereum.activeIndex[activeChainId] ?? 0
   );
@@ -222,6 +233,9 @@ export default function SendPage() {
     console.warn(`EVM service not initialized for chain ${activeChainId}`);
   }
 
+  const importedSolAddress = useSelector(
+    (state: RootState) => state.importedAccounts?.activeSolAddress
+  );
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
@@ -579,15 +593,18 @@ export default function SendPage() {
                 </TransactionDetailsContainer>
               </TextContainer>
               <FooterContainer>
-                <Button
-                  backgroundColor={theme.colors.primary}
-                  onPress={() => handleSubmit()}
-                  title="Next"
-                />
                 <CancelButton onPress={() => router.back()}>
                   <CancelText>Cancel</CancelText>
                 </CancelButton>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    backgroundColor={theme.colors.primary}
+                    onPress={() => handleSubmit()}
+                    title="Next"
+                  />
+                </View>
               </FooterContainer>
+
             </FormWrapper>
           )}
         </Formik>

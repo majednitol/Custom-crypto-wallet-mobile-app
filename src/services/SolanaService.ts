@@ -371,10 +371,11 @@ class SolanaService {
   }
 
 }
-
-const  EXPO_PUBLIC_ALCHEMY_SOL_URL = "https://solana-devnet.g.alchemy.com/v2/"
-  
- const  EXPO_PUBLIC_ALCHEMY_SOL_API_KEY = "iQ_8RwrWNQWD7MLe5YNZJ"
+// https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9
+// const  EXPO_PUBLIC_ALCHEMY_SOL_URL = "https://solana-devnet.g.alchemy.com/v2/"
+const  EXPO_PUBLIC_ALCHEMY_SOL_URL = "https://devnet.helius-rpc.com/?api-key="
+//  const  EXPO_PUBLIC_ALCHEMY_SOL_API_KEY = "iQ_8RwrWNQWD7MLe5YNZJ"
+const  EXPO_PUBLIC_ALCHEMY_SOL_API_KEY = "800c9b64-37ba-4cd3-a7e9-807406f383a9"
 const customRpcUrl =
   EXPO_PUBLIC_ALCHEMY_SOL_URL + EXPO_PUBLIC_ALCHEMY_SOL_API_KEY;
 

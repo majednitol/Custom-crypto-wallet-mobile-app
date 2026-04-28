@@ -133,11 +133,15 @@ export default function ReceivePage() {
       : "";
 
     if (blockchainVersion === "ethereum") {
+      const importedEvm = state.importedAccounts?.activeEvmAddress;
+      if (importedEvm) return importedEvm;
       const index = state.ethereum.activeIndex ?? 0;
       return state.ethereum.globalAddresses?.[index]?.address;
     }
 
     if (blockchainVersion === "solana") {
+      const importedSol = state.importedAccounts?.activeSolAddress;
+      if (importedSol) return importedSol;
       const index = state.solana.activeIndex ?? 0;
       return state.solana.addresses?.[index]?.address;
     }

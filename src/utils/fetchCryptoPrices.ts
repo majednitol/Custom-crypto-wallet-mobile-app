@@ -158,6 +158,179 @@ export const fetchPricesByChainIds = async (
   return result;
 };
 
+
+
+// ═══════════════════════════════════════════════════════════
+// NEW: Full Market Data + Chart Data (for Token Detail Screen)
+// ═══════════════════════════════════════════════════════════
+
+export interface CoinGeckoMarketData {
+  price: number;
+  priceChange24h: number;
+  priceChangePercentage24h: number;
+  priceChangePercentage7d: number;
+  priceChangePercentage30d: number;
+  priceChangePercentage1y: number;
+  marketCap: number;
+  totalVolume: number;
+  circulatingSupply: number;
+  totalSupply: number;
+  ath: number;
+  athChangePercentage: number;
+  atl: number;
+  atlChangePercentage: number;
+  lastUpdated: string;
+}
+
+export interface ChartDataPoint {
+  timestamp: number;
+  price: number;
+}
+
+export interface CoinGeckoChartData {
+  prices: ChartDataPoint[];
+}
+
+/**
+ * Fetch full market data from CoinGecko for a single coin
+ * Uses /coins/{id} endpoint (not /simple/price)
+ */
+export const fetchCoinGeckoMarketData = async (
+  chainId: number
+): Promise<CoinGeckoMarketData | null> => {
+  // Handle SecureChain separately
+  if (chainId === 34 || chainId === 3434) {
+    try {
+      const res = await axios.get("https://price-api.securechain.ai/");
+      const price = res.data?.prices?.scai?.usd ?? 0;
+      return {
+        price,
+        priceChange24h: 0,
+        priceChangePercentage24h: 0,
+        priceChangePercentage7d: 0,
+        priceChangePercentage30d: 0,
+        priceChangePercentage1y: 0,
+        marketCap: 0,
+        totalVolume: 0,
+        circulatingSupply: 0,
+        totalSupply: 0,
+        ath: price,
+        athChangePercentage: 0,
+        atl: price,
+        atlChangePercentage: 0,
+        lastUpdated: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.warn("SecureChain market data fetch failed:", err);
+      return null;
+    }
+  }
+
+  // Handle testnets
+  if (TESTNET_CHAIN_IDS.has(chainId)) {
+    return null;
+  }
+
+  const coingeckoId = CHAINID_TO_COINGECKO_ID[chainId];
+  if (!coingeckoId) {
+    return null;
+  }
+
+  try {
+    const res = await axios.get(`https://api.coingecko.com/api/v3/coins/${coingeckoId}`, {
+      params: {
+        localization: false,
+        tickers: false,
+        market_data: true,
+        community_data: false,
+        developer_data: false,
+        sparkline: false,
+      },
+    });
+
+    const md = res.data.market_data;
+    if (!md) return null;
+
+    return {
+      price: md.current_price?.usd ?? 0,
+      priceChange24h: md.price_change_24h ?? 0,
+      priceChangePercentage24h: md.price_change_percentage_24h ?? 0,
+      priceChangePercentage7d: md.price_change_percentage_7d ?? 0,
+      priceChangePercentage30d: md.price_change_percentage_30d ?? 0,
+      priceChangePercentage1y: md.price_change_percentage_1y ?? 0,
+      marketCap: md.market_cap?.usd ?? 0,
+      totalVolume: md.total_volume?.usd ?? 0,
+      circulatingSupply: md.circulating_supply ?? 0,
+      totalSupply: md.total_supply ?? 0,
+      ath: md.ath?.usd ?? 0,
+      athChangePercentage: md.ath_change_percentage?.usd ?? 0,
+      atl: md.atl?.usd ?? 0,
+      atlChangePercentage: md.atl_change_percentage?.usd ?? 0,
+      lastUpdated: md.last_updated ?? new Date().toISOString(),
+    };
+  } catch (err: any) {
+    if (err.response?.status === 429) {
+      console.warn("CoinGecko rate limit hit for market data!");
+    } else {
+      console.warn("Error fetching CoinGecko market data:", err.message);
+    }
+    return null;
+  }
+};
+
+/**
+ * Fetch chart data (price history) from CoinGecko
+ * Uses /coins/{id}/market_chart endpoint
+ */
+export const fetchCoinGeckoChartData = async (
+  chainId: number,
+  days: string = "1"
+): Promise<CoinGeckoChartData | null> => {
+  // Handle SecureChain — no chart data available
+  if (chainId === 34 || chainId === 3434) {
+    return null;
+  }
+
+  // Handle testnets
+  if (TESTNET_CHAIN_IDS.has(chainId)) {
+    return null;
+  }
+
+  const coingeckoId = CHAINID_TO_COINGECKO_ID[chainId];
+  if (!coingeckoId) {
+    return null;
+  }
+
+  try {
+    const res = await axios.get(
+      `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart`,
+      {
+        params: {
+          vs_currency: "usd",
+          days,
+        },
+      }
+    );
+
+    const prices = res.data.prices;
+    if (!Array.isArray(prices)) return null;
+
+    return {
+      prices: prices.map(([timestamp, price]: [number, number]) => ({
+        timestamp,
+        price,
+      })),
+    };
+  } catch (err: any) {
+    if (err.response?.status === 429) {
+      console.warn("CoinGecko rate limit hit for chart data!");
+    } else {
+      console.warn("Error fetching CoinGecko chart data:", err.message);
+    }
+    return null;
+  }
+};
+
 // 🔹 Usage Example
 (async () => {
   const testChainIds = [11155111];

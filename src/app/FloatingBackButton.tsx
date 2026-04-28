@@ -6,8 +6,10 @@ import LeftIcon from "../assets/svg/left-arrow.svg";
 const DISABLED_ROUTES = [
   "wallet-setup",
     "wallet-created-successfully",
-  "unlock"
+  "unlock",
+  "[id]",
 ];
+
 
 export default function FloatingBackButton() {
   const router = useRouter();
