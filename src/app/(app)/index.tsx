@@ -201,8 +201,19 @@ export default function Index() {
   const importedSolAddress = useSelector((state: RootState) => state.importedAccounts?.activeSolAddress);
   const isImportedActive = !!importedEvmAddress || !!importedSolAddress;
   const ethWalletAddress = isImportedActive ? (importedEvmAddress || "") : (ethAccount?.address || "");
-  const ethBalance = isImportedActive ? 0 : (ethAccount?.balanceByChain?.[activeEthChainId] ?? 0);
-  const ethTransactions = isImportedActive ? [] : (ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? []);
+
+  // Look up imported EVM account from globalAddresses (registered at import time)
+  const importedEvmAccount = useSelector((state: RootState) =>
+    importedEvmAddress
+      ? state.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress?.toLowerCase())
+      : null
+  );
+  const ethBalance = isImportedActive
+    ? (importedEvmAccount?.balanceByChain?.[activeEthChainId] ?? 0)
+    : (ethAccount?.balanceByChain?.[activeEthChainId] ?? 0);
+  const ethTransactions = isImportedActive
+    ? (importedEvmAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? [])
+    : (ethAccount?.transactionMetadataByChain?.[activeEthChainId]?.transactions ?? []);
   const failedEthStatus = ethAccount?.statusByChain?.[activeEthChainId] === GeneralStatus.Failed;
 
   const ethereum = useSelector((s: RootState) => s.ethereum);
@@ -228,7 +239,9 @@ export default function Index() {
       const chainId = network.chainId;
       const index = ethereum.activeIndex ?? 0;
       
-      const account = importedEvmAddress ? { address: importedEvmAddress, balanceByChain: {}, statusByChain: {}, transactionMetadataByChain: {} } : ethereum.globalAddresses?.[index];
+      const account = importedEvmAddress
+        ? ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase()) ?? { address: importedEvmAddress, balanceByChain: {}, statusByChain: {}, transactionMetadataByChain: {} }
+        : ethereum.globalAddresses?.[index];
       if (!account) return;
       const price = prices?.[chainId]?.usd ?? 0;
       const balance = account.balanceByChain?.[chainId] ?? 0;
@@ -268,12 +281,21 @@ export default function Index() {
   const solBalanceSeed = useSelector(
     (state: RootState) => state.solana.addresses[activeSolIndex]?.balance || 0
   );
-  const solBalance = isImportedActive ? 0 : solBalanceSeed;
+  // Look up imported Solana account from solana.addresses (registered at import time)
+  const importedSolAccount = useSelector((state: RootState) =>
+    importedSolAddress
+      ? state.solana.addresses?.find(a => a.address === importedSolAddress)
+      : null
+  );
+  const solBalance = isImportedActive
+    ? (importedSolAccount?.balance ?? 0)
+    : solBalanceSeed;
   const solTransactionsRaw = useSelector(
     (state: RootState) =>
       state.solana.addresses[activeSolIndex]?.transactionMetadata?.transactions || []
   );
-  const solTransactions = isImportedActive ? [] : solTransactionsRaw;
+  const importedSolTransactions = importedSolAccount?.transactionMetadata?.transactions ?? [];
+  const solTransactions = isImportedActive ? importedSolTransactions : solTransactionsRaw;
   const failedSolStatus = useSelector(
     (state: RootState) =>
       (state.solana.addresses[activeSolIndex]?.status === GeneralStatus.Failed) || false

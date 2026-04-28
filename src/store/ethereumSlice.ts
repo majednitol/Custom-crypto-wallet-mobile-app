@@ -198,7 +198,7 @@ export const sendEvmTransaction = createAsyncThunk<
 export const confirmEvmTransaction = createAsyncThunk(
   "evm/confirmTransaction",
   async (
-    { chainId, txHash }: { chainId: number; txHash: string },
+    { chainId, txHash, fromAddress }: { chainId: number; txHash: string; fromAddress?: string },
     { rejectWithValue }
   ) => {
     try {
@@ -208,7 +208,7 @@ export const confirmEvmTransaction = createAsyncThunk(
       );
 
       const confirmation = await Promise.race([confirmationPromise, timeoutPromise]);
-      return { chainId, txHash, confirmation };
+      return { chainId, txHash, confirmation, fromAddress };
     } catch (error: any) {
       return rejectWithValue(error.message);
     }
@@ -586,10 +586,12 @@ account.transactionMetadataByChain[chainId].transactions = txs.transferHistory
 
     // ---------------- Confirm Transaction ----------------
     .addCase(confirmEvmTransaction.fulfilled, (state, action) => {
-  const { chainId, txHash, confirmation } = action.payload;
+  const { chainId, txHash, confirmation, fromAddress } = action.payload;
 
-  const idx = state.activeIndex ?? 0;
-  const addr = state.globalAddresses[idx];
+  // Find account by address if provided, otherwise fall back to activeIndex
+  const addr = fromAddress
+    ? state.globalAddresses.find(a => a.address?.toLowerCase() === fromAddress.toLowerCase())
+    : state.globalAddresses[state.activeIndex ?? 0];
   if (!addr) return;
 
   addr.transactionConfirmations ??= [];

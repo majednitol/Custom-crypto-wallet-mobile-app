@@ -36,6 +36,13 @@ const activeEthIndex = useSelector(
     state.ethereum.activeIndex?? 0
 );
 
+const importedEvmAddress = useSelector(
+  (state: RootState) => state.importedAccounts?.activeEvmAddress
+);
+const importedSolAddress = useSelector(
+  (state: RootState) => state.importedAccounts?.activeSolAddress
+);
+
 const ethAccounts = useSelector(
   (state: RootState) => state.ethereum.globalAddresses ?? []
 );
@@ -53,7 +60,9 @@ const ethereumAssets = useMemo(() => {
     const chainId = network.chainId;
     console.log("chainId",chainId)
     const index = ethereum.activeIndex ?? 0;
-    const account = ethereum.globalAddresses?.[index];
+    const account = importedEvmAddress
+      ? ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase())
+      : ethereum.globalAddresses?.[index];
 // console.log("account", account);
     if (!account) return;
 
@@ -84,7 +93,9 @@ const ethereumAssets = useMemo(() => {
 }, [ethereum, networks, priceData]);
 console.log("ethereumAssets",ethereumAssets)
 
-const activeEthAccount = ethAccounts[activeEthIndex];
+const activeEthAccount = importedEvmAddress
+  ? ethAccounts.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase())
+  : ethAccounts[activeEthIndex];
 
 const ethBalance = activeEthAccount?.activeBalance ?? 0;
 
@@ -92,9 +103,13 @@ const ethBalance = activeEthAccount?.activeBalance ?? 0;
     (state: RootState) => state.solana.activeIndex
   );
  
-  const solBalance = useSelector(
-    (state: RootState) => state.solana.addresses[activeSolIndex].balance
-  );
+  const solBalance = useSelector((state: RootState) => {
+    if (importedSolAddress) {
+      const account = state.solana.addresses?.find(a => a.address === importedSolAddress);
+      return account?.balance ?? 0;
+    }
+    return state.solana.addresses[activeSolIndex]?.balance ?? 0;
+  });
   const price = useSelector((state: RootState) => state.price.data);
   const solPrice = price[101].usd;
   const ethPrice = price[activeChainId].usd;

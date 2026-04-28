@@ -88,11 +88,16 @@ export default function Confirmation() {
     (state: RootState) => state[chain].activeIndex
   );
 
+  const importedEvmAddress = useSelector((state: RootState) => state.importedAccounts?.activeEvmAddress);
+  const importedSolAddress = useSelector((state: RootState) => state.importedAccounts?.activeSolAddress);
+
   const transactionConfirmation = useSelector((state: RootState) => {
   // ---------- SOLANA ----------
   if (currentChain === Chains.Solana) {
     const solanaState = state[chain];
-    const account = solanaState?.addresses?.[activeIndex];
+    const account = importedSolAddress
+      ? solanaState?.addresses?.find(a => a.address === importedSolAddress)
+      : solanaState?.addresses?.[activeIndex];
 
     if (!account?.transactionConfirmations) return undefined;
 
@@ -104,10 +109,9 @@ export default function Confirmation() {
   // ---------- EVM ----------
   if (currentChain === Chains.EVM) {
     const ethereum = state.ethereum;
-    const activeIndex =
-      ethereum.activeIndex ?? 0;
-
-    const account = ethereum.globalAddresses?.[activeIndex];
+    const account = importedEvmAddress
+      ? ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase())
+      : ethereum.globalAddresses?.[ethereum.activeIndex ?? 0];
     if (!account?.transactionConfirmations) return undefined;
 
     return account.transactionConfirmations.find(
@@ -120,6 +124,13 @@ export default function Confirmation() {
 
 
 
+  // Get sender addresses for confirmations
+  const solSenderAddress = useSelector((state: RootState) => {
+    if (importedSolAddress) return importedSolAddress;
+    const idx = state.solana.activeIndex ?? 0;
+    return state.solana.addresses?.[idx]?.address || "";
+  });
+
   useEffect(() => {
     if (txHash && blockchain) {
       if (currentChain === Chains.EVM) {
@@ -127,6 +138,7 @@ export default function Confirmation() {
           confirmEvmTransaction({
             chainId:  ChainId,
             txHash: txHash as string,
+            fromAddress: importedEvmAddress || undefined,
           })
         );
       }
@@ -135,6 +147,7 @@ export default function Confirmation() {
         dispatch(
           confirmSolanaTransaction({
             txHash: txHash as string,
+            fromAddress: solSenderAddress,
           })
         );
       }

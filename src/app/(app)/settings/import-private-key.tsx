@@ -18,7 +18,11 @@ import { AppDispatch } from "../../../store";
 import {
   addImportedEvmAccount,
   addImportedSolAccount,
+  setActiveImportedAccount,
 } from "../../../store/importedAccountSlice";
+import { addAddress } from "../../../store/ethereumSlice";
+import { updateSolanaAddresses } from "../../../store/solanaSlice";
+import { GeneralStatus } from "../../../store/types";
 import {
   getEvmAddressFromPrivateKey,
   getSolAddressFromPrivateKey,
@@ -127,6 +131,20 @@ export default function ImportPrivateKeyScreen() {
         const address = getEvmAddressFromPrivateKey(privateKey.trim());
         await storeImportedEvmKey(address, privateKey.trim());
         dispatch(addImportedEvmAccount({ address }));
+        // Register in globalAddresses so balance/tx thunks can update it
+        dispatch(addAddress({
+          accountName: "Imported Account",
+          derivationPath: "",
+          address,
+          publicKey: address,
+          balanceByChain: {},
+          statusByChain: {},
+          failedNetworkRequestByChain: {},
+          transactionMetadataByChain: {},
+          transactionConfirmations: [],
+        }));
+        // Set as active so send/balance screens detect it
+        dispatch(setActiveImportedAccount({ evmAddress: address }));
         Alert.alert("Success", `EVM account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },
         ]);
@@ -134,6 +152,20 @@ export default function ImportPrivateKeyScreen() {
         const address = getSolAddressFromPrivateKey(privateKey.trim());
         await storeImportedSolKey(address, privateKey.trim());
         dispatch(addImportedSolAccount({ address }));
+        // Register in solana.addresses so balance/tx thunks can update it
+        dispatch(updateSolanaAddresses({
+          accountName: "Imported Account",
+          derivationPath: "",
+          address,
+          publicKey: address,
+          balance: 0,
+          status: GeneralStatus.Idle,
+          failedNetworkRequest: false,
+          transactionMetadata: { paginationKey: undefined, transactions: [] },
+          transactionConfirmations: [],
+        }));
+        // Set as active so send/balance screens detect it
+        dispatch(setActiveImportedAccount({ solAddress: address }));
         Alert.alert("Success", `Solana account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },
         ]);

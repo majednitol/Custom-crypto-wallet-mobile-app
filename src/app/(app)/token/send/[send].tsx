@@ -21,6 +21,7 @@ import Button from "../../../../components/Button/Button";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 import { EVMService, evmServices } from "../../../../services/EthereumService";
 import { getPhrase } from "../../../../hooks/useStorageState";
+import { getImportedEvmKey } from "../../../../utils/importedKeyStorage";
 
 type FormikChangeHandler = {
   (e: ChangeEvent<any>): void;
@@ -242,6 +243,13 @@ export default function SendPage() {
 
   const tokenBalance = useSelector((state: RootState) => {
     if (currentChainName == "ethereum") {
+      // For imported wallets, find by address
+      if (importedEvmAddress) {
+        const account = state.ethereum.globalAddresses?.find(
+          a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase()
+        );
+        return account?.balanceByChain?.[state.ethereum.activeChainId] ?? 0;
+      }
       const activeEthIndex =
         state.ethereum.activeIndex[state.ethereum.activeChainId] ?? 0;
       return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[
@@ -253,15 +261,23 @@ export default function SendPage() {
           ? state.solToken.balances[tokenParam]?.amount ?? 0
           : 0;
       }
+      // For imported wallets, find by address
+      if (importedSolAddress) {
+        const account = state.solana.addresses?.find(
+          a => a.address === importedSolAddress
+        );
+        return account?.balance ?? 0;
+      }
       const activeSolIndex = state.solana.activeIndex ?? 0;
       return state.solana.addresses[activeSolIndex].balance;
     }
     return undefined;
   });
 
-  const address = useSelector(
-    (state: RootState) => state["solana"]?.addresses[activeSolIndex]?.address
-  );
+  const address = useSelector((state: RootState) => {
+    if (importedSolAddress) return importedSolAddress;
+    return state["solana"]?.addresses[activeSolIndex]?.address;
+  });
   const prices = useSelector((state: RootState) => state.price.data);
   const solPrice = prices[101]?.usd;
   const ethPrice = prices[activeChainId].usd;
@@ -388,11 +404,19 @@ export default function SendPage() {
             typeof tokenBalance === "string"
               ? parseFloat(tokenBalance)
               : tokenBalance;
-          const { wallet } = EVMService.deriveWalletByIndex(
-            seedPhrase,
-            activeEthIndex
-          );
-          const ethPrivateKey = wallet.privateKey;
+
+          let ethPrivateKey: string;
+          if (importedEvmAddress) {
+            const key = await getImportedEvmKey(importedEvmAddress);
+            if (!key) { errors.amount = "Failed to retrieve imported key"; return; }
+            ethPrivateKey = key;
+          } else {
+            const { wallet } = EVMService.deriveWalletByIndex(
+              seedPhrase,
+              activeEthIndex
+            );
+            ethPrivateKey = wallet.privateKey;
+          }
           const gasResult = await service.calculateGasAndAmountsForERC20Transfer(
             ethPrivateKey,
             erc20tokenAddress as string,

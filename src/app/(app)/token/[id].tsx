@@ -401,12 +401,16 @@ export default function Index() {
     if (isSolana) {
       const activeIndex = state.solana.activeIndex ?? 0;
       const importedSol = state.importedAccounts?.activeSolAddress;
-      if (importedSol) return [];
-      const account = state.solana.addresses?.[activeIndex];
+      const account = importedSol
+        ? state.solana.addresses?.find(a => a.address === importedSol)
+        : state.solana.addresses?.[activeIndex];
       return account?.transactionMetadata?.transactions ?? [];
     }
+    const importedEvm = state.importedAccounts?.activeEvmAddress;
     const activeIndex = state.ethereum.activeIndex ?? 0;
-    const account = state.ethereum.globalAddresses?.[activeIndex];
+    const account = importedEvm
+      ? state.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvm.toLowerCase())
+      : state.ethereum.globalAddresses?.[activeIndex];
     return account?.transactionMetadataByChain?.[activeChainId]?.transactions ?? [];
   });
 

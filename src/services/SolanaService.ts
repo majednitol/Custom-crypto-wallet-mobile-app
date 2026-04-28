@@ -73,7 +73,8 @@ class SolanaService {
     for (const signature of signatures) {
       try {
         const transaction = await this.connection.getParsedTransaction(
-          signature.signature
+          signature.signature,
+          { maxSupportedTransactionVersion: 0 }
         );
         transactions.push(transaction);
       } catch (error:any) {

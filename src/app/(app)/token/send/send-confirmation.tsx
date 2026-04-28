@@ -4,7 +4,7 @@ import styled, { useTheme } from "styled-components/native";
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
 import { StackActions } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, Keypair } from "@solana/web3.js";
 import { Chains } from "../../../../types";
 import type { ThemeType } from "../../../../styles/theme";
 import ConfirmSend from "../../../../assets/svg/confirm-send.svg";
@@ -25,6 +25,47 @@ import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 import { ROUTES } from "../../../../constants/routes";
 import { EVMService, evmServices } from "../../../../services/EthereumService";
 import { sendErc20 } from "../../../../store/tokenSlice";
+import { getImportedEvmKey, getImportedSolKey } from "../../../../utils/importedKeyStorage";
+
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+function base58ToBytes(base58Str: string): Uint8Array {
+  const alphabetMap = new Map<string, number>();
+  for (let i = 0; i < BASE58_ALPHABET.length; i++) {
+    alphabetMap.set(BASE58_ALPHABET[i], i);
+  }
+  let leadingZeros = 0;
+  for (const char of base58Str) {
+    if (char === "1") leadingZeros++;
+    else break;
+  }
+  const base = BigInt(58);
+  let num = BigInt(0);
+  for (const char of base58Str) {
+    const val = alphabetMap.get(char);
+    if (val === undefined) throw new Error(`Invalid base58 character: ${char}`);
+    num = num * base + BigInt(val);
+  }
+  const hex = num.toString(16);
+  const hexPadded = hex.length % 2 === 1 ? "0" + hex : hex;
+  const bytes: number[] = [];
+  for (let i = 0; i < hexPadded.length; i += 2) {
+    bytes.push(parseInt(hexPadded.slice(i, i + 2), 16));
+  }
+  const result = new Uint8Array(leadingZeros + bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    result[leadingZeros + i] = bytes[i];
+  }
+  return result;
+}
+
+function solKeyStringToUint8Array(keyStr: string): Uint8Array {
+  const hex = keyStr.startsWith("0x") ? keyStr.slice(2) : keyStr;
+  if (/^[0-9a-fA-F]+$/.test(hex) && hex.length >= 64) {
+    return new Uint8Array(hex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
+  }
+  return base58ToBytes(keyStr);
+}
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -121,17 +162,26 @@ export default function SendConfirmationPage() {
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
-  const walletAddress = useSelector(
-    (state: RootState) => state.ethereum.globalAddresses[activeEthIndex].address
-  );
-  console.log("nwalletAddress", walletAddress)
-  const derivationPath = useSelector(
-    (state: RootState) =>
-      state.solana.addresses[activeSolIndex].derivationPath
-  );
   const activeChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
   );
+
+  // Imported wallet detection — must be before walletAddress/derivationPath
+  const importedEvmAddress = useSelector((state: RootState) => state.importedAccounts?.activeEvmAddress);
+  const importedSolAddress = useSelector((state: RootState) => state.importedAccounts?.activeSolAddress);
+  const isImportedEvm = !!importedEvmAddress;
+  const isImportedSol = !!importedSolAddress;
+
+  const walletAddress = useSelector((state: RootState) => {
+    if (importedEvmAddress) return importedEvmAddress;
+    return state.ethereum.globalAddresses[activeEthIndex]?.address ?? "";
+  });
+  console.log("nwalletAddress", walletAddress)
+  const derivationPath = useSelector(
+    (state: RootState) =>
+      state.solana.addresses[activeSolIndex]?.derivationPath
+  );
+
   const solPrice = prices[101]?.usd;
   const ethPrice = prices[activeChainId].usd;
 
@@ -153,19 +203,41 @@ const csolAddess = Array.isArray(solAddess) // or whatever variable name
   : solAddess;
   
   const handleSubmit = async () => {
-    const seedPhrase  = await getPhrase();
 
     setLoading(true);
     setBtnDisabled(true);
 
     try {
       if (chainName === Chains.EVM) {
-        const { wallet } = EVMService.deriveWalletByIndex(
-          seedPhrase,
-          activeEthIndex
-        );
+        let ethPrivateKey: string;
 
-        const ethPrivateKey = wallet.privateKey;
+        let evmIsImported = isImportedEvm && !!importedEvmAddress;
+
+        console.log("EVM SEND DEBUG:", { isImportedEvm, importedEvmAddress, walletAddress });
+
+        if (!evmIsImported && walletAddress) {
+          // Fallback: check if sender address has a key in SecureStore
+          const fallbackKey = await getImportedEvmKey(walletAddress);
+          if (fallbackKey) {
+            console.log("FALLBACK: Found imported EVM key for", walletAddress);
+            evmIsImported = true;
+          }
+        }
+
+        if (evmIsImported) {
+          const addrToLookup = importedEvmAddress || walletAddress;
+          const key = await getImportedEvmKey(addrToLookup);
+          if (!key) throw new Error("Failed to retrieve imported private key");
+          ethPrivateKey = key;
+        } else {
+          // Derive key from seed phrase for standard wallets
+          const seedPhrase = await getPhrase();
+          const { wallet } = EVMService.deriveWalletByIndex(
+            seedPhrase,
+            activeEthIndex
+          );
+          ethPrivateKey = wallet.privateKey;
+        }
 console.log("ethPrivateKey",ethPrivateKey)
 
         const isErc20 = erc20tokenAddress?.toString();
@@ -211,25 +283,54 @@ console.log("ethPrivateKey",ethPrivateKey)
           console.log("txResult", txHash)
         }
       } else if (chainName === Chains.Solana) {
-        const solPrivateKey = await solanaService.derivePrivateKeysFromPhrase(
-          seedPhrase,
-          derivationPath
-        );
+        let solPrivateKey: Uint8Array;
+
+        // Primary check: Redux state says this is imported
+        let solIsImported = isImportedSol && !!importedSolAddress;
+        let solSenderAddress = solIsImported ? importedSolAddress : csolAddess;
+
+        console.log("SOL SEND DEBUG:", { isImportedSol, importedSolAddress, csolAddess, derivationPath });
+
+        if (!solIsImported && csolAddess) {
+          // Fallback: check if sender address has a key in SecureStore
+          const fallbackKey = await getImportedSolKey(csolAddess as string);
+          if (fallbackKey) {
+            console.log("FALLBACK: Found imported key in SecureStore for", csolAddess);
+            solIsImported = true;
+            solSenderAddress = csolAddess as string;
+          }
+        }
+
+        if (solIsImported && solSenderAddress) {
+          // Retrieve key from SecureStore for imported wallets
+          const keyStr = await getImportedSolKey(solSenderAddress as string);
+          if (!keyStr) throw new Error("Failed to retrieve imported private key");
+          solPrivateKey = solKeyStringToUint8Array(keyStr);
+        } else {
+          // Derive key from seed phrase for standard wallets
+          const seedPhrase = await getPhrase();
+          solPrivateKey = await solanaService.derivePrivateKeysFromPhrase(
+            seedPhrase,
+            derivationPath
+          );
+        }
 
         console.log("solPrivateKey",solPrivateKey)
+        const senderSolAddress = solSenderAddress || csolAddess;
         const result = await dispatch(
           sendSolanaTransaction({
             privateKey: solPrivateKey,
             address,
             amount,
+            fromAddress: senderSolAddress as string,
           })
         ).unwrap();
 
-        if (result) {
+        if (result?.txHash) {
           navigation.dispatch(StackActions.popToTop());
           router.push({
             pathname: ROUTES.confirmation,
-            params: { txHash: result, blockchain: Chains.Solana },
+            params: { txHash: result.txHash, blockchain: Chains.Solana },
           });
         }
       }
@@ -245,11 +346,11 @@ console.log("ethPrivateKey",ethPrivateKey)
  
   const nativeEthBalance = useSelector((state: RootState) => {
     const chainId = state.ethereum.activeChainId;
-    const index = state.ethereum.activeIndex ?? 0;
-    console.log("chainId", chainId, state.ethereum.globalAddresses?.[index].activeBalance ?? 0)
-    return (
-      state.ethereum.globalAddresses?.[index].activeBalance ?? 0
-    );
+    const account = isImportedEvm && importedEvmAddress
+      ? state.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase())
+      : state.ethereum.globalAddresses?.[state.ethereum.activeIndex ?? 0];
+    console.log("chainId", chainId, account?.activeBalance ?? 0)
+    return account?.activeBalance ?? 0;
   });
 
   console.log("solPrice",chainName)
@@ -260,10 +361,17 @@ console.log("ethPrivateKey",ethPrivateKey)
         const isErc20 = Boolean(erc20tokenAddress);
 
         if (isErc20) {
-          // ERC20 transfer
-          const seedPhrase = await getPhrase();
-          const { wallet } = EVMService.deriveWalletByIndex(seedPhrase, activeEthIndex);
-          const ethPrivateKey = wallet.privateKey;
+          // ERC20 transfer - get private key for gas estimation
+          let ethPrivateKey: string;
+          if (isImportedEvm && importedEvmAddress) {
+            const key = await getImportedEvmKey(importedEvmAddress);
+            if (!key) throw new Error("Failed to retrieve imported private key");
+            ethPrivateKey = key;
+          } else {
+            const seedPhrase = await getPhrase();
+            const { wallet } = EVMService.deriveWalletByIndex(seedPhrase, activeEthIndex);
+            ethPrivateKey = wallet.privateKey;
+          }
 
           const gasResult = await evmService.calculateGasAndAmountsForERC20Transfer(
             ethPrivateKey,

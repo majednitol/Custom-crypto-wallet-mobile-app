@@ -96,12 +96,13 @@ interface SolTransactionArgs {
   privateKey: Uint8Array;
   address: string;
   amount: string;
+  fromAddress: string;
 }
 
 export const sendSolanaTransaction = createAsyncThunk(
   "solana/sendSolanaTransaction",
   async (
-    { privateKey, address, amount }: SolTransactionArgs,
+    { privateKey, address, amount, fromAddress }: SolTransactionArgs,
     { rejectWithValue }
   ) => {
     try {
@@ -110,7 +111,7 @@ export const sendSolanaTransaction = createAsyncThunk(
         address,
         parseFloat(amount)
       );
-      return response;
+      return { txHash: response, fromAddress };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -119,7 +120,7 @@ export const sendSolanaTransaction = createAsyncThunk(
 
 export const confirmSolanaTransaction = createAsyncThunk(
   "wallet/confirmSolanaTransaction",
-  async ({ txHash }: { txHash: string }, { rejectWithValue }) => {
+  async ({ txHash, fromAddress }: { txHash: string; fromAddress: string }, { rejectWithValue }) => {
     try {
       const confirmationPromise = solanaService.confirmTransaction(txHash);
       const timeoutPromise = new Promise((_, reject) =>
@@ -133,9 +134,9 @@ export const confirmSolanaTransaction = createAsyncThunk(
         confirmationPromise,
         timeoutPromise,
       ]);
-      return { txHash, confirmation };
+      return { txHash, confirmation, fromAddress };
     } catch (error) {
-      return rejectWithValue({ txHash, error: error.message });
+      return rejectWithValue({ txHash, error: error.message, fromAddress });
     }
   }
 );
@@ -167,7 +168,10 @@ export const solanaSlice = createSlice({
       state.addresses[state.activeIndex].balance = action.payload;
     },
     updateSolanaAddresses: (state, action: PayloadAction<SAddressState>) => {
-      state.addresses.push(action.payload);
+      const exists = state.addresses.some(a => a.address === action.payload.address);
+      if (!exists) {
+        state.addresses.push(action.payload);
+      }
     },
     // TODO: Refactor. This is an tech debt from redux refactor
     updateSolanaAccountName: (
@@ -194,111 +198,130 @@ export const solanaSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Helper: find index by address (from thunk arg), fallback to activeIndex
+    const findIdx = (state: SolanaWalletState, address?: string) => {
+      if (address) {
+        const idx = state.addresses.findIndex(a => a.address === address);
+        if (idx >= 0) return idx;
+      }
+      return state.activeIndex;
+    };
+
     builder
-      .addCase(fetchSolanaBalance.pending, (state) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Loading;
+      .addCase(fetchSolanaBalance.pending, (state, action) => {
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Loading;
       })
       .addCase(fetchSolanaBalance.fulfilled, (state, action) => {
-        state.addresses[state.activeIndex].balance = parseFloat(
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].balance = parseFloat(
           truncateBalance(action.payload)
         );
-        state.addresses[state.activeIndex].status = GeneralStatus.Idle;
+        state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaBalance.rejected, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Failed;
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Failed;
         console.error("Failed to fetch balance:", action.payload);
       })
       .addCase(fetchSolanaBalanceInterval.fulfilled, (state, action) => {
-        state.addresses[state.activeIndex].balance = parseFloat(
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].balance = parseFloat(
           truncateBalance(action.payload)
         );
-        state.addresses[state.activeIndex].status = GeneralStatus.Idle;
+        state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaBalanceInterval.rejected, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Failed;
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Failed;
         console.error("Failed to fetch balance:", action.payload);
       })
-      .addCase(fetchSolanaTransactions.pending, (state) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Loading;
+      .addCase(fetchSolanaTransactions.pending, (state, action) => {
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Loading;
       })
       .addCase(fetchSolanaTransactions.fulfilled, (state, action) => {
+        const idx = findIdx(state, action.meta.arg);
         if (action.payload) {
-          state.addresses[state.activeIndex].failedNetworkRequest = false;
-          state.addresses[state.activeIndex].transactionMetadata.transactions =
+          state.addresses[idx].failedNetworkRequest = false;
+          state.addresses[idx].transactionMetadata.transactions =
             action.payload;
         } else {
-          state.addresses[state.activeIndex].failedNetworkRequest = true;
+          state.addresses[idx].failedNetworkRequest = true;
         }
-        state.addresses[state.activeIndex].status = GeneralStatus.Idle;
+        state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaTransactions.rejected, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Failed;
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Failed;
         console.error("Failed to fetch transactions:", action.payload);
       })
       .addCase(fetchSolanaTransactionsInterval.fulfilled, (state, action) => {
+        const idx = findIdx(state, action.meta.arg);
         if (action.payload) {
-          state.addresses[state.activeIndex].failedNetworkRequest = false;
-          state.addresses[state.activeIndex].transactionMetadata.transactions =
+          state.addresses[idx].failedNetworkRequest = false;
+          state.addresses[idx].transactionMetadata.transactions =
             action.payload;
         } else {
-          state.addresses[state.activeIndex].failedNetworkRequest = true;
+          state.addresses[idx].failedNetworkRequest = true;
         }
-        state.addresses[state.activeIndex].status = GeneralStatus.Idle;
+        state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaTransactionsInterval.rejected, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Failed;
+        const idx = findIdx(state, action.meta.arg);
+        state.addresses[idx].status = GeneralStatus.Failed;
         console.error("Failed to fetch transactions:", action.payload);
       })
       .addCase(confirmSolanaTransaction.pending, (state, action) => {
-        const { txHash } = action.meta.arg;
+        const { txHash, fromAddress } = action.meta.arg;
+        const idx = findIdx(state, fromAddress);
         const newConfirmation: TransactionConfirmation = {
           txHash,
           status: ConfirmationState.Pending,
         };
-        state.addresses[state.activeIndex].transactionConfirmations.push(
+        state.addresses[idx].transactionConfirmations.push(
           newConfirmation
         );
       })
       .addCase(confirmSolanaTransaction.fulfilled, (state, action) => {
-        const { txHash, confirmation } = action.payload;
-        const index = state.addresses[
-          state.activeIndex
-        ].transactionConfirmations.findIndex((tx) => tx.txHash === txHash);
-        if (index !== -1) {
-          state.addresses[state.activeIndex].transactionConfirmations[
-            index
-          ].status = confirmation
-            ? ConfirmationState.Confirmed
-            : ConfirmationState.Failed;
+        const { txHash, confirmation, fromAddress } = action.payload;
+        const idx = findIdx(state, fromAddress);
+        const confIdx = state.addresses[idx].transactionConfirmations.findIndex(
+          (tx) => tx.txHash === txHash
+        );
+        if (confIdx !== -1) {
+          state.addresses[idx].transactionConfirmations[confIdx].status =
+            confirmation ? ConfirmationState.Confirmed : ConfirmationState.Failed;
         }
       })
       .addCase(confirmSolanaTransaction.rejected, (state, action) => {
-        const { txHash, error } = action.payload as any;
-        const index = state.addresses[
-          state.activeIndex
-        ].transactionConfirmations.findIndex((tx: any) => tx.txHash === txHash);
-        if (index !== -1) {
-          state.addresses[state.activeIndex].transactionConfirmations[
-            index
-          ].status = ConfirmationState.Failed;
-          state.addresses[state.activeIndex].transactionConfirmations[
-            index
-          ].error = error;
+        const { txHash, error, fromAddress } = action.payload as any;
+        const idx = findIdx(state, fromAddress);
+        const confIdx = state.addresses[idx].transactionConfirmations.findIndex(
+          (tx: any) => tx.txHash === txHash
+        );
+        if (confIdx !== -1) {
+          state.addresses[idx].transactionConfirmations[confIdx].status =
+            ConfirmationState.Failed;
+          state.addresses[idx].transactionConfirmations[confIdx].error = error;
         }
       })
-      .addCase(sendSolanaTransaction.pending, (state) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Loading;
+      .addCase(sendSolanaTransaction.pending, (state, action) => {
+        const idx = findIdx(state, action.meta.arg.fromAddress);
+        state.addresses[idx].status = GeneralStatus.Loading;
       })
       .addCase(sendSolanaTransaction.fulfilled, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Idle;
-
-        state.addresses[state.activeIndex].transactionConfirmations.push({
-          txHash: action.payload,
+        const { txHash, fromAddress } = action.payload;
+        const idx = findIdx(state, fromAddress);
+        state.addresses[idx].status = GeneralStatus.Idle;
+        state.addresses[idx].transactionConfirmations.push({
+          txHash,
           status: ConfirmationState.Pending,
         });
       })
       .addCase(sendSolanaTransaction.rejected, (state, action) => {
-        state.addresses[state.activeIndex].status = GeneralStatus.Failed;
+        const idx = findIdx(state, action.meta.arg.fromAddress);
+        state.addresses[idx].status = GeneralStatus.Failed;
         console.error("Failed to send Solana transaction:", action.payload);
       });
   },

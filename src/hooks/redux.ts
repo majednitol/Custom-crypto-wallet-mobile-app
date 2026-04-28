@@ -26,11 +26,18 @@ export const useLoadingState = (): boolean => {
 
   // ---------------- Solana Wallet ----------------
   const solLoading = useSelector((state: RootState) => {
-    const activeIndex = state.solana.activeIndex ?? 0;
     const addresses = state.solana.addresses;
+    if (!addresses) return false;
 
-    if (!addresses || !addresses[activeIndex]) return false;
+    // Check imported wallet loading state
+    const importedSolAddr = state.importedAccounts?.activeSolAddress;
+    if (importedSolAddr) {
+      const imported = addresses.find(a => a.address === importedSolAddr);
+      return imported?.status === GeneralStatus.Loading;
+    }
 
+    const activeIndex = state.solana.activeIndex ?? 0;
+    if (!addresses[activeIndex]) return false;
     return addresses[activeIndex].status === GeneralStatus.Loading;
   });
 
