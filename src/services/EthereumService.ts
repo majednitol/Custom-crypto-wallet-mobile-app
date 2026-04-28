@@ -1,5 +1,5 @@
 
- import { JsonRpcProvider, Wallet, HDNodeWallet, AddressLike, parseEther, formatEther, isAddress, Mnemonic, ethers } from "ethers";
+ import { JsonRpcProvider, Wallet, HDNodeWallet, AddressLike, parseEther, formatEther, isAddress, Mnemonic, ethers, Network as EthersNetwork } from "ethers";
 import { CustomNetwork, AddressState } from "../store/types";
 import { validateMnemonic } from "bip39";
 import uuid from "react-native-uuid";
@@ -44,15 +44,32 @@ export class EVMService {
 
   get provider(): JsonRpcProvider {
     if (!this._provider) {
-      this._provider = new JsonRpcProvider(this.network.rpcUrl, undefined, {
-        staticNetwork: true,
-      });
+      try {
+        // Explicitly defining the network skips the problematic 'getNetwork' auto-detection
+        const network = EthersNetwork.from(Number(this.network.chainId));
+        
+        this._provider = new JsonRpcProvider(this.network.rpcUrl, network, {
+          staticNetwork: true,
+          batchMaxCount: 1,
+        });
+      } catch (error) {
+        console.warn(`[EVM] Failed to create provider for ${this.network.chainName}:`, error);
+        this.isUnreachable = true;
+        throw error;
+      }
     }
     return this._provider;
   }
 
   async getBalance(address: AddressLike): Promise<bigint> {
-    return this.provider.getBalance(address);
+    if (this.isUnreachable) return BigInt(0);
+    try {
+      return await this.provider.getBalance(address);
+    } catch (error) {
+      console.warn(`[EVM] Balance check failed for ${this.network.chainName}:`, error instanceof Error ? error.message : "Unknown error");
+      this.isUnreachable = true; // Mark as unreachable to prevent spam
+      return BigInt(0);
+    }
   }
 
   static validateAddress(address: string) {

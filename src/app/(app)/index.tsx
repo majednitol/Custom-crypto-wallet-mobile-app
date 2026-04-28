@@ -279,16 +279,23 @@ export default function Index() {
 
   const fetchTokenBalances = useCallback(async () => {
     await measureTime("fetchTokenBalances", async () => {
-      if (ethWalletAddress) {
-        await Promise.all(evmChainIds.map(cid => 
-          dispatch(fetchEvmBalance({ chainId: cid, address: ethWalletAddress }))
-        ));
-      }
+      if (!ethWalletAddress) return;
+
+      // 1. Fetch active chain first (priority)
+      await dispatch(fetchEvmBalance({ chainId: activeChainId, address: ethWalletAddress }));
+
+      // 2. Fetch others in background
+      const otherChainIds = evmChainIds.filter(id => id !== activeChainId);
+      // Don't await these all at once to keep UI responsive
+      otherChainIds.forEach(cid => {
+        dispatch(fetchEvmBalance({ chainId: cid, address: ethWalletAddress }));
+      });
+
       if (solWalletAddress) {
-        await dispatch(fetchSolanaBalance(solWalletAddress));
+        dispatch(fetchSolanaBalance(solWalletAddress));
       }
     });
-  }, [dispatch, evmChainIds, ethWalletAddress, solWalletAddress]);
+  }, [dispatch, evmChainIds, activeChainId, ethWalletAddress, solWalletAddress]);
 
   const fetchTransactions = useCallback(async () => {
     await measureTime("fetchTransactions", async () => {
