@@ -226,7 +226,7 @@ export default function SendPage() {
     (state: RootState) => state.importedAccounts?.activeEvmAddress
   );
   const activeEthIndex = useSelector(
-    (state: RootState) => state.ethereum.activeIndex[activeChainId] ?? 0
+    (state: RootState) => state.ethereum.activeIndex ?? 0
   );
 
   const service = evmServices[activeChainId];
@@ -251,7 +251,7 @@ export default function SendPage() {
         return account?.balanceByChain?.[state.ethereum.activeChainId] ?? 0;
       }
       const activeEthIndex =
-        state.ethereum.activeIndex[state.ethereum.activeChainId] ?? 0;
+        state.ethereum.activeIndex ?? 0;
       return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[
         state.ethereum.activeChainId
       ];
