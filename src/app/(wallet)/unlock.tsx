@@ -53,7 +53,7 @@ const Title = styled.Text<{ theme: ThemeType }>`
 
 const Subtitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => p.theme.fonts.sizes.normal};
+  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
   color: ${(p) => p.theme.colors.lightGrey};
   text-align: center;
   margin-bottom: 28px;
@@ -74,7 +74,7 @@ const Input = styled.TextInput<{ theme: ThemeType }>`
   flex: 1;
   color: ${(p) => p.theme.colors.white};
   font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => p.theme.fonts.sizes.normal};
+  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
   height: 54px;
 `;
 
@@ -103,7 +103,7 @@ const ErrorDot = styled.View`
 const ErrorText = styled.Text<{ theme: ThemeType }>`
   color: #ff5252;
   font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => p.theme.fonts.sizes.small};
+  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.small)};
   flex: 1;
 `;
 
@@ -121,7 +121,7 @@ const FaceIdButton = styled.TouchableOpacity<{ theme: ThemeType }>`
 
 const FaceIdText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(p) => p.theme.fonts.families.openBold};
-  font-size: ${(p) => p.theme.fonts.sizes.normal};
+  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
   color: ${(p) => p.theme.colors.primary};
   margin-left: 8px;
 `;

@@ -34,12 +34,21 @@ interface SendTransactionResponse {
   gasFee: bigint;
 }
 export class EVMService {
-  provider: JsonRpcProvider;
+  private _provider: JsonRpcProvider | null = null;
   network: CustomNetwork;
+  isUnreachable: boolean = false;
 
   constructor(network: CustomNetwork) {
     this.network = network;
-    this.provider = new JsonRpcProvider(network.rpcUrl);
+  }
+
+  get provider(): JsonRpcProvider {
+    if (!this._provider) {
+      this._provider = new JsonRpcProvider(this.network.rpcUrl, undefined, {
+        staticNetwork: true,
+      });
+    }
+    return this._provider;
   }
 
   async getBalance(address: AddressLike): Promise<bigint> {

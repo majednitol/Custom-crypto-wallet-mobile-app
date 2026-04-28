@@ -39,7 +39,7 @@ const CryptoInfoCardContainer = styled.TouchableOpacity<ButtonContainerProps>`
 
 const CryptoInfoCardText = styled.Text<ButtonTextProps>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.normal)};
   color: ${({ theme }) => theme.colors.white};
   letter-spacing: 0.2px;
 `;
@@ -80,14 +80,14 @@ const ChainContainer = styled.View`
 
 const CryptoBalanceText = styled.Text<ButtonTextProps>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.small};
+  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.small)};
   color: ${({ theme }) => theme.colors.lightGrey};
   margin-top: 2px;
 `;
 
 const DetailsText = styled.Text<ButtonTextProps>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.normal)};
   color: ${({ theme }) => theme.colors.white};
   text-align: right;
   flex-shrink: 0;
@@ -95,7 +95,7 @@ const DetailsText = styled.Text<ButtonTextProps>`
 
 const ChangeIndicator = styled.Text<{ positive?: boolean; theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.tiny};
+  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.tiny)};
   color: ${({ positive, theme }) =>
     positive ? theme.colors.success : theme.colors.error};
   margin-top: 2px;
