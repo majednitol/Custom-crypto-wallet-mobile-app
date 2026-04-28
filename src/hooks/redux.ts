@@ -10,18 +10,12 @@ export const useLoadingState = (): boolean => {
   // ---------------- EVM Wallet ----------------
   const ethLoading = useSelector((state: RootState) => {
     const activeChainId = state.ethereum.activeChainId;
-    const indexByChain = state.ethereum.activeIndex;
-    const addressesByChain = state.ethereum.globalAddresses;
+    const activeIndex = state.ethereum.activeIndex ?? 0;
+    const account = state.ethereum.globalAddresses[activeIndex];
 
-    // If any part is undefined, fallback to not loading
-    if (!activeChainId || !indexByChain || !addressesByChain) return false;
+    if (!account) return false;
 
-    const activeIndex = indexByChain[activeChainId] ?? 0;
-    const addresses = addressesByChain[activeChainId];
-
-    if (!addresses || !addresses[activeIndex]) return false;
-
-    return addresses[activeIndex].status === GeneralStatus.Loading;
+    return account.statusByChain?.[activeChainId] === GeneralStatus.Loading;
   });
 
   // ---------------- Solana Wallet ----------------

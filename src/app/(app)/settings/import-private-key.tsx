@@ -10,11 +10,11 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { ThemeType } from "../../../styles/theme";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import Button from "../../../components/Button/Button";
-import { AppDispatch } from "../../../store";
+import { AppDispatch, RootState } from "../../../store";
 import {
   addImportedEvmAccount,
   addImportedSolAccount,
@@ -115,6 +115,8 @@ const BottomContainer = styled.View<{ theme: ThemeType }>`
 export default function ImportPrivateKeyScreen() {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
+  const importedAccountsCount = useSelector((state: RootState) => state.importedAccounts.accounts.length);
+  const nextImportedName = `Imported Account ${importedAccountsCount + 1}`;
   const [selectedChain, setSelectedChain] = useState<"evm" | "sol">("evm");
   const [privateKey, setPrivateKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -133,7 +135,7 @@ export default function ImportPrivateKeyScreen() {
         dispatch(addImportedEvmAccount({ address }));
         // Register in globalAddresses so balance/tx thunks can update it
         dispatch(addAddress({
-          accountName: "Imported Account",
+          accountName: nextImportedName,
           derivationPath: "",
           address,
           publicKey: address,
@@ -154,7 +156,7 @@ export default function ImportPrivateKeyScreen() {
         dispatch(addImportedSolAccount({ address }));
         // Register in solana.addresses so balance/tx thunks can update it
         dispatch(updateSolanaAddresses({
-          accountName: "Imported Account",
+          accountName: nextImportedName,
           derivationPath: "",
           address,
           publicKey: address,

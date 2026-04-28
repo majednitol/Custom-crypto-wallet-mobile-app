@@ -606,6 +606,9 @@ const AccountsIndex = () => {
       for (let i = 0; i < highestAccAmount; i++) {
         const eth = ethAcc[i] ?? null;
         const sol = solAcc[i] ?? null;
+        
+        // Skip imported accounts (those without a derivationPath) as they are handled below
+        if ((eth && !eth.derivationPath) || (sol && !sol.derivationPath)) continue;
         // Seed-derived account is active ONLY when no imported account is active
         const isActiveAccount =
           !activeImportedEvm && !activeImportedSol &&
@@ -761,21 +764,24 @@ const AccountsIndex = () => {
       }
 
       // 2️⃣ Determine next wallet index for Ethereum
+      const standardEthAccounts = ethAccounts.filter(a => !!a.derivationPath);
       let nextEthIndex = 0;
-      if (ethAccounts.length > 0) {
-        // Parse the last derivationPath index
-        const lastDerivationPath = ethAccounts[ethAccounts.length - 1].derivationPath;
+      if (standardEthAccounts.length > 0) {
+        const lastDerivationPath = standardEthAccounts[standardEthAccounts.length - 1].derivationPath;
         if (lastDerivationPath) {
           const parts = lastDerivationPath.split("/");
           const lastIndex = parseInt(parts[parts.length - 1]);
           nextEthIndex = lastIndex + 1;
         } else {
-          nextEthIndex = ethAccounts.length;
+          nextEthIndex = standardEthAccounts.length;
         }
       }
+      const nextEthAccountNum = standardEthAccounts.length + 1;
 
       // 3️⃣ Determine next wallet index for Solana
-      const nextSolIndex = solAccounts.length;
+      const standardSolAccounts = solAccounts.filter(a => !!a.derivationPath);
+      const nextSolIndex = standardSolAccounts.length;
+      const nextSolAccountNum = standardSolAccounts.length + 1;
 
       // 4️⃣ Create Ethereum wallet by index
       const newEthWallet = await ethService.createWalletByIndex(phrase, nextEthIndex);
@@ -785,7 +791,7 @@ const AccountsIndex = () => {
 
       // 6️⃣ Transform Ethereum wallet for Redux
       const transformedEthWallet: AddressState = {
-        accountName: `Account ${nextEthIndex + 1}`,
+        accountName: `Account ${nextEthAccountNum}`,
         derivationPath: newEthWallet.derivationPath,
         address: newEthWallet.address,
         publicKey: newEthWallet.publicKey,
@@ -801,7 +807,7 @@ const AccountsIndex = () => {
 
       // 7️⃣ Transform Solana wallet for Redux
       const transformedSolWallet: SAddressState = {
-        accountName: `Account ${nextSolIndex + 1}`,
+        accountName: `Account ${nextSolAccountNum}`,
         derivationPath: newSolWallet.derivationPath,
         address: newSolWallet.address,
         publicKey: newSolWallet.publicKey,

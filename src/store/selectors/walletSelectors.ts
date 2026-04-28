@@ -15,15 +15,11 @@ export const selectActiveEvmNetwork = (state: RootState) => {
 };
 
 export const selectEvmAddresses = (state: RootState) => {
-  const chainId = selectActiveChainId(state);
-  if (!chainId) return [];
-  return state.ethereum.globalAddresses[chainId] ?? [];
+  return state.ethereum.globalAddresses ?? [];
 };
 
 export const selectActiveEvmIndex = (state: RootState): number => {
-  const chainId = selectActiveChainId(state);
-  if (!chainId) return 0;
-  return state.ethereum.activeIndex
+  return state.ethereum.activeIndex ?? 0;
 };
 
 export const selectActiveEvmAddress = (state: RootState): string => {
@@ -33,9 +29,11 @@ export const selectActiveEvmAddress = (state: RootState): string => {
 };
 
 export const selectActiveEvmBalance = (state: RootState): number => {
+  const chainId = selectActiveChainId(state);
   const addresses = selectEvmAddresses(state);
   const index = selectActiveEvmIndex(state);
-  return addresses[index]?.balance ?? 0;
+  if (!chainId) return 0;
+  return addresses[index]?.balanceByChain?.[chainId] ?? 0;
 };
 
 /* ===================== SOLANA ===================== */
