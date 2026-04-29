@@ -115,11 +115,37 @@ const BottomContainer = styled.View<{ theme: ThemeType }>`
 export default function ImportPrivateKeyScreen() {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  const importedAccountsCount = useSelector((state: RootState) => state.importedAccounts.accounts.length);
-  const nextImportedName = `Imported Account ${importedAccountsCount + 1}`;
+  const importedAccounts = useSelector(
+    (state: RootState) => state.importedAccounts?.accounts ?? []
+  );
+  const ethAccounts = useSelector(
+    (state: RootState) => state.ethereum.globalAddresses ?? []
+  );
+  const solAccounts = useSelector(
+    (state: RootState) => state.solana.addresses ?? []
+  );
+  const importedAccountsCount = importedAccounts.length;
+  const nextId = useSelector(
+    (state: RootState) => state.importedAccounts?.nextId ?? importedAccountsCount + 1
+  );
   const [selectedChain, setSelectedChain] = useState<"evm" | "sol">("evm");
   const [privateKey, setPrivateKey] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  /**
+   * Determine the correct account name for the import.
+   * If an existing imported account is missing this chain type,
+   * the reducer will merge into it — so reuse its name.
+   * Otherwise generate a new name.
+   */
+  const getAccountName = (chainType: "evm" | "sol"): string => {
+    const mergeable = importedAccounts.find((acc) =>
+      chainType === "evm" ? !acc.evmAddress : !acc.solAddress
+    );
+    return mergeable
+      ? mergeable.accountName
+      : `Imported Account ${nextId}`;
+  };
 
   const handleImport = async () => {
     if (!privateKey.trim()) {
@@ -131,11 +157,27 @@ export default function ImportPrivateKeyScreen() {
     try {
       if (selectedChain === "evm") {
         const address = getEvmAddressFromPrivateKey(privateKey.trim());
+
+        // ─── Duplicate check: seed-derived + imported EVM addresses ───
+        const allEvmAddresses = [
+          ...ethAccounts.map((a) => a.address.toLowerCase()),
+          ...importedAccounts
+            .filter((a) => a.evmAddress)
+            .map((a) => a.evmAddress!.toLowerCase()),
+        ];
+        if (allEvmAddresses.includes(address.toLowerCase())) {
+          Alert.alert(
+            "Duplicate Key",
+            "This EVM address is already in your wallet."
+          );
+          setIsLoading(false);
+          return;
+        }
+
         await storeImportedEvmKey(address, privateKey.trim());
         dispatch(addImportedEvmAccount({ address }));
-        // Register in globalAddresses so balance/tx thunks can update it
         dispatch(addAddress({
-          accountName: nextImportedName,
+          accountName: getAccountName("evm"),
           derivationPath: "",
           address,
           publicKey: address,
@@ -145,18 +187,33 @@ export default function ImportPrivateKeyScreen() {
           transactionMetadataByChain: {},
           transactionConfirmations: [],
         }));
-        // Set as active so send/balance screens detect it
         dispatch(setActiveImportedAccount({ evmAddress: address }));
         Alert.alert("Success", `EVM account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },
         ]);
       } else {
         const address = getSolAddressFromPrivateKey(privateKey.trim());
+
+        // ─── Duplicate check: seed-derived + imported Solana addresses ───
+        const allSolAddresses = [
+          ...solAccounts.map((a) => a.address),
+          ...importedAccounts
+            .filter((a) => a.solAddress)
+            .map((a) => a.solAddress!),
+        ];
+        if (allSolAddresses.includes(address)) {
+          Alert.alert(
+            "Duplicate Key",
+            "This Solana address is already in your wallet."
+          );
+          setIsLoading(false);
+          return;
+        }
+
         await storeImportedSolKey(address, privateKey.trim());
         dispatch(addImportedSolAccount({ address }));
-        // Register in solana.addresses so balance/tx thunks can update it
         dispatch(updateSolanaAddresses({
-          accountName: nextImportedName,
+          accountName: getAccountName("sol"),
           derivationPath: "",
           address,
           publicKey: address,
@@ -166,7 +223,6 @@ export default function ImportPrivateKeyScreen() {
           transactionMetadata: { paginationKey: undefined, transactions: [] },
           transactionConfirmations: [],
         }));
-        // Set as active so send/balance screens detect it
         dispatch(setActiveImportedAccount({ solAddress: address }));
         Alert.alert("Success", `Solana account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },

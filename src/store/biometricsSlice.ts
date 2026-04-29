@@ -211,33 +211,12 @@ const lockSlice = createSlice({
   },
 
   extraReducers: (builder) => {
-    // ─── REHYDRATE: Force lock on every cold start ───
-    // redux-persist restores the entire biometrics slice from AsyncStorage,
-    // including unlocked: true. We MUST override this on cold start.
-    // Only passwordSet should survive rehydration.
-    builder.addMatcher(
-      (action) => action.type === REHYDRATE,
-      (state, action: any) => {
-        if (action.payload?.biometrics) {
-          // Keep only passwordSet from persisted state
-          state.passwordSet = action.payload.biometrics.passwordSet ?? false;
-          // Always lock on cold start
-          state.unlocked = false;
-          state.unlockedAt = undefined;
-          state.errorMessage = "";
-          state.status = "idle";
-        }
-      }
-    );
-
     // ─── Biometric Availability ───
     builder.addCase(checkBiometricAvailability.fulfilled, (state, action) => {
       state.biometricAvailable = action.payload;
     });
 
     // ─── Biometric Authentication ───
-    // NOTE: This thunk ONLY authenticates. It does NOT change biometricPreference.
-    // The unlock happens in the component after checking the result.
     builder.addCase(authenticateBiometric.pending, (state) => {
       state.status = "loading";
       state.errorMessage = "";
@@ -252,7 +231,6 @@ const lockSlice = createSlice({
     builder.addCase(authenticateBiometric.rejected, (state, action) => {
       state.status = "rejected";
       state.errorMessage = action.payload || "Biometric authentication failed.";
-      // Do NOT change unlocked state — leave it as is
     });
 
     // ─── Load Biometric Preference (from SecureStore) ───
@@ -299,6 +277,23 @@ const lockSlice = createSlice({
       state.status = "rejected";
       state.errorMessage = action.payload || "Incorrect password.";
     });
+
+    // ─── REHYDRATE: Force lock on every cold start ───
+    // Must come AFTER all addCase calls (Redux Toolkit requirement).
+    // redux-persist restores the entire biometrics slice from AsyncStorage,
+    // including unlocked: true. We override this on cold start.
+    builder.addMatcher(
+      (action) => action.type === REHYDRATE,
+      (state, action: any) => {
+        if (action.payload?.biometrics) {
+          state.passwordSet = action.payload.biometrics.passwordSet ?? false;
+          state.unlocked = false;
+          state.unlockedAt = undefined;
+          state.errorMessage = "";
+          state.status = "idle";
+        }
+      }
+    );
   },
 });
 

@@ -77,6 +77,8 @@ export default function Index() {
     evmChainIds,
     allChainIds,
     solWalletAddress,
+    showEvmAssets,
+    showSolAssets,
   } = useDashboardData(800);
 
   const handleSelectChain = useCallback(
@@ -293,7 +295,7 @@ export default function Index() {
     width: 40,
   }), [theme.colors.muted]);
 
-  const totalAssets = ethereumAssets.length + 1;
+  const totalAssets = ethereumAssets.length + (showSolAssets ? 1 : 0);
 
   // ─── Memoized list components ───
   const assetListHeader = useMemo(() => (
@@ -306,17 +308,19 @@ export default function Index() {
   ), [totalAssets, styles]);
 
   const assetListFooter = useMemo(() => (
-    <View style={styles.cardView}>
-      <CryptoInfoCard
-        onPress={handleSolPress}
-        title="Solana"
-        caption={`${solBalance} SOL`}
-        details={formatDollar(solUsd)}
-        icon={<BlockchainIcon symbol="SOL" size={25} />}
-        hideBackground
-      />
-    </View>
-  ), [solBalance, solUsd, handleSolPress, styles.cardView]);
+    showSolAssets ? (
+      <View style={styles.cardView}>
+        <CryptoInfoCard
+          onPress={handleSolPress}
+          title="Solana"
+          caption={`${solBalance} SOL`}
+          details={formatDollar(solUsd)}
+          icon={<BlockchainIcon symbol="SOL" size={25} />}
+          hideBackground
+        />
+      </View>
+    ) : null
+  ), [showSolAssets, solBalance, solUsd, handleSolPress, styles.cardView]);
 
   return (
     <SafeAreaContainer>

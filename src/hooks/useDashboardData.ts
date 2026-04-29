@@ -56,6 +56,9 @@ export interface DashboardData {
   // Chain IDs
   evmChainIds: number[];
   allChainIds: number[];
+  // Imported account visibility
+  showEvmAssets: boolean;
+  showSolAssets: boolean;
 }
 
 function computeDashboardData(state: RootState): DashboardData {
@@ -64,7 +67,15 @@ function computeDashboardData(state: RootState): DashboardData {
   const networks = state.ethereum.networks;
   const activeIndex = state.ethereum.activeIndex ?? 0;
   const importedEvm = state.importedAccounts?.activeEvmAddress;
+  const importedSol = state.importedAccounts?.activeSolAddress;
   const globalAddresses = state.ethereum.globalAddresses;
+
+  // ── Imported account visibility ──
+  // If an imported account is active, only show chains that were imported.
+  // Seed-derived accounts always have both EVM + Solana.
+  const isImportedActive = !!(importedEvm || importedSol);
+  const showEvmAssets = isImportedActive ? !!importedEvm : true;
+  const showSolAssets = isImportedActive ? !!importedSol : true;
 
   const currentEvmAccount = importedEvm
     ? globalAddresses?.find(
@@ -81,7 +92,6 @@ function computeDashboardData(state: RootState): DashboardData {
     currentEvmAccount?.statusByChain?.[activeChainId] === GeneralStatus.Failed;
 
   // ── Solana account ──
-  const importedSol = state.importedAccounts?.activeSolAddress;
   const solIdx = state.solana.activeIndex ?? 0;
   const currentSolAccount = importedSol
     ? state.solana.addresses?.find((a) => a.address === importedSol)
@@ -101,33 +111,35 @@ function computeDashboardData(state: RootState): DashboardData {
   const evmChainIds = Object.keys(networks).map(Number);
   const allChainIds = [...evmChainIds, 101];
 
-  // ── Build asset list ──
-  const ethereumAssets = Object.values(networks)
-    .map((network) => {
-      const chainId = network.chainId;
-      const price = prices?.[chainId]?.usd ?? 0;
-      const balance = currentEvmAccount?.balanceByChain?.[chainId] ?? 0;
-      return {
-        key: `evm-${chainId}`,
-        chainId,
-        name: network.chainName,
-        symbol: network.symbol,
-        balance,
-        usdValue: balance * price,
-        address: ethWalletAddress,
-        status:
-          (currentEvmAccount?.statusByChain?.[chainId] as GeneralStatus) ??
-          GeneralStatus.Idle,
-      };
-    })
-    .sort((a, b) => b.usdValue - a.usdValue);
+  // ── Build asset list (only if EVM assets should be shown) ──
+  const ethereumAssets = showEvmAssets
+    ? Object.values(networks)
+        .map((network) => {
+          const chainId = network.chainId;
+          const price = prices?.[chainId]?.usd ?? 0;
+          const balance = currentEvmAccount?.balanceByChain?.[chainId] ?? 0;
+          return {
+            key: `evm-${chainId}`,
+            chainId,
+            name: network.chainName,
+            symbol: network.symbol,
+            balance,
+            usdValue: balance * price,
+            address: ethWalletAddress,
+            status:
+              (currentEvmAccount?.statusByChain?.[chainId] as GeneralStatus) ??
+              GeneralStatus.Idle,
+          };
+        })
+        .sort((a, b) => b.usdValue - a.usdValue)
+    : [];
 
-  // ── Totals ──
+  // ── Totals (only include visible assets) ──
   const evmTotal = ethereumAssets.reduce(
     (sum, a) => sum + (a.usdValue ?? 0),
     0
   );
-  const solUsd = (prices[101]?.usd ?? 0) * solBalance;
+  const solUsd = showSolAssets ? (prices[101]?.usd ?? 0) * solBalance : 0;
   const totalUsdBalance = evmTotal + solUsd;
 
   return {
@@ -147,6 +159,8 @@ function computeDashboardData(state: RootState): DashboardData {
     solUsd,
     evmChainIds,
     allChainIds,
+    showEvmAssets,
+    showSolAssets,
   };
 }
 
@@ -155,9 +169,8 @@ function computeDashboardData(state: RootState): DashboardData {
  * Comparing one string is O(1) vs deep-comparing entire data tree.
  */
 function fingerprint(d: DashboardData): string {
-  // Balance fingerprint: all 34 chain balances + sol
   const bals = d.ethereumAssets.map(a => `${a.chainId}:${a.balance}`).join(",");
-  return `${d.activeChainId}|${d.totalUsdBalance.toFixed(2)}|${d.solBalance}|${d.solUsd.toFixed(2)}|${d.ethTransactions.length}|${d.solTransactions.length}|${d.failedEthStatus}|${d.failedSolStatus}|${bals}`;
+  return `${d.activeChainId}|${d.totalUsdBalance.toFixed(2)}|${d.solBalance}|${d.solUsd.toFixed(2)}|${d.ethTransactions.length}|${d.solTransactions.length}|${d.failedEthStatus}|${d.failedSolStatus}|${d.showEvmAssets}|${d.showSolAssets}|${bals}`;
 }
 
 /**
