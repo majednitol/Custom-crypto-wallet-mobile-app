@@ -177,9 +177,7 @@ const AccountsIndex = () => {
 
   );
 
-  console.log("activeChainId", activeChainId);
   const service = getEvmService(activeChainId);
-  console.log("accounts.tsx service", service, activeChainId);
 
   const ethAccounts = useSelector(
     (state: RootState) => state.ethereum.globalAddresses || []
@@ -744,11 +742,6 @@ const AccountsIndex = () => {
   //     setWalletCreationLoading(false);
   //   }
   // }, [activeChainId, ethAccounts.length, solAccounts.length, dispatch]);
-  const ethAccount = useSelector((state: RootState) => state.ethereum.globalAddresses);
-
-  ethAccount.forEach((acc) => {
-    console.log(acc.accountName, acc.address);
-  });
   const createNewWalletPair = useCallback(async () => {
     setWalletCreationLoading(true);
 
@@ -820,7 +813,6 @@ const AccountsIndex = () => {
 
       // 8️⃣ Dispatch to Redux
       await dispatch(updateAddresses({ addresses: [transformedEthWallet] }));
-      console.log("transformedEthWallet", store)
       await dispatch(updateSolanaAddresses(transformedSolWallet));
     } catch (err) {
       console.error("Failed to create wallet pair:", err);

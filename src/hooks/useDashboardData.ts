@@ -85,9 +85,12 @@ function computeDashboardData(state: RootState): DashboardData {
 
   const ethWalletAddress = currentEvmAccount?.address || "";
   const ethBalance = currentEvmAccount?.balanceByChain?.[activeChainId] ?? 0;
-  const ethTransactions =
-    currentEvmAccount?.transactionMetadataByChain?.[activeChainId]
-      ?.transactions ?? EMPTY_TRANSACTIONS;
+
+  // Aggregate transactions from ALL EVM chains for the home screen
+  const txByChain = currentEvmAccount?.transactionMetadataByChain ?? {};
+  const ethTransactions: Transaction[] = Object.values(txByChain)
+    .flatMap((meta) => meta?.transactions ?? []);
+
   const failedEthStatus =
     currentEvmAccount?.statusByChain?.[activeChainId] === GeneralStatus.Failed;
 
