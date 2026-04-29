@@ -1,9 +1,10 @@
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, useWindowDimensions } from "react-native";
 import styled from "styled-components/native";
 import { ThemeType } from "../../styles/theme";
 
 interface BubbleContainerProps {
   smallBubble?: boolean;
+  bubbleWidth: number;
   theme: ThemeType;
 }
 
@@ -14,13 +15,13 @@ const BubbleContainer = styled.View<BubbleContainerProps>`
   border-radius: 16px;
   border-width: 1px;
   border-color: ${({ theme }) => theme.colors.border};
-  margin: 5px;
-  height: ${({ smallBubble }) => (smallBubble ? "40px" : "56px")};
+  margin: 4px;
+  height: ${({ smallBubble }) => (smallBubble ? "40px" : "48px")};
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-around;
-  width: ${({ smallBubble }) => (smallBubble ? "100px" : "148px")};
+  width: ${({ bubbleWidth }) => bubbleWidth}px;
 `;
 
 const BubbleNumber = styled.Text<{ theme: ThemeType }>`
@@ -51,6 +52,10 @@ interface BubbleProps {
   onPress?: () => void;
 }
 
+const CONTAINER_PADDING = 40; // total horizontal padding of parent containers
+const CARD_PADDING = 40; // total horizontal padding inside SeedCard
+const BUBBLE_MARGIN = 8; // 4px margin on each side
+
 const Bubble = ({
   word,
   number,
@@ -58,10 +63,19 @@ const Bubble = ({
   hideDetails = false,
   onPress,
 }: BubbleProps) => {
+  const { width: screenWidth } = useWindowDimensions();
   const num = number.toString();
+
+  // Calculate available width inside the seed card
+  const availableWidth = screenWidth - CONTAINER_PADDING - CARD_PADDING;
+
+  // Determine columns: 2 on small screens, 3 on larger
+  const columns = smallBubble ? 3 : screenWidth < 380 ? 2 : 3;
+  const bubbleWidth = Math.floor(availableWidth / columns) - BUBBLE_MARGIN;
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
-      <BubbleContainer smallBubble={smallBubble}>
+      <BubbleContainer smallBubble={smallBubble} bubbleWidth={bubbleWidth}>
         {!hideDetails ? <BubbleNumber>{num}</BubbleNumber> : null}
         {!hideDetails ? <Line /> : null}
         <BubbleText>{word}</BubbleText>

@@ -70,7 +70,7 @@ const SeedCard = styled.View<{ theme: ThemeType }>`
 const SeedPhraseContainer = styled.View<{ theme: ThemeType }>`
   flex-direction: row;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 `;
 

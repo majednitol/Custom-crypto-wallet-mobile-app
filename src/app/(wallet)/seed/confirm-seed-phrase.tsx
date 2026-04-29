@@ -79,6 +79,7 @@ const SelectedLabel = styled.Text<{ theme: ThemeType }>`
 const SelectedWordsRow = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
+  justify-content: flex-start;
 `;
 
 const WordBankCard = styled.View<{ theme: ThemeType }>`
@@ -103,6 +104,7 @@ const WordBankLabel = styled.Text<{ theme: ThemeType }>`
 const WordBankRow = styled.View`
   flex-direction: row;
   flex-wrap: wrap;
+  justify-content: flex-start;
 `;
 
 const PasteButton = styled.TouchableOpacity<{ theme: ThemeType }>`
