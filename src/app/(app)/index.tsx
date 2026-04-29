@@ -1,14 +1,13 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { View, RefreshControl, FlatList, Platform, Alert } from "react-native";
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useDispatch, useSelector } from "react-redux";
+import { View, RefreshControl, FlatList, Text, StyleSheet, InteractionManager } from "react-native";
+import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { useDispatch } from "react-redux";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import styled, { useTheme } from "styled-components/native";
-import { LinearGradient } from "expo-linear-gradient";
+import { useTheme } from "styled-components/native";
 import { ROUTES } from "../../constants/routes";
 import type { ThemeType } from "../../styles/theme";
-import { type RootState, type AppDispatch, store } from "../../store";
+import { type AppDispatch, store } from "../../store";
 import { fetchPrices } from "../../store/priceSlice";
 import {
   fetchEvmBalance,
@@ -23,8 +22,6 @@ import {
   fetchSolanaTransactionsInterval,
   fetchSolanaBalanceInterval,
 } from "../../store/solanaSlice";
-import { useLoadingState } from "../../hooks/redux";
-import { GeneralStatus } from "../../store/types";
 import { capitalizeFirstLetter } from "../../utils/capitalizeFirstLetter";
 import { truncateWalletAddress } from "../../utils/truncateWalletAddress";
 import { formatDollar, formatDollarRaw } from "../../utils/formatDollars";
@@ -33,11 +30,9 @@ import PrimaryButton from "../../components/PrimaryButton/PrimaryButton";
 import SendIcon from "../../assets/svg/send.svg";
 import ReceiveIcon from "../../assets/svg/receive.svg";
 import CryptoInfoCard from "../../components/CryptoInfoCard/CryptoInfoCard";
-import CryptoInfoCardSkeleton from "../../components/CryptoInfoCard/CryptoInfoCardSkeleton";
+import AssetCard from "../../components/AssetCard/AssetCard";
 import { BlockchainIcon } from "../../components/BlockchainIcon/BlockchainIcon";
-import { getChainIconSymbol } from "../../utils/getChainIconSymbol";
 import { FETCH_PRICES_INTERVAL } from "../../constants/price";
-import { TICKERS } from "../../constants/tickers";
 import { SafeAreaContainer } from "../../components/Styles/Layout.styles";
 import InfoBanner from "../../components/InfoBanner/InfoBanner";
 import { SNAP_POINTS } from "../../constants/storage";
@@ -45,179 +40,44 @@ import { loadTokens } from "../../store/tokenSlice";
 import { loadSolTokens } from "../../store/solTokenSlice";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Didcomm from "../../../native-modules/didcomm";
-import { useRenderLog, measureTime } from "../../utils/PerformanceMonitor";
+import { useRenderLog } from "../../utils/PerformanceMonitor";
 
-const ContentContainer = styled.View<{ theme: ThemeType; topInset: number }>`
-  flex: 1;
-  justify-content: flex-start;
-  padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => props.topInset + 20}px;
-`;
+// ─── THE SINGLE DATA HOOK ───
+import { useDashboardData } from "../../hooks/useDashboardData";
 
-const BalanceContainer = styled.View<{ theme: ThemeType }>`
-  align-items: center;
-  margin-bottom: ${(props) => props.theme.spacing.large};
-`;
-
-const BalanceLabel = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.small)};
-  color: ${(props) => props.theme.colors.lightGrey};
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin-bottom: 8px;
-`;
-
-const BalanceText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.uberHuge)};
-  color: ${(props) => props.theme.colors.white};
-  text-align: center;
-  letter-spacing: -1px;
-`;
-
-const DollarSign = styled.Text<{ theme: ThemeType }>`
-  color: ${(props) => props.theme.colors.primary};
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.huge)};
-  text-align: center;
-`;
-
-const ActionContainer = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  margin-bottom: ${(props) => props.theme.spacing.large};
-  gap: 10px;
-`;
-
-const SectionHeader = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => props.theme.spacing.small};
-`;
-
-const SectionTitle = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.header)};
-  color: ${(props) => props.theme.colors.white};
-  letter-spacing: 0.3px;
-  flex: 1;
-`;
-
-const SectionAction = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.small)};
-  color: ${(props) => props.theme.colors.primary};
-  flex-shrink: 0;
-  margin-left: ${(props) => props.theme.spacing.small};
-`;
-
-const CryptoInfoCardContainer = styled.View<{ theme: ThemeType }>`
-  flex: 1;
-  flex-direction: column;
-  width: 100%;
-`;
-
-const CardView = styled.View<{ theme: ThemeType }>`
-  margin-bottom: ${(props) => props.theme.spacing.small};
-  width: 100%;
-`;
-
-const BottomSectionTitle = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.title)};
-  color: ${(props) => props.theme.colors.white};
-  margin-bottom: ${(props) => props.theme.spacing.medium};
-  margin-left: ${(props) => props.theme.spacing.small};
-  letter-spacing: 0.3px;
-  flex: 1;
-`;
-
-const BottomScrollView = styled(BottomSheetScrollView) <{ theme: ThemeType }>`
-  padding: ${(props) => props.theme.spacing.tiny};
-  padding-top: ${(props) => props.theme.spacing.small};
-`;
-
-const ErrorContainer = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  background-color: rgba(255, 77, 79, 0.15);
-  border: 1px solid rgba(255, 77, 79, 0.3);
-  border-radius: ${(props) => props.theme.borderRadius.medium};
-  height: 56px;
-  padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => props.theme.spacing.medium};
-`;
-
-const ErrorText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.small)};
-  color: ${(props) => props.theme.colors.error};
-`;
-
-const AssetCountBadge = styled.View<{ theme: ThemeType }>`
-  background-color: ${(props) => props.theme.colors.cardBackground};
-  border-radius: ${(props) => props.theme.borderRadius.pill};
-  padding-horizontal: 10px;
-  padding-vertical: 4px;
-  border: 1px solid ${(props) => props.theme.colors.border};
-`;
-
-const AssetCountText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => parseFloat(props.theme.fonts.sizes.small)};
-  color: ${(props) => props.theme.colors.lightGrey};
-`;
+// ═══════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════
 
 export default function Index() {
   const dispatch = useDispatch<AppDispatch>();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
-  const theme = useTheme();
+  const theme = useTheme() as ThemeType;
   useRenderLog("DashboardIndex");
-  const isLoading = useLoadingState();
 
-  // Consolidate selectors to avoid multiple re-renders
-  const { ethereum, prices, solana, importedAccounts } = useSelector((s: RootState) => ({
-    ethereum: s.ethereum,
-    prices: s.price.data,
-    solana: s.solana,
-    importedAccounts: s.importedAccounts
-  }));
+  // ─── Theme-derived styles: computed ONCE per theme change, not per render ───
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const { networks, activeChainId, globalAddresses, activeIndex } = ethereum;
-  const { activeEvmAddress, activeSolAddress } = importedAccounts;
-  const isImportedActive = !!activeEvmAddress || !!activeSolAddress;
-
-  const currentEvmAccount = useMemo(() => {
-    if (isImportedActive && activeEvmAddress) {
-      return globalAddresses?.find(a => a.address?.toLowerCase() === activeEvmAddress.toLowerCase()) ?? { address: activeEvmAddress, balanceByChain: {}, statusByChain: {}, transactionMetadataByChain: {} };
-    }
-    return globalAddresses?.[activeIndex ?? 0];
-  }, [globalAddresses, activeIndex, isImportedActive, activeEvmAddress]);
-
-  const ethWalletAddress = currentEvmAccount?.address || "";
-  const ethBalance = currentEvmAccount?.balanceByChain?.[activeChainId] ?? 0;
-  const ethTransactions = currentEvmAccount?.transactionMetadataByChain?.[activeChainId]?.transactions ?? [];
-  const failedEthStatus = currentEvmAccount?.statusByChain?.[activeChainId] === GeneralStatus.Failed;
-
-  const currentSolAccount = useMemo(() => {
-    if (isImportedActive && activeSolAddress) {
-      return solana.addresses?.find(a => a.address === activeSolAddress);
-    }
-    return solana.addresses[solana.activeIndex];
-  }, [solana.addresses, solana.activeIndex, isImportedActive, activeSolAddress]);
-
-  const solWalletAddress = currentSolAccount?.address || "";
-  const solBalance = currentSolAccount?.balanceByChain?.[101] ?? currentSolAccount?.balance ?? 0;
-  const solTransactions = currentSolAccount?.transactionMetadata?.transactions || [];
-  const failedSolStatus = currentSolAccount?.status === GeneralStatus.Failed;
+  // ═══════════════════════════════════════════════════════════
+  // ONE hook → ONE subscription → ONE state → ONE re-render
+  // 800ms debounce + fingerprint skip = minimal re-renders
+  // ═══════════════════════════════════════════════════════════
+  const {
+    ethWalletAddress,
+    ethTransactions,
+    solTransactions,
+    failedEthStatus,
+    failedSolStatus,
+    solBalance,
+    prices,
+    ethereumAssets,
+    totalUsdBalance,
+    solUsd,
+    evmChainIds,
+    allChainIds,
+    solWalletAddress,
+  } = useDashboardData(800);
 
   const handleSelectChain = useCallback(
     (chainId: number, address: string) => {
@@ -233,92 +93,80 @@ export default function Index() {
     dispatch(loadSolTokens());
   }, [dispatch]);
 
-  const ethereumAssets = useMemo(() => {
-    const list: any[] = [];
-    Object.values(networks).forEach((network) => {
-      const chainId = network.chainId;
-      const price = prices?.[chainId]?.usd ?? 0;
-      const balance = currentEvmAccount?.balanceByChain?.[chainId] ?? 0;
-      const transactions = currentEvmAccount?.transactionMetadataByChain?.[chainId]?.transactions ?? [];
-      const status = currentEvmAccount?.statusByChain?.[chainId] ?? GeneralStatus.Idle;
-
-      list.push({
-        key: `evm-${chainId}`,
-        chainId,
-        name: network.chainName,
-        symbol: network.symbol,
-        balance,
-        usdValue: balance * price,
-        address: ethWalletAddress,
-        transactions,
-        status,
-        icon: (
-          <BlockchainIcon
-            symbol={getChainIconSymbol(network.chainName, network.symbol, network.chainId)}
-            chainId={network.chainId}
-            chainName={network.chainName}
-            size={35}
-          />
-        ),
-      });
-    });
-    return list.sort((a, b) => b.usdValue - a.usdValue);
-  }, [networks, prices, currentEvmAccount, ethWalletAddress]);
-
-  const { totalUsdBalance, solUsd } = useMemo(() => {
-    const evmTotal = ethereumAssets.reduce((sum, asset) => sum + (asset.usdValue ?? 0), 0);
-    const solUsdVal = (prices[101]?.usd ?? 0) * solBalance;
-    return {
-      totalUsdBalance: evmTotal + solUsdVal,
-      solUsd: solUsdVal
-    };
-  }, [ethereumAssets, solBalance, prices]);
-
-  const evmChainIds = useMemo(() => Object.keys(networks).map(Number), [networks]);
-  const allChainIds = useMemo(() => [...evmChainIds, 101], [evmChainIds]);
-
+  // ─── Fetch helpers: read from store.getState() to avoid any selector deps ───
   const fetchTokenBalances = useCallback(async () => {
-    await measureTime("fetchTokenBalances", async () => {
-      if (!ethWalletAddress) return;
+    const s = store.getState();
+    const idx = s.ethereum.activeIndex ?? 0;
+    const imported = s.importedAccounts?.activeEvmAddress;
+    const acct = imported
+      ? s.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === imported.toLowerCase())
+      : s.ethereum.globalAddresses?.[idx];
+    const addr = acct?.address;
+    if (!addr) return;
 
-      // 1. Fetch active chain first (priority)
-      await dispatch(fetchEvmBalance({ chainId: activeChainId, address: ethWalletAddress }));
+    const cid = s.ethereum.activeChainId;
+    await dispatch(fetchEvmBalance({ chainId: cid, address: addr }));
 
-      // 2. Fetch others in background
-      const otherChainIds = evmChainIds.filter(id => id !== activeChainId);
-      // Don't await these all at once to keep UI responsive
-      otherChainIds.forEach(cid => {
-        dispatch(fetchEvmBalance({ chainId: cid, address: ethWalletAddress }));
-      });
-
-      if (solWalletAddress) {
-        dispatch(fetchSolanaBalance(solWalletAddress));
+    const others = evmChainIds.filter(id => id !== cid);
+    const BATCH = 4;
+    for (let i = 0; i < others.length; i += BATCH) {
+      const batch = others.slice(i, i + BATCH);
+      await Promise.all(
+        batch.map(c =>
+          dispatch(fetchEvmBalance({ chainId: c, address: addr })).catch(() => {})
+        )
+      );
+      if (i + BATCH < others.length) {
+        await new Promise(r => setTimeout(r, 300));
       }
-    });
-  }, [dispatch, evmChainIds, activeChainId, ethWalletAddress, solWalletAddress]);
+    }
+
+    const solImported = s.importedAccounts?.activeSolAddress;
+    const solIdx = s.solana.activeIndex ?? 0;
+    const solAddr = solImported || s.solana.addresses?.[solIdx]?.address;
+    if (solAddr) dispatch(fetchSolanaBalance(solAddr));
+  }, [dispatch, evmChainIds]);
 
   const fetchTransactions = useCallback(async () => {
-    await measureTime("fetchTransactions", async () => {
-      if (ethWalletAddress) {
-        await dispatch(fetchEvmTransactions({ chainId: activeChainId, address: ethWalletAddress }));
-      }
-      if (solWalletAddress) {
-        await dispatch(fetchSolanaTransactions(solWalletAddress));
-      }
-    });
-  }, [dispatch, activeChainId, ethWalletAddress, solWalletAddress]);
+    const s = store.getState();
+    const idx = s.ethereum.activeIndex ?? 0;
+    const imported = s.importedAccounts?.activeEvmAddress;
+    const acct = imported
+      ? s.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === imported.toLowerCase())
+      : s.ethereum.globalAddresses?.[idx];
+    const addr = acct?.address;
+    const cid = s.ethereum.activeChainId;
+    if (addr) await dispatch(fetchEvmTransactions({ chainId: cid, address: addr }));
+
+    const solImported = s.importedAccounts?.activeSolAddress;
+    const solIdx = s.solana.activeIndex ?? 0;
+    const solAddr = solImported || s.solana.addresses?.[solIdx]?.address;
+    if (solAddr) await dispatch(fetchSolanaTransactions(solAddr));
+  }, [dispatch]);
 
   const fetchAndUpdatePricesInternal = useCallback(async () => {
+    const s = store.getState();
+    const cid = s.ethereum.activeChainId;
+    const idx = s.ethereum.activeIndex ?? 0;
+    const imported = s.importedAccounts?.activeEvmAddress;
+    const acct = imported
+      ? s.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === imported.toLowerCase())
+      : s.ethereum.globalAddresses?.[idx];
+    const addr = acct?.address;
+
     await dispatch(fetchPrices(allChainIds));
-    if (ethWalletAddress) {
-      dispatch(fetchEvmBalanceInterval({ chainId: activeChainId, address: ethWalletAddress }));
-      dispatch(fetchEvmTransactionsInterval({ chainId: activeChainId, address: ethWalletAddress }));
+    if (addr) {
+      dispatch(fetchEvmBalanceInterval({ chainId: cid, address: addr }));
+      dispatch(fetchEvmTransactionsInterval({ chainId: cid, address: addr }));
     }
-    if (solWalletAddress) {
-      dispatch(fetchSolanaBalanceInterval(solWalletAddress));
-      dispatch(fetchSolanaTransactionsInterval(solWalletAddress));
+    const solImported = s.importedAccounts?.activeSolAddress;
+    const solIdx = s.solana.activeIndex ?? 0;
+    const solAddr = solImported || s.solana.addresses?.[solIdx]?.address;
+    if (solAddr) {
+      dispatch(fetchSolanaBalanceInterval(solAddr));
+      dispatch(fetchSolanaTransactionsInterval(solAddr));
     }
-  }, [dispatch, allChainIds, ethWalletAddress, activeChainId, solWalletAddress]);
+  }, [dispatch, allChainIds]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [bottomSheetIndex, setBottomSheetIndex, bottomSheetIndexLoading] = useStorage(SNAP_POINTS);
@@ -334,14 +182,31 @@ export default function Index() {
     setRefreshing(false);
   }, [dispatch, allChainIds, fetchTokenBalances, fetchTransactions]);
 
+  // Init: runs once
+  const initDone = useRef(false);
   useEffect(() => {
-    const init = async () => {
-      await dispatch(fetchPrices(allChainIds));
-      await fetchTokenBalances();
-      await fetchTransactions();
-    };
-    init();
-  }, [dispatch, ethWalletAddress, solWalletAddress]);
+    if (initDone.current) return;
+    const s = store.getState();
+    const idx = s.ethereum.activeIndex ?? 0;
+    const imported = s.importedAccounts?.activeEvmAddress;
+    const acct = imported
+      ? s.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === imported.toLowerCase())
+      : s.ethereum.globalAddresses?.[idx];
+    if (!acct?.address) return;
+    initDone.current = true;
+
+    // Defer ALL network work until after React finishes rendering and animating.
+    // Without this, RPC responses block the JS thread and freeze the UI.
+    const handle = InteractionManager.runAfterInteractions(() => {
+      const init = async () => {
+        await dispatch(fetchPrices(allChainIds));
+        await fetchTokenBalances();
+        await fetchTransactions();
+      };
+      init();
+    });
+    return () => handle.cancel();
+  }, [ethWalletAddress]);
 
   useEffect(() => {
     const interval = setInterval(fetchAndUpdatePricesInternal, FETCH_PRICES_INTERVAL);
@@ -370,33 +235,101 @@ export default function Index() {
     );
   }, []);
 
+  const renderAsset = useCallback(({ item: asset }: any) => (
+    <View style={styles.cardView}>
+      <AssetCard
+        chainId={asset.chainId}
+        name={asset.name}
+        symbol={asset.symbol}
+        balance={asset.balance}
+        usdValue={asset.usdValue}
+        address={asset.address}
+        price={prices[asset.chainId]?.usd ?? 0}
+        onSelectChain={handleSelectChain}
+      />
+    </View>
+  ), [prices, handleSelectChain, styles.cardView]);
+
   const handleSheetChange = useCallback((index: number) => {
     setBottomSheetIndex(JSON.stringify(index));
   }, [setBottomSheetIndex]);
 
+  const handleSolPress = useCallback(() => {
+    router.push({
+      pathname: ROUTES.solDetails,
+      params: {
+        asset: JSON.stringify({
+          symbol: "SOL",
+          numberOfTokens: solBalance,
+          chainId: 101,
+          address: solWalletAddress,
+          price: prices[101]?.usd ?? 0,
+        }),
+      },
+    });
+  }, [solBalance, solWalletAddress, prices]);
+
   useEffect(() => {
     const initDidcomm = async () => {
-      try {
-        await Didcomm.helloWorld();
-      } catch (err) {
-        console.error("Didcomm error:", err);
-      }
+      try { await Didcomm.helloWorld(); } catch (err) { console.error("Didcomm error:", err); }
     };
     initDidcomm();
   }, []);
 
+  // ─── Memoized style overrides ───
+  const contentContainerStyle = useMemo(() => ({
+    ...styles.contentContainer,
+    marginTop: insets.top + 20,
+  }), [styles.contentContainer, insets.top]);
+
+  const flatListContentStyle = useMemo(() => ({ gap: 8 }), []);
+  const bottomSheetBgStyle = useMemo(() => ({
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    backgroundColor: theme.colors.lightDark,
+  }), [theme.colors.lightDark]);
+  const handleIndicatorStyle = useMemo(() => ({
+    backgroundColor: theme.colors.muted,
+    width: 40,
+  }), [theme.colors.muted]);
+
+  const totalAssets = ethereumAssets.length + 1;
+
+  // ─── Memoized list components ───
+  const assetListHeader = useMemo(() => (
+    <View style={styles.assetHeader}>
+      <Text style={styles.bottomSectionTitle}>Assets</Text>
+      <View style={styles.assetCountBadge}>
+        <Text style={styles.assetCountText}>{totalAssets}</Text>
+      </View>
+    </View>
+  ), [totalAssets, styles]);
+
+  const assetListFooter = useMemo(() => (
+    <View style={styles.cardView}>
+      <CryptoInfoCard
+        onPress={handleSolPress}
+        title="Solana"
+        caption={`${solBalance} SOL`}
+        details={formatDollar(solUsd)}
+        icon={<BlockchainIcon symbol="SOL" size={25} />}
+        hideBackground
+      />
+    </View>
+  ), [solBalance, solUsd, handleSolPress, styles.cardView]);
+
   return (
     <SafeAreaContainer>
-      <ContentContainer topInset={insets.top}>
-        <BalanceContainer>
-          <BalanceLabel>Total Balance</BalanceLabel>
-          <BalanceText>
-            <DollarSign>$</DollarSign>
+      <View style={contentContainerStyle}>
+        <View style={styles.balanceContainer}>
+          <Text style={styles.balanceLabel}>Total Balance</Text>
+          <Text style={styles.balanceText}>
+            <Text style={styles.dollarSign}>$</Text>
             {formatDollarRaw(totalUsdBalance)}
-          </BalanceText>
-        </BalanceContainer>
+          </Text>
+        </View>
 
-        <ActionContainer>
+        <View style={styles.actionContainer}>
           <PrimaryButton
             icon={<SendIcon width={20} height={20} fill={theme.colors.primary} />}
             onPress={() => router.push(ROUTES.sendOptions)}
@@ -409,18 +342,21 @@ export default function Index() {
             btnText="Receive"
             variant="outline"
           />
-        </ActionContainer>
+        </View>
 
-        <SectionHeader>
-          <SectionTitle>Recent Activity</SectionTitle>
-          {mergedAndSortedTransactions.length > 0 && <SectionAction>View All</SectionAction>}
-        </SectionHeader>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          {mergedAndSortedTransactions.length > 0 && (
+            <Text style={styles.sectionAction}>View All</Text>
+          )}
+        </View>
 
         <FlatList
-          contentContainerStyle={{ gap: 8 }}
+          contentContainerStyle={flatListContentStyle}
           initialNumToRender={8}
           maxToRenderPerBatch={5}
           windowSize={3}
+          removeClippedSubviews={true}
           refreshControl={
             <RefreshControl
               tintColor={theme.colors.primary}
@@ -435,11 +371,11 @@ export default function Index() {
         />
 
         {failedEthStatus && failedSolStatus && (
-          <ErrorContainer>
-            <ErrorText>⚠️ Network error — please try again later</ErrorText>
-          </ErrorContainer>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>⚠️ Network error — please try again later</Text>
+          </View>
         )}
-      </ContentContainer>
+      </View>
 
       {!bottomSheetIndexLoading && (
         <BottomSheet
@@ -447,74 +383,145 @@ export default function Index() {
           index={bottomSheetIndex !== null ? parseInt(bottomSheetIndex) : 1}
           onChange={handleSheetChange}
           snapPoints={snapPoints}
-          backgroundStyle={{
-            borderTopLeftRadius: 30,
-            borderTopRightRadius: 30,
-            backgroundColor: theme.colors.lightDark,
-          }}
-          handleIndicatorStyle={{ backgroundColor: theme.colors.muted, width: 40 }}
+          backgroundStyle={bottomSheetBgStyle}
+          handleIndicatorStyle={handleIndicatorStyle}
         >
-          <BottomScrollView>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16 }}>
-              <BottomSectionTitle>Assets</BottomSectionTitle>
-              <AssetCountBadge>
-                <AssetCountText>{ethereumAssets.length + 1}</AssetCountText>
-              </AssetCountBadge>
-            </View>
-            
-            <CryptoInfoCardContainer>
-              {ethereumAssets.map((asset) => (
-                <CardView key={asset.key}>
-                  <CryptoInfoCard
-                    onPress={() => {
-                      handleSelectChain(asset.chainId, asset.address);
-                      router.push({
-                        pathname: `/token/${asset.name.toLowerCase()}`,
-                        params: {
-                          asset: JSON.stringify({
-                            symbol: asset.symbol.toUpperCase(),
-                            numberOfTokens: asset.balance,
-                            chainId: asset.chainId,
-                            address: asset.address,
-                            price: prices[asset.chainId]?.usd ?? 0,
-                          }),
-                        },
-                      });
-                    }}
-                    title={asset.name}
-                    caption={`${asset.balance} ${asset.symbol}`}
-                    details={formatDollar(asset.usdValue)}
-                    icon={asset.icon}
-                    hideBackground
-                  />
-                </CardView>
-              ))}
-
-              <CardView>
-                <CryptoInfoCard
-                  onPress={() => router.push({
-                    pathname: ROUTES.solDetails,
-                    params: {
-                      asset: JSON.stringify({
-                        symbol: "SOL",
-                        numberOfTokens: solBalance,
-                        chainId: 101,
-                        address: solWalletAddress,
-                        price: prices[101]?.usd ?? 0,
-                      }),
-                    },
-                  })}
-                  title="Solana"
-                  caption={`${solBalance} SOL`}
-                  details={formatDollar(solUsd)}
-                  icon={<BlockchainIcon symbol="SOL" size={25} />}
-                  hideBackground
-                />
-              </CardView>
-            </CryptoInfoCardContainer>
-          </BottomScrollView>
+          <BottomSheetFlatList
+            data={ethereumAssets}
+            keyExtractor={(item) => item.key}
+            initialNumToRender={5}
+            maxToRenderPerBatch={3}
+            windowSize={3}
+            removeClippedSubviews={true}
+            contentContainerStyle={flatListContentStyle}
+            ListHeaderComponent={assetListHeader}
+            renderItem={renderAsset}
+            ListFooterComponent={assetListFooter}
+          />
         </BottomSheet>
       )}
     </SafeAreaContainer>
   );
+}
+
+// ═══════════════════════════════════════════════════════════
+// STYLES — computed once per theme, cached by useMemo
+// Unlike styled-components which re-evaluate template literals
+// on every render, StyleSheet.create runs once.
+// ═══════════════════════════════════════════════════════════
+
+function createStyles(theme: ThemeType) {
+  const sp = (val: string | number) => (typeof val === "number" ? val : parseFloat(val));
+
+  return StyleSheet.create({
+    contentContainer: {
+      flex: 1,
+      justifyContent: "flex-start",
+      padding: sp(theme.spacing.medium),
+    },
+    balanceContainer: {
+      alignItems: "center",
+      marginBottom: sp(theme.spacing.large),
+    },
+    balanceLabel: {
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: sp(theme.fonts.sizes.small),
+      color: theme.colors.lightGrey,
+      textTransform: "uppercase",
+      letterSpacing: 1.5,
+      marginBottom: 8,
+    },
+    balanceText: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.uberHuge),
+      color: theme.colors.white,
+      textAlign: "center",
+      letterSpacing: -1,
+    },
+    dollarSign: {
+      color: theme.colors.primary,
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.huge),
+      textAlign: "center",
+    },
+    actionContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "100%",
+      marginBottom: sp(theme.spacing.large),
+      gap: 10,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: sp(theme.spacing.medium),
+      marginTop: sp(theme.spacing.small),
+    },
+    sectionTitle: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.header),
+      color: theme.colors.white,
+      letterSpacing: 0.3,
+      flex: 1,
+    },
+    sectionAction: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.small),
+      color: theme.colors.primary,
+      flexShrink: 0,
+      marginLeft: sp(theme.spacing.small),
+    },
+    cardView: {
+      marginBottom: sp(theme.spacing.small),
+      width: "100%",
+    },
+    bottomSectionTitle: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.title),
+      color: theme.colors.white,
+      marginBottom: sp(theme.spacing.medium),
+      marginLeft: sp(theme.spacing.small),
+      letterSpacing: 0.3,
+      flex: 1,
+    },
+    errorContainer: {
+      flexDirection: "row",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "100%",
+      backgroundColor: "rgba(255, 77, 79, 0.15)",
+      borderWidth: 1,
+      borderColor: "rgba(255, 77, 79, 0.3)",
+      borderRadius: sp(theme.borderRadius.medium),
+      height: 56,
+      padding: sp(theme.spacing.medium),
+      marginTop: sp(theme.spacing.medium),
+    },
+    errorText: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.small),
+      color: theme.colors.error,
+    },
+    assetCountBadge: {
+      backgroundColor: theme.colors.cardBackground,
+      borderRadius: sp(theme.borderRadius.pill),
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+    },
+    assetCountText: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: sp(theme.fonts.sizes.small),
+      color: theme.colors.lightGrey,
+    },
+    assetHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+    },
+  });
 }

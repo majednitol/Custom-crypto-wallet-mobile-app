@@ -11,7 +11,7 @@ import {
   Dimensions,
   Clipboard,
 } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { router, useLocalSearchParams } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
 import * as WebBrowser from "expo-web-browser";
@@ -48,6 +48,11 @@ import TokenDetailTabs, { type TabType } from "../../../components/TokenDetailTa
 import { fetchMarketData, fetchChartData } from "../../../store/priceSlice";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Stable empty references — selectors return these instead of creating new [] or {}
+// which would trigger React's "selector returned different result" warning
+const EMPTY_ARRAY: any[] = [];
+const EMPTY_OBJ: Record<string, any> = {};
 
 // ═══════════════════════════════════════════════════════════
 // STYLED COMPONENTS
@@ -356,11 +361,12 @@ export default function Index() {
 
   const erc20Tokens = useSelector(
     (state: RootState) =>
-      state.erc20.trackedTokens?.filter((t) => t.chainId === activeChainId) || []
+      state.erc20.trackedTokens?.filter((t) => t.chainId === activeChainId) ?? EMPTY_ARRAY,
+    shallowEqual
   );
 
   const erc20Balances = useSelector(
-    (state: RootState) => state.erc20?.balances || {}
+    (state: RootState) => state.erc20?.balances ?? EMPTY_OBJ
   );
 
   const solTrackedTokens = useSelector(
@@ -396,7 +402,7 @@ export default function Index() {
 
   // Transaction history
   const transactionHistory = useSelector((state: RootState) => {
-    if (!chainName) return [];
+    if (!chainName) return EMPTY_ARRAY;
     const isSolana = chainName === "solana";
     if (isSolana) {
       const activeIndex = state.solana.activeIndex ?? 0;
@@ -404,15 +410,15 @@ export default function Index() {
       const account = importedSol
         ? state.solana.addresses?.find(a => a.address === importedSol)
         : state.solana.addresses?.[activeIndex];
-      return account?.transactionMetadata?.transactions ?? [];
+      return account?.transactionMetadata?.transactions ?? EMPTY_ARRAY;
     }
     const importedEvm = state.importedAccounts?.activeEvmAddress;
     const activeIndex = state.ethereum.activeIndex ?? 0;
     const account = importedEvm
       ? state.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvm.toLowerCase())
       : state.ethereum.globalAddresses?.[activeIndex];
-    return account?.transactionMetadataByChain?.[activeChainId]?.transactions ?? [];
-  });
+    return account?.transactionMetadataByChain?.[activeChainId]?.transactions ?? EMPTY_ARRAY;
+  }, shallowEqual);
 
   const failedStatus = useSelector((state: RootState) => {
     if (!chainName) return false;

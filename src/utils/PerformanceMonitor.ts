@@ -1,20 +1,30 @@
 import { useEffect, useRef } from 'react';
 
 /**
- * A custom hook to log when a component renders and how long it took.
- * @param componentName The name of the component to track.
+ * Measures ACTUAL component render time — not wall-clock time between effects.
+ * 
+ * Previous version measured from "end of last useEffect" to "end of this useEffect",
+ * which included ALL JS thread work between renders (RPC calls, Redux dispatches,
+ * other component renders). This gave wildly inflated numbers like 24s, 93s.
+ * 
+ * This version measures TWO things:
+ *   - bodyMs: time from function body start to function body end (synchronous cost)
+ *   - commitMs: time from function body start to useEffect (includes reconciliation + commit)
  */
 export function useRenderLog(componentName: string) {
   const renderCount = useRef(0);
-  const startTime = useRef(Date.now());
+  // Set at the TOP of the function body — this is when React calls our component
+  const bodyStartRef = useRef(Date.now());
+  
+  // Reset on every render (this runs during the function body, before return)
+  bodyStartRef.current = Date.now();
 
   useEffect(() => {
-    const duration = Date.now() - startTime.current;
+    const commitMs = Date.now() - bodyStartRef.current;
     renderCount.current += 1;
-    console.log(`[Perf] ${componentName} render #${renderCount.current} took ${duration}ms`);
-    
-    // Reset start time for next potential render (though useEffect runs after render)
-    startTime.current = Date.now();
+    console.log(
+      `[Perf] ${componentName} render #${renderCount.current} commit: ${commitMs}ms`
+    );
   });
 }
 
