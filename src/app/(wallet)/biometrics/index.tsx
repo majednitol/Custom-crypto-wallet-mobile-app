@@ -1,142 +1,179 @@
-import { useState } from "react";
-import { SafeAreaView } from "react-native";
+import { useState, useCallback } from "react";
+import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
-import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import styled, { useTheme } from "styled-components/native";
-import { useSelector, useDispatch } from "react-redux";
-import { authenticateBiometric, isAuthEnrolled, unlockWallet } from "../../../store/biometricsSlice";
-import { store, type AppDispatch, type RootState } from "../../../store";
+import { router } from "expo-router";
+import { useTheme } from "styled-components/native";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  authenticateBiometric,
+  saveBiometricPreference,
+  unlockWallet,
+} from "../../../store/biometricsSlice";
+import { type AppDispatch, type RootState } from "../../../store";
 import Button from "../../../components/Button/Button";
 import { ROUTES } from "../../../constants/routes";
 import { ThemeType } from "../../../styles/theme";
-import { ErrorContainer } from "../../../components/Styles/Errors.styles";
 
-const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
-  flex: 1;
-  justify-content: flex-end;
-  background-color: ${(props) => props.theme.colors.primary};
-`;
-
-const ContentContainer = styled.View<{ theme: ThemeType }>`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-`;
-
-const TextContainer = styled.View<{ theme: ThemeType }>`
-  padding: ${(props) => props.theme.spacing.large};
-`;
-
-const Title = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: 32px;
-  color: ${(props) => props.theme.fonts.colors.primary};
-  margin-bottom: ${(props) => props.theme.spacing.small};
-`;
-
-const Subtitle = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openRegular};
-  font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.fonts.colors.primary};
-`;
-
-const ButtonContainer = styled.View<{ theme: ThemeType }>`
-  padding-left: ${(props) => props.theme.spacing.large};
-  padding-right: ${(props) => props.theme.spacing.large};
-  padding-bottom: ${(props) => props.theme.spacing.large};
-  padding-top: ${(props) => props.theme.spacing.small};
-`;
-
-const ExpoImage = styled(Image)`
-  flex: 1;
-  width: 100%;
-`;
-
-const ImageContainer = styled.View<{ theme: ThemeType }>`
-  flex: 1;
-  width: 100%;
-  justify-content: center;
-  align-items: center;
-`;
-
-const SecondaryButtonText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.header};
-  color: ${(props) => props.theme.fonts.colors.primary};
-`;
-
-const ErrorView = styled.View<{ theme: ThemeType }>`
-  height: 85px;
-  margin-bottom: ${(props) => props.theme.spacing.medium};
-`;
-
-export const ErrorText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.colors.white};
-`;
-
-export default function Biometrics() {
-  const theme = useTheme();
+export default function BiometricsSetup() {
+  const theme = useTheme() as ThemeType;
   const dispatch = useDispatch<AppDispatch>();
-  const { chain } = useLocalSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [checkedEnrollment, setCheckEnrollment] = useState(false);
+  const styles = createStyles(theme);
 
-  const isEnrolled = useSelector(
-    (state: RootState) => state.biometrics.isEnrolled
+  const { biometricAvailable, status } = useSelector(
+    (state: RootState) => state.biometrics
   );
 
-  useFocusEffect(() => {
-    setLoading(false);
-  });
+  const [error, setError] = useState("");
 
-  const handleEnrollAuthentication = async () => {
-  const success = await dispatch(authenticateBiometric());
-  if (success) {
-    store.dispatch(unlockWallet()); // ✅ mark wallet as unlocked
-    router.replace(ROUTES.home);    // go to home
-  } else {
-    setCheckEnrollment(true);
-  }
-};
+  const handleEnableBiometrics = useCallback(async () => {
+    setError("");
+    try {
+      const result = await dispatch(authenticateBiometric()).unwrap();
+      if (result) {
+        // Auth succeeded — save the user's preference
+        await dispatch(saveBiometricPreference(true));
+        dispatch(unlockWallet());
+        router.replace(ROUTES.home);
+      }
+    } catch (e: any) {
+      setError(
+        typeof e === "string"
+          ? e
+          : "Biometric authentication failed. Please try again."
+      );
+    }
+  }, [dispatch]);
 
+  const handleSkip = useCallback(() => {
+    // User opts out of biometrics — go straight to home
+    dispatch(unlockWallet());
+    router.replace(ROUTES.home);
+  }, [dispatch]);
+
+  const isLoading = status === "loading";
 
   return (
-    <SafeAreaContainer>
-      <ContentContainer>
-        <ImageContainer>
-          <ExpoImage
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.contentContainer}>
+        <View style={styles.imageContainer}>
+          <Image
             source={require("../../../assets/images/biometrics.png")}
             contentFit="cover"
+            style={styles.image}
           />
-        </ImageContainer>
+        </View>
 
-        <TextContainer>
-          
-  <Title>Unlock Your Wallet</Title>
-  <Subtitle>
-    Please use your biometric method (FaceID or TouchID) to unlock your wallet securely and continue accessing your account.
-  </Subtitle>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Secure With Biometrics</Text>
+          <Text style={styles.subtitle}>
+            {biometricAvailable
+              ? "Use FaceID or TouchID for quick and secure access to your wallet. You can always change this in Settings."
+              : "Biometric authentication is not available on this device. You can use your password to unlock."}
+          </Text>
+        </View>
+      </View>
 
-        </TextContainer>
-      </ContentContainer>
-      <ButtonContainer>
-       {checkedEnrollment && (
-  <ErrorView>
-    <ErrorContainer>
-      <ErrorText>
-        Biometric authentication failed or is not available. Please try again to unlock your wallet.
-      </ErrorText>
-    </ErrorContainer>
-  </ErrorView>
-)}
-        <Button
-          loading={loading}
-          onPress={handleEnrollAuthentication}
-          title="Unlock"
-        />
-      </ButtonContainer>
-    </SafeAreaContainer>
+      <View style={styles.buttonContainer}>
+        {/* Error display */}
+        {error ? (
+          <View style={styles.errorView}>
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Loading state */}
+        {isLoading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={theme.colors.white} size="small" />
+          </View>
+        )}
+
+        {biometricAvailable ? (
+          <>
+            <Button
+              loading={isLoading}
+              onPress={handleEnableBiometrics}
+              title="Enable Biometrics"
+            />
+            <Button
+              onPress={handleSkip}
+              title="Skip for Now"
+              variant="outline"
+              style={{ marginTop: 12 }}
+            />
+          </>
+        ) : (
+          <Button
+            onPress={handleSkip}
+            title="Continue"
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
+}
+
+function createStyles(theme: ThemeType) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: theme.colors.primary,
+    },
+    contentContainer: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    imageContainer: {
+      flex: 1,
+      width: "100%",
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    image: {
+      flex: 1,
+      width: "100%",
+    },
+    textContainer: {
+      padding: parseFloat(theme.spacing.large as string),
+    },
+    title: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: 32,
+      color: theme.fonts.colors.primary,
+      marginBottom: parseFloat(theme.spacing.small as string),
+    },
+    subtitle: {
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.large as string),
+      color: theme.fonts.colors.primary,
+    },
+    buttonContainer: {
+      paddingHorizontal: parseFloat(theme.spacing.large as string),
+      paddingBottom: parseFloat(theme.spacing.large as string),
+      paddingTop: parseFloat(theme.spacing.small as string),
+    },
+    errorView: {
+      marginBottom: parseFloat(theme.spacing.medium as string),
+    },
+    errorCard: {
+      backgroundColor: "rgba(255, 82, 82, 0.15)",
+      borderRadius: 12,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: "rgba(255, 82, 82, 0.3)",
+    },
+    errorText: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: parseFloat(theme.fonts.sizes.normal as string),
+      color: theme.colors.white,
+    },
+    loadingContainer: {
+      alignItems: "center",
+      marginBottom: 12,
+    },
+  });
 }

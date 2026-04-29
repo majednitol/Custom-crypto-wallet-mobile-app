@@ -259,14 +259,14 @@ import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { AppState, AppStateStatus, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { lockWallet, UNLOCK_TIMEOUT, loadBiometricPreference, checkBiometricAvailability } from "../store/biometricsSlice";
+
 
 import { store, persistor, RootState } from "../store";
 import Theme from "../styles/theme";
 import FloatingBackButton from "./FloatingBackButton";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
-import { lockWallet, UNLOCK_TIMEOUT, unlockWalletFromPersisted } from "../store/biometricsSlice";
 import { ThemeProvider } from "styled-components/native";
 
 // Prevent auto hide for splash
@@ -288,38 +288,55 @@ Sentry.init({
 function InnerApp() {
   const unlockedAt = useSelector((state: RootState) => state.biometrics.unlockedAt);
 
-  // Timer to auto-lock after UNLOCK_TIMEOUT
+  // ─── Auto-lock: foreground timer + background return check ───
+  // 
+  // JS timers PAUSE when the app is backgrounded on Android/iOS.
+  // So we CANNOT rely on setTimeout alone. We need to:
+  //   1. Set a timer for foreground auto-lock (works while app is in use)
+  //   2. On returning to foreground ("active"), re-check if timeout expired
+  //      while we were backgrounded (since the timer didn't tick)
+  //
   useEffect(() => {
     let lockTimeout: NodeJS.Timeout | null = null;
 
-    if (unlockedAt) {
-      const timeLeft = UNLOCK_TIMEOUT - (Date.now() - unlockedAt);
-      if (timeLeft > 0) {
+    const scheduleAutoLock = () => {
+      // Clear any existing timer
+      if (lockTimeout) clearTimeout(lockTimeout);
+      
+      const { unlockedAt, unlocked } = store.getState().biometrics;
+      if (!unlocked || !unlockedAt) return;
+
+      const elapsed = Date.now() - unlockedAt;
+      const timeLeft = UNLOCK_TIMEOUT - elapsed;
+
+      if (timeLeft <= 0) {
+        // Already expired
+        store.dispatch(lockWallet());
+      } else {
+        // Schedule foreground lock
         lockTimeout = setTimeout(() => {
           store.dispatch(lockWallet());
         }, timeLeft);
-      } else {
-        store.dispatch(lockWallet());
       }
-    }
+    };
+
+    // Schedule on mount
+    scheduleAutoLock();
+
+    // Re-check EVERY TIME the app comes back to foreground
+    const subscription = AppState.addEventListener("change", (nextState: AppStateStatus) => {
+      if (nextState === "active") {
+        // App returned from background — re-check timeout
+        // (the timer was paused while backgrounded)
+        scheduleAutoLock();
+      }
+    });
 
     return () => {
       if (lockTimeout) clearTimeout(lockTimeout);
+      subscription.remove();
     };
   }, [unlockedAt]);
-
-  // Lock when app goes background
-  useEffect(() => {
-    const subscription = AppState.addEventListener("change", (state: AppStateStatus) => {
-      if (state !== "active") {
-        const { unlocked, unlockedAt } = store.getState().biometrics;
-        if (unlocked && unlockedAt && Date.now() - unlockedAt >= UNLOCK_TIMEOUT) {
-          store.dispatch(lockWallet());
-        }
-      }
-    });
-    return () => subscription.remove();
-  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -345,29 +362,27 @@ function InnerApp() {
 function RootLayoutComponent() {
   const [appReady, setAppReady] = useState(false);
 
-  // Restore unlock state from AsyncStorage on app start
+  // Initialize auth state on cold start — ALWAYS lock
   useEffect(() => {
-    const restoreUnlock = async () => {
+    const initAuth = async () => {
       try {
-        const unlockedAtStr = await AsyncStorage.getItem("WALLET_UNLOCKED_AT");
-        const unlockedAt = unlockedAtStr ? parseInt(unlockedAtStr, 10) : null;
+        // Load biometric preference and device capability
+        store.dispatch(loadBiometricPreference());
+        store.dispatch(checkBiometricAvailability());
 
-        // Lock if no timestamp or timeout passed
-        if (!unlockedAt || Date.now() - unlockedAt >= UNLOCK_TIMEOUT) {
-          store.dispatch(lockWallet());
-        } else {
-          // Restore unlocked state if still valid
-          store.dispatch(unlockWalletFromPersisted(unlockedAt));
-        }
+        // Always lock on cold start (app kill = lock screen)
+        // The REHYDRATE handler in biometricsSlice also enforces this,
+        // but we dispatch explicitly as a safety net.
+        store.dispatch(lockWallet());
       } catch (e) {
-        console.warn("Failed to restore wallet unlock state", e);
+        console.warn("Failed to initialize auth state", e);
         store.dispatch(lockWallet());
       } finally {
         setAppReady(true);
       }
     };
 
-    restoreUnlock();
+    initAuth();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

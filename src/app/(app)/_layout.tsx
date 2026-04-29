@@ -25,9 +25,7 @@ import Header from "../../components/Header/Header";
 import SplashScreenOverlay from "../../components/AnimatedSplashScreen/AnimatedSplashScreen";
 import { ThemeType } from "../../styles/theme";
 import { ROUTES } from "../../constants/routes";
-import { lockWallet, UNLOCK_TIMEOUT, unlockWalletFromPersisted } from "../../store/biometricsSlice";
-import { Alert, AppState } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
 
 const IconTouchContainer = styled.TouchableOpacity`
   padding: 10px;
@@ -86,28 +84,15 @@ useEffect(() => {
         setUserExists(false);
         return;
       }
-console.log("wsfrwegergerthgterhtrht45rjh5ytjy5j")
       // Wallet exists
       setUserExists(true);
-      const unlockedAtStr = await AsyncStorage.getItem("WALLET_UNLOCKED_AT");
-      console.log("unlockedAtStr",unlockedAtStr)
-        if (unlockedAtStr) {
-          const unlockedAt = parseInt(unlockedAtStr, 10);
-          const now = Date.now();
-          if (now - unlockedAt < UNLOCK_TIMEOUT) {
-            store.dispatch(unlockWalletFromPersisted(unlockedAt));
-          } else { 
-            store.dispatch(lockWallet());
-          }
-        } else {
-          store.dispatch(lockWallet());
-        }
-      // Only lock if not already unlocked
-      const { passwordSet, unlocked, isEnrolled } = store.getState().biometrics;
-        if (passwordSet && !unlocked) {
-          if (isEnrolled) router.replace(ROUTES.biometrics);
-          else router.replace(ROUTES.unlock);
-        }
+
+      // Check if wallet is locked — root _layout handles all lock/unlock state.
+      // We only redirect here if the wallet is currently locked.
+      const { passwordSet, unlocked } = store.getState().biometrics;
+      if (passwordSet && !unlocked) {
+        router.replace(ROUTES.unlock);
+      }
 
     } catch (err) {
       console.error("Error fetching phrase:", err);
@@ -123,18 +108,21 @@ console.log("wsfrwegergerthgterhtrht45rjh5ytjy5j")
   SystemUI.setBackgroundColorAsync("black");
   prepare();
 
-
-      const subscription = AppState.addEventListener("change", (state) => {
-      if (state !== "active") {
-        const { unlocked, unlockedAt } = store.getState().biometrics;
-        if (unlocked && unlockedAt && Date.now() - unlockedAt >= UNLOCK_TIMEOUT) {
-          store.dispatch(lockWallet());
-        }
-      }
-    });
-
-    return () => subscription.remove();
+  // NOTE: Auto-lock AppState listener is in root _layout.tsx InnerApp.
+  // Do NOT add a duplicate here — it causes conflicting lock behavior.
 }, [walletsExist]);
+
+  // ─── REACTIVE LOCK NAVIGATION ───
+  // When auto-lock fires (timeout or background return), Redux sets unlocked=false.
+  // This effect watches that state and navigates to the unlock screen.
+  const isUnlocked = useSelector((state: RootState) => state.biometrics.unlocked);
+  const passwordSet = useSelector((state: RootState) => state.biometrics.passwordSet);
+
+  useEffect(() => {
+    if (appReady && passwordSet && !isUnlocked) {
+      router.replace(ROUTES.unlock);
+    }
+  }, [isUnlocked, appReady, passwordSet]);
 
 
 const onLayoutRootView = useCallback(async () => {

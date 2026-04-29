@@ -145,7 +145,8 @@ export default function SetPasswordScreen() {
 
     try {
       await dispatch(setWalletPassword(password));
-      router.replace(ROUTES.unlock);
+      // Route to biometric setup (not unlock — wallet is already unlocked at this point)
+      router.replace(ROUTES.biometrics);
     } catch (e: any) {
       Alert.alert("Error", e);
     }

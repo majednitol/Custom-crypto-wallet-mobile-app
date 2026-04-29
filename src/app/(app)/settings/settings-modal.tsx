@@ -8,7 +8,7 @@ import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import { EvmWallet } from "../../../components/EvmWallet";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { authenticateBiometric, enableBiometricAuth } from "../../../store/biometricsSlice";
+import { authenticateBiometric, saveBiometricPreference } from "../../../store/biometricsSlice";
 import { Switch, Alert } from "react-native";
 
 const ScrollContainer = styled.ScrollView`
@@ -84,19 +84,26 @@ const OptionSubtext = styled.Text<{ theme: ThemeType }>`
 const SettingsIndex = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
-  const { biometricsEnabled, isEnrolled } = useSelector(
+  const { biometricPreference, biometricAvailable } = useSelector(
     (state: RootState) => state.biometrics
   );
 
-  const [bioEnabled, setBioEnabled] = useState(biometricsEnabled);
+  const [bioEnabled, setBioEnabled] = useState(biometricPreference);
 
   const handleToggleBiometrics = async (val: boolean) => {
-    setBioEnabled(val);
     if (val) {
-      await dispatch(authenticateBiometric());
-      await dispatch(enableBiometricAuth(true));
+      // Require biometric auth before enabling
+      try {
+        await dispatch(authenticateBiometric()).unwrap();
+        await dispatch(saveBiometricPreference(true));
+        setBioEnabled(true);
+      } catch {
+        // Auth cancelled or failed — revert toggle
+        setBioEnabled(false);
+      }
     } else {
-      await dispatch(enableBiometricAuth(false));
+      await dispatch(saveBiometricPreference(false));
+      setBioEnabled(false);
     }
   };
 

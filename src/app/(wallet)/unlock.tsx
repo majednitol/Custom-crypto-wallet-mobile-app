@@ -1,227 +1,284 @@
-import { useState, useEffect } from "react";
-import { Alert, View } from "react-native";
-import styled, { useTheme } from "styled-components/native";
+import { useState, useEffect, useCallback } from "react";
+import { Alert, View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { useTheme } from "styled-components/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import { ThemeType } from "../../styles/theme";
 import { AppDispatch, RootState } from "../../store";
-import { authenticateBiometric, verifyWalletPassword } from "../../store/biometricsSlice";
+import {
+  authenticateBiometric,
+  verifyWalletPassword,
+  clearAuthError,
+} from "../../store/biometricsSlice";
 import { LinearGradientBackground } from "../(app)/_layout";
 import Button from "../../components/Button/Button";
 import { ROUTES } from "../../constants/routes";
 
-/* ---------------- STYLES ---------------- */
-
-const Container = styled(SafeAreaView)<{ theme: ThemeType }>`
-  flex: 1;
-  padding: ${(p) => p.theme.spacing.large};
-  justify-content: center;
-  padding-top: 60px;
-`;
-
-const Card = styled.View<{ theme: ThemeType }>`
-  background-color: ${(p) => p.theme.colors.cardBackground};
-  border-radius: 24px;
-  padding: 32px 24px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  width: 100%;
-`;
-
-const IconCircle = styled.View<{ theme: ThemeType }>`
-  width: 64px;
-  height: 64px;
-  border-radius: 32px;
-  background-color: rgba(240, 185, 11, 0.15);
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
-  align-self: center;
-`;
-
-const LockIcon = styled.Text`
-  font-size: 28px;
-`;
-
-const Title = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(p) => p.theme.fonts.families.openBold};
-  font-size: 24px;
-  color: ${(p) => p.theme.colors.white};
-  text-align: center;
-  margin-bottom: 8px;
-`;
-
-const Subtitle = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
-  color: ${(p) => p.theme.colors.lightGrey};
-  text-align: center;
-  margin-bottom: 28px;
-`;
-
-const InputWrapper = styled.View<{ theme: ThemeType }>`
-  background-color: ${(p) => p.theme.colors.dark};
-  border-radius: 14px;
-  border: 1px solid ${(p) => p.theme.colors.border};
-  padding: 0 16px;
-  margin-bottom: 20px;
-  flex-direction: row;
-  align-items: center;
-  height: 54px;
-`;
-
-const Input = styled.TextInput<{ theme: ThemeType }>`
-  flex: 1;
-  color: ${(p) => p.theme.colors.white};
-  font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
-  height: 54px;
-`;
-
-const InputIcon = styled.Text`
-  font-size: 18px;
-  margin-right: 10px;
-`;
-
-const ErrorContainer = styled.View<{ theme: ThemeType }>`
-  flex-direction: row;
-  align-items: center;
-  background-color: rgba(255, 82, 82, 0.1);
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 16px;
-`;
-
-const ErrorDot = styled.View`
-  width: 6px;
-  height: 6px;
-  border-radius: 3px;
-  background-color: #ff5252;
-  margin-right: 8px;
-`;
-
-const ErrorText = styled.Text<{ theme: ThemeType }>`
-  color: #ff5252;
-  font-family: ${(p) => p.theme.fonts.families.openRegular};
-  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.small)};
-  flex: 1;
-`;
-
-const ButtonWrapper = styled.View<{ theme: ThemeType }>`
-  margin-top: 8px;
-`;
-
-const FaceIdButton = styled.TouchableOpacity<{ theme: ThemeType }>`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  margin-top: 16px;
-  padding: 12px;
-`;
-
-const FaceIdText = styled.Text<{ theme: ThemeType }>`
-  font-family: ${(p) => p.theme.fonts.families.openBold};
-  font-size: ${(p) => parseFloat(p.theme.fonts.sizes.normal)};
-  color: ${(p) => p.theme.colors.primary};
-  margin-left: 8px;
-`;
-
-const FaceIdEmoji = styled.Text`
-  font-size: 18px;
-`;
-
-/* ---------------- SCREEN ---------------- */
-
 export default function UnlockScreen() {
-  const theme = useTheme();
+  const theme = useTheme() as ThemeType;
   const dispatch = useDispatch<AppDispatch>();
+  const styles = createStyles(theme);
 
-  const { isEnrolled, biometricsEnabled, unlocked, errorMessage } =
+  const { biometricPreference, biometricAvailable, unlocked, errorMessage, status } =
     useSelector((state: RootState) => state.biometrics);
 
   const [password, setPassword] = useState("");
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
 
-  // Auto biometric on open if enrolled
+  // Auto-trigger biometric prompt if user opted in AND device supports it
   useEffect(() => {
-    if (isEnrolled && biometricsEnabled) {
+    if (biometricPreference && biometricAvailable && !unlocked) {
       dispatch(authenticateBiometric());
+    } else if (!biometricPreference || !biometricAvailable) {
+      // No biometric option — show password input immediately
+      setShowPasswordInput(true);
     }
-  }, [isEnrolled, biometricsEnabled]);
+  }, []); // Run once on mount — intentionally empty deps
 
-  // Navigate after unlock
+  // Navigate to home ONLY after confirmed unlock
   useEffect(() => {
     if (unlocked) {
       router.replace(ROUTES.home);
     }
   }, [unlocked]);
 
-  const handleUnlock = () => {
-    if (!password) {
+  const handlePasswordUnlock = useCallback(() => {
+    if (!password.trim()) {
       Alert.alert("Error", "Please enter your password");
       return;
     }
+    dispatch(clearAuthError());
     dispatch(verifyWalletPassword(password));
-  };
+  }, [password, dispatch]);
 
-  const handleBiometricPress = () => {
+  const handleBiometricRetry = useCallback(() => {
+    dispatch(clearAuthError());
     dispatch(authenticateBiometric());
-  };
+  }, [dispatch]);
+
+  const handleShowPassword = useCallback(() => {
+    dispatch(clearAuthError());
+    setShowPasswordInput(true);
+  }, [dispatch]);
+
+  const isBioLoading = status === "loading";
+  const showBiometricUI = biometricPreference && biometricAvailable;
 
   return (
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
-      <Container>
-        <Card>
-          <IconCircle>
-            <LockIcon>🔒</LockIcon>
-          </IconCircle>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.card}>
+          {/* Lock icon */}
+          <View style={styles.iconCircle}>
+            <Text style={styles.lockIcon}>🔒</Text>
+          </View>
 
-          <Title>Unlock Wallet</Title>
-          <Subtitle>
-            {isEnrolled && biometricsEnabled
-              ? "Use FaceID to access your wallet quickly."
+          <Text style={styles.title}>Unlock Wallet</Text>
+          <Text style={styles.subtitle}>
+            {showBiometricUI && !showPasswordInput
+              ? "Use biometrics to access your wallet quickly."
               : "Enter your password to access your wallet."}
-          </Subtitle>
+          </Text>
 
-          {/* Show password input only if biometrics is disabled */}
-          {!biometricsEnabled && (
+          {/* Biometric loading state */}
+          {isBioLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={theme.colors.primary} size="large" />
+              <Text style={styles.loadingText}>Waiting for biometric...</Text>
+            </View>
+          )}
+
+          {/* Error message */}
+          {errorMessage && !isBioLoading ? (
+            <View style={styles.errorContainer}>
+              <View style={styles.errorDot} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+
+          {/* Password input — shown when user clicks "Use password" or bio unavailable */}
+          {showPasswordInput && (
             <>
-              <InputWrapper>
-                <InputIcon>🔑</InputIcon>
-                <Input
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputIcon}>🔑</Text>
+                <TextInput
+                  style={styles.input}
                   secureTextEntry
                   placeholder="Enter password"
                   placeholderTextColor={theme.colors.lightGrey}
                   value={password}
                   onChangeText={setPassword}
+                  autoFocus={!showBiometricUI}
+                  onSubmitEditing={handlePasswordUnlock}
+                  returnKeyType="done"
                 />
-              </InputWrapper>
+              </View>
 
-              {errorMessage ? (
-                <ErrorContainer>
-                  <ErrorDot />
-                  <ErrorText>{errorMessage}</ErrorText>
-                </ErrorContainer>
-              ) : null}
-
-              <ButtonWrapper>
+              <View style={styles.buttonWrapper}>
                 <Button
                   title="Unlock"
                   linearGradient={theme.colors.primaryLinearGradient}
-                  onPress={handleUnlock}
+                  onPress={handlePasswordUnlock}
+                  loading={status === "loading"}
                 />
-              </ButtonWrapper>
+              </View>
             </>
           )}
 
-          {/* Show FaceID button if enrolled */}
-          {isEnrolled && (
-            <FaceIdButton onPress={handleBiometricPress}>
-              <FaceIdEmoji>👆</FaceIdEmoji>
-              <FaceIdText>Use FaceID / TouchID</FaceIdText>
-            </FaceIdButton>
+          {/* Biometric button — retry or initial trigger */}
+          {showBiometricUI && !isBioLoading && (
+            <TouchableOpacity
+              style={styles.bioButton}
+              onPress={handleBiometricRetry}
+            >
+              <Text style={styles.bioEmoji}>👆</Text>
+              <Text style={styles.bioText}>Use FaceID / TouchID</Text>
+            </TouchableOpacity>
           )}
-        </Card>
-      </Container>
+
+          {/* "Use password instead" link — only when bio is primary */}
+          {showBiometricUI && !showPasswordInput && !isBioLoading && (
+            <TouchableOpacity
+              style={styles.fallbackButton}
+              onPress={handleShowPassword}
+            >
+              <Text style={styles.fallbackText}>Use password instead</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </SafeAreaView>
     </LinearGradientBackground>
   );
+}
+
+function createStyles(theme: ThemeType) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      padding: parseFloat(theme.spacing.large as string),
+      justifyContent: "center",
+      paddingTop: 60,
+    },
+    card: {
+      backgroundColor: theme.colors.cardBackground,
+      borderRadius: 24,
+      padding: 32,
+      paddingHorizontal: 24,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      width: "100%",
+    },
+    iconCircle: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      backgroundColor: "rgba(240, 185, 11, 0.15)",
+      justifyContent: "center",
+      alignItems: "center",
+      marginBottom: 20,
+      alignSelf: "center",
+    },
+    lockIcon: {
+      fontSize: 28,
+    },
+    title: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: 24,
+      color: theme.colors.white,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    subtitle: {
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.normal as string),
+      color: theme.colors.lightGrey,
+      textAlign: "center",
+      marginBottom: 28,
+    },
+    loadingContainer: {
+      alignItems: "center",
+      marginBottom: 20,
+      gap: 12,
+    },
+    loadingText: {
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.small as string),
+      color: theme.colors.lightGrey,
+    },
+    inputWrapper: {
+      backgroundColor: theme.colors.dark,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      paddingHorizontal: 16,
+      marginBottom: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      height: 54,
+    },
+    input: {
+      flex: 1,
+      color: theme.colors.white,
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.normal as string),
+      height: 54,
+    },
+    inputIcon: {
+      fontSize: 18,
+      marginRight: 10,
+    },
+    errorContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: "rgba(255, 82, 82, 0.1)",
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      marginBottom: 16,
+    },
+    errorDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: "#ff5252",
+      marginRight: 8,
+    },
+    errorText: {
+      color: "#ff5252",
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.small as string),
+      flex: 1,
+    },
+    buttonWrapper: {
+      marginTop: 8,
+    },
+    bioButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginTop: 16,
+      padding: 12,
+    },
+    bioEmoji: {
+      fontSize: 18,
+    },
+    bioText: {
+      fontFamily: theme.fonts.families.openBold,
+      fontSize: parseFloat(theme.fonts.sizes.normal as string),
+      color: theme.colors.primary,
+      marginLeft: 8,
+    },
+    fallbackButton: {
+      alignItems: "center",
+      marginTop: 12,
+      padding: 8,
+    },
+    fallbackText: {
+      fontFamily: theme.fonts.families.openRegular,
+      fontSize: parseFloat(theme.fonts.sizes.small as string),
+      color: theme.colors.lightGrey,
+      textDecorationLine: "underline",
+    },
+  });
 }
