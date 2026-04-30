@@ -173,7 +173,7 @@ function computeDashboardData(state: RootState): DashboardData {
  */
 function fingerprint(d: DashboardData): string {
   const bals = d.ethereumAssets.map(a => `${a.chainId}:${a.balance}`).join(",");
-  return `${d.activeChainId}|${d.totalUsdBalance.toFixed(2)}|${d.solBalance}|${d.solUsd.toFixed(2)}|${d.ethTransactions.length}|${d.solTransactions.length}|${d.failedEthStatus}|${d.failedSolStatus}|${d.showEvmAssets}|${d.showSolAssets}|${bals}`;
+  return `${d.ethWalletAddress}|${d.solWalletAddress}|${d.activeChainId}|${d.totalUsdBalance.toFixed(2)}|${d.solBalance}|${d.solUsd.toFixed(2)}|${d.ethTransactions.length}|${d.solTransactions.length}|${d.failedEthStatus}|${d.failedSolStatus}|${d.showEvmAssets}|${d.showSolAssets}|${bals}`;
 }
 
 /**

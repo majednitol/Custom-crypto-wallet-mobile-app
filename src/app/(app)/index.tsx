@@ -138,12 +138,30 @@ export default function Index() {
       : s.ethereum.globalAddresses?.[idx];
     const addr = acct?.address;
     const cid = s.ethereum.activeChainId;
-    if (addr) await dispatch(fetchEvmTransactions({ chainId: cid, address: addr }));
+
+    // Fetch active chain first (highest priority)
+    if (addr) await dispatch(fetchEvmTransactions({ chainId: cid, address: addr })).catch(() => {});
+
+    // Then fetch from chains that have nonzero balances (batched)
+    if (addr && acct?.balanceByChain) {
+      const chainsWithBalance = Object.entries(acct.balanceByChain)
+        .filter(([id, bal]) => Number(id) !== cid && (bal as number) > 0)
+        .map(([id]) => Number(id));
+
+      const TX_BATCH = 3;
+      for (let i = 0; i < chainsWithBalance.length; i += TX_BATCH) {
+        await Promise.all(
+          chainsWithBalance.slice(i, i + TX_BATCH).map(chainId =>
+            dispatch(fetchEvmTransactions({ chainId, address: addr })).catch(() => {})
+          )
+        );
+      }
+    }
 
     const solImported = s.importedAccounts?.activeSolAddress;
     const solIdx = s.solana.activeIndex ?? 0;
     const solAddr = solImported || s.solana.addresses?.[solIdx]?.address;
-    if (solAddr) await dispatch(fetchSolanaTransactions(solAddr));
+    if (solAddr) await dispatch(fetchSolanaTransactions(solAddr)).catch(() => {});
   }, [dispatch]);
 
   const fetchAndUpdatePricesInternal = useCallback(async () => {
@@ -157,10 +175,42 @@ export default function Index() {
     const addr = acct?.address;
 
     await dispatch(fetchPrices(allChainIds));
+
     if (addr) {
+      // Fetch active chain balance + transactions first (highest priority)
       dispatch(fetchEvmBalanceInterval({ chainId: cid, address: addr }));
       dispatch(fetchEvmTransactionsInterval({ chainId: cid, address: addr }));
+
+      // Fetch balances for all other chains (batched)
+      const others = evmChainIds.filter(id => id !== cid);
+      const BATCH = 4;
+      for (let i = 0; i < others.length; i += BATCH) {
+        await Promise.all(
+          others.slice(i, i + BATCH).map(c =>
+            dispatch(fetchEvmBalanceInterval({ chainId: c, address: addr })).catch(() => {})
+          )
+        );
+      }
+
+      // Fetch transactions for chains with nonzero balances
+      const updatedAcct = store.getState().ethereum.globalAddresses?.find(
+        a => a.address?.toLowerCase() === addr.toLowerCase()
+      );
+      if (updatedAcct?.balanceByChain) {
+        const chainsWithBalance = Object.entries(updatedAcct.balanceByChain)
+          .filter(([id, bal]) => Number(id) !== cid && (bal as number) > 0)
+          .map(([id]) => Number(id));
+        const TX_BATCH = 3;
+        for (let i = 0; i < chainsWithBalance.length; i += TX_BATCH) {
+          await Promise.all(
+            chainsWithBalance.slice(i, i + TX_BATCH).map(chainId =>
+              dispatch(fetchEvmTransactionsInterval({ chainId, address: addr })).catch(() => {})
+            )
+          );
+        }
+      }
     }
+
     const solImported = s.importedAccounts?.activeSolAddress;
     const solIdx = s.solana.activeIndex ?? 0;
     const solAddr = solImported || s.solana.addresses?.[solIdx]?.address;
@@ -168,7 +218,7 @@ export default function Index() {
       dispatch(fetchSolanaBalanceInterval(solAddr));
       dispatch(fetchSolanaTransactionsInterval(solAddr));
     }
-  }, [dispatch, allChainIds]);
+  }, [dispatch, allChainIds, evmChainIds]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [bottomSheetIndex, setBottomSheetIndex, bottomSheetIndexLoading] = useStorage(SNAP_POINTS);
@@ -184,18 +234,11 @@ export default function Index() {
     setRefreshing(false);
   }, [dispatch, allChainIds, fetchTokenBalances, fetchTransactions]);
 
-  // Init: runs once
-  const initDone = useRef(false);
+  // Re-init: fires whenever the active wallet address changes (import, switch account)
+  const prevAddrRef = useRef<string>("");
   useEffect(() => {
-    if (initDone.current) return;
-    const s = store.getState();
-    const idx = s.ethereum.activeIndex ?? 0;
-    const imported = s.importedAccounts?.activeEvmAddress;
-    const acct = imported
-      ? s.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === imported.toLowerCase())
-      : s.ethereum.globalAddresses?.[idx];
-    if (!acct?.address) return;
-    initDone.current = true;
+    if (!ethWalletAddress || ethWalletAddress === prevAddrRef.current) return;
+    prevAddrRef.current = ethWalletAddress;
 
     // Defer ALL network work until after React finishes rendering and animating.
     // Without this, RPC responses block the JS thread and freeze the UI.
@@ -208,7 +251,7 @@ export default function Index() {
       init();
     });
     return () => handle.cancel();
-  }, [ethWalletAddress]);
+  }, [ethWalletAddress, allChainIds, fetchTokenBalances, fetchTransactions, dispatch]);
 
   useEffect(() => {
     const interval = setInterval(fetchAndUpdatePricesInternal, FETCH_PRICES_INTERVAL);

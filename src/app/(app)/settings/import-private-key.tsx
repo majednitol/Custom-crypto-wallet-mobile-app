@@ -9,19 +9,28 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  InteractionManager,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { ThemeType } from "../../../styles/theme";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import Button from "../../../components/Button/Button";
-import { AppDispatch, RootState } from "../../../store";
+import { AppDispatch, RootState, store } from "../../../store";
 import {
   addImportedEvmAccount,
   addImportedSolAccount,
   setActiveImportedAccount,
 } from "../../../store/importedAccountSlice";
-import { addAddress } from "../../../store/ethereumSlice";
-import { updateSolanaAddresses } from "../../../store/solanaSlice";
+import {
+  addAddress,
+  fetchEvmBalance,
+  fetchEvmTransactions,
+} from "../../../store/ethereumSlice";
+import {
+  updateSolanaAddresses,
+  fetchSolanaBalance,
+  fetchSolanaTransactions,
+} from "../../../store/solanaSlice";
 import { GeneralStatus } from "../../../store/types";
 import {
   getEvmAddressFromPrivateKey,
@@ -188,6 +197,29 @@ export default function ImportPrivateKeyScreen() {
           transactionConfirmations: [],
         }));
         dispatch(setActiveImportedAccount({ evmAddress: address }));
+
+        // Auto-fetch balances & transactions for the newly imported address
+        InteractionManager.runAfterInteractions(() => {
+          const s = store.getState();
+          const evmChainIds = Object.keys(s.ethereum.networks).map(Number);
+          const activeChainId = s.ethereum.activeChainId;
+          const BATCH = 4;
+          (async () => {
+            // Fetch active chain balance first
+            await dispatch(fetchEvmBalance({ chainId: activeChainId, address })).catch(() => {});
+            dispatch(fetchEvmTransactions({ chainId: activeChainId, address })).catch(() => {});
+            // Then fetch remaining chains in batches
+            const others = evmChainIds.filter(id => id !== activeChainId);
+            for (let i = 0; i < others.length; i += BATCH) {
+              await Promise.all(
+                others.slice(i, i + BATCH).map(chainId =>
+                  dispatch(fetchEvmBalance({ chainId, address })).catch(() => {})
+                )
+              );
+            }
+          })();
+        });
+
         Alert.alert("Success", `EVM account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },
         ]);
@@ -224,6 +256,13 @@ export default function ImportPrivateKeyScreen() {
           transactionConfirmations: [],
         }));
         dispatch(setActiveImportedAccount({ solAddress: address }));
+
+        // Auto-fetch balance & transactions for the newly imported Solana address
+        InteractionManager.runAfterInteractions(() => {
+          dispatch(fetchSolanaBalance(address)).catch(() => {});
+          dispatch(fetchSolanaTransactions(address)).catch(() => {});
+        });
+
         Alert.alert("Success", `Solana account imported\nAddress: ${address}`, [
           { text: "OK", onPress: () => router.back() },
         ]);

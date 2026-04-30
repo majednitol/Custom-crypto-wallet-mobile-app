@@ -18,8 +18,16 @@ import Button from "../../../../components/Button/Button";
 import solanaService from "../../../../services/SolanaService";
 import { getPhrase } from "../../../../hooks/useStorageState";
 import type { RootState, AppDispatch } from "../../../../store";
-import { sendEvmTransaction } from "../../../../store/ethereumSlice";
-import { sendSolanaTransaction } from "../../../../store/solanaSlice";
+import {
+  sendEvmTransaction,
+  fetchEvmBalance,
+  fetchEvmTransactions,
+} from "../../../../store/ethereumSlice";
+import {
+  sendSolanaTransaction,
+  fetchSolanaBalance,
+  fetchSolanaTransactions,
+} from "../../../../store/solanaSlice";
 import { BalanceContainer } from "../../../../components/Styles/Layout.styles";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 import { ROUTES } from "../../../../constants/routes";
@@ -266,6 +274,12 @@ console.log("ethPrivateKey",ethPrivateKey)
           ).unwrap();
         }
         if (txResult) {
+          // Schedule balance + tx re-fetch after 2s for blockchain propagation
+          setTimeout(() => {
+            dispatch(fetchEvmBalance({ chainId: activeChainId, address: walletAddress })).catch(() => {});
+            dispatch(fetchEvmTransactions({ chainId: activeChainId, address: walletAddress })).catch(() => {});
+          }, 2000);
+
           navigation.dispatch(StackActions.popToTop());
 
           const txHash =
@@ -327,6 +341,15 @@ console.log("ethPrivateKey",ethPrivateKey)
         ).unwrap();
 
         if (result?.txHash) {
+          // Schedule balance + tx re-fetch after 2s for blockchain propagation
+          const senderAddr = senderSolAddress || csolAddess;
+          setTimeout(() => {
+            if (senderAddr) {
+              dispatch(fetchSolanaBalance(senderAddr as string)).catch(() => {});
+              dispatch(fetchSolanaTransactions(senderAddr as string)).catch(() => {});
+            }
+          }, 2000);
+
           navigation.dispatch(StackActions.popToTop());
           router.push({
             pathname: ROUTES.confirmation,
