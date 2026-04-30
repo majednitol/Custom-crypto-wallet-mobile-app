@@ -159,6 +159,8 @@ interface WalletPairs {
   id: string;
   accountName: string;
   isActiveAccount: boolean;
+  ethIndex: number;   // index in seed-only array (or -1 for imported)
+  solIndex: number;   // index in seed-only array (or -1 for imported)
   walletDetails: {
     ethereum: AddressState | {};
     solana: SAddressState | {};
@@ -595,28 +597,33 @@ const AccountsIndex = () => {
       activeImportedSol?: string
     ) => {
       const mergedWalletPairs: WalletPairs[] = [];
-      const highestAccAmount = Math.max(ethAcc.length, solAcc.length);
+
+      // Filter to seed-derived accounts only for proper pairing
+      // (imported accounts exist in ethAcc but NOT in solAcc, causing index misalignment)
+      const seedEth = ethAcc.filter(a => !!a.derivationPath);
+      const seedSol = solAcc.filter(a => !!a.derivationPath);
+      const highestSeedCount = Math.max(seedEth.length, seedSol.length);
 
       // Determine "true" active addresses (imported takes precedence)
       const trueActiveEth = activeImportedEvm || activeEthAddress;
       const trueActiveSol = activeImportedSol || activeSolAddress;
 
-      for (let i = 0; i < highestAccAmount; i++) {
-        const eth = ethAcc[i] ?? null;
-        const sol = solAcc[i] ?? null;
-        
-        // Skip imported accounts (those without a derivationPath) as they are handled below
-        if ((eth && !eth.derivationPath) || (sol && !sol.derivationPath)) continue;
+      for (let i = 0; i < highestSeedCount; i++) {
+        const eth = seedEth[i] ?? null;
+        const sol = seedSol[i] ?? null;
+
         // Seed-derived account is active ONLY when no imported account is active
         const isActiveAccount =
           !activeImportedEvm && !activeImportedSol &&
           eth?.address === activeEthAddress && sol?.address === activeSolAddress;
 
         mergedWalletPairs.push({
-          id: `${i}-${eth?.address ?? sol?.address ?? i}`,
+          id: `seed-${i}-${eth?.address ?? sol?.address ?? i}`,
           accountName: eth?.accountName || sol?.accountName || `Account ${i + 1}`,
           isActiveAccount,
           isImported: false,
+          ethIndex: i,
+          solIndex: i,
           walletDetails: { ethereum: eth ?? {}, solana: sol ?? {} },
         });
       }
@@ -633,6 +640,8 @@ const AccountsIndex = () => {
           accountName: imported.accountName,
           isActiveAccount,
           isImported: true,
+          ethIndex: -1,
+          solIndex: -1,
           walletDetails: {
             ethereum: imported.evmAddress ? { address: imported.evmAddress } : {},
             solana: imported.solAddress ? { address: imported.solAddress } : {},
@@ -830,12 +839,22 @@ const AccountsIndex = () => {
     [priceAndBalanceLoading, ethAccounts.length, accounts]
   );
   const setNextActiveAccounts = useCallback(
-    (index: number) => {
+    (seedIndex: number) => {
       dispatch(clearActiveImportedAccount());
-      dispatch(setActiveAccount({ index: index }));
-      dispatch(setActiveSolanaAccount(index));
+
+      // Find the actual globalAddresses index for this seed-derived account
+      const seedEthAccounts = ethAccounts.filter(a => !!a.derivationPath);
+      const targetAddress = seedEthAccounts[seedIndex]?.address;
+      const globalIdx = ethAccounts.findIndex(a => a.address === targetAddress);
+      dispatch(setActiveAccount({ index: globalIdx >= 0 ? globalIdx : seedIndex }));
+
+      // Same for Solana
+      const seedSolAccounts = solAccounts.filter(a => !!a.derivationPath);
+      const targetSolAddress = seedSolAccounts[seedIndex]?.address;
+      const solIdx = solAccounts.findIndex(a => a.address === targetSolAddress);
+      dispatch(setActiveSolanaAccount(solIdx >= 0 ? solIdx : seedIndex));
     },
-    [dispatch, activeChainId]
+    [dispatch, ethAccounts, solAccounts]
   );
   const calculateTotalPrice = useCallback(
     (evmBalances: Record<number, number>, solBalance: number) => {
@@ -893,7 +912,8 @@ const AccountsIndex = () => {
                   solAddress: item.walletDetails.solana?.address,
                 }));
               } else {
-              setNextActiveAccounts(index);
+              // Use the seed-only index, not the render list position
+              setNextActiveAccounts(item.ethIndex);
             }
             router.back();
           }}
