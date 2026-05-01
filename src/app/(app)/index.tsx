@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { View, RefreshControl, FlatList, Text, StyleSheet, InteractionManager } from "react-native";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useTheme } from "styled-components/native";
 import { ROUTES } from "../../constants/routes";
 import type { ThemeType } from "../../styles/theme";
-import { type AppDispatch, store } from "../../store";
+import { type AppDispatch, store, type RootState } from "../../store";
+
 import { fetchPrices } from "../../store/priceSlice";
 import {
   fetchEvmBalance,
@@ -235,10 +236,20 @@ export default function Index() {
   }, [dispatch, allChainIds, fetchTokenBalances, fetchTransactions]);
 
   // Re-init: fires whenever the active wallet address changes (import, switch account)
+  // OR when a new unlock session starts (ensures fresh data after lock/unlock cycle)
+  const unlockedAt = useSelector((state: RootState) => state.biometrics.unlockedAt);
   const prevAddrRef = useRef<string>("");
+  const prevUnlockRef = useRef<number | undefined>();
   useEffect(() => {
-    if (!ethWalletAddress || ethWalletAddress === prevAddrRef.current) return;
+    if (!ethWalletAddress || !unlockedAt) return;
+
+    // Skip if same address AND same unlock session (prevents duplicate fetches)
+    const sameAddr = ethWalletAddress === prevAddrRef.current;
+    const sameSession = unlockedAt === prevUnlockRef.current;
+    if (sameAddr && sameSession) return;
+
     prevAddrRef.current = ethWalletAddress;
+    prevUnlockRef.current = unlockedAt;
 
     // Defer ALL network work until after React finishes rendering and animating.
     // Without this, RPC responses block the JS thread and freeze the UI.
@@ -251,7 +262,7 @@ export default function Index() {
       init();
     });
     return () => handle.cancel();
-  }, [ethWalletAddress, allChainIds, fetchTokenBalances, fetchTransactions, dispatch]);
+  }, [ethWalletAddress, unlockedAt, allChainIds, fetchTokenBalances, fetchTransactions, dispatch]);
 
   useEffect(() => {
     const interval = setInterval(fetchAndUpdatePricesInternal, FETCH_PRICES_INTERVAL);
