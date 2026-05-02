@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { View, FlatList, Dimensions, Platform } from "react-native";
+import { View, FlatList, Dimensions, Platform, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
 import { useSelector, useDispatch } from "react-redux";
@@ -37,6 +37,7 @@ import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import Button from "../../../components/Button/Button";
 import { placeholderArr } from "../../../utils/placeholder";
 import { evmServices, getEvmService } from "../../../services/EthereumService";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 
 interface WalletContainerProps {
   theme: ThemeType;
@@ -106,21 +107,19 @@ const AccountDetails = styled.View`
 `;
 
 const EditIconContainer = styled.TouchableOpacity`
-  display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
 `;
 
-const WalletPhraseContainer = styled.TouchableOpacity<{ theme: ThemeType }>`
+const WalletPhraseContainer = styled(MotiView)<{ theme: ThemeType }>`
   justify-content: space-between;
   align-items: center;
   flex-direction: row;
   background-color: ${({ theme }) => theme.colors.primary};
-  border-radius: 12px;
-  padding: ${({ theme }) => theme.spacing.medium};
+  border-radius: 16px;
+  padding: 20px;
   margin-bottom: 24px;
 `;
 
@@ -133,19 +132,19 @@ const SectionTitle = styled.Text<{ theme: ThemeType }>`
 `;
 
 const AccountTitle = styled.Text<{ theme: ThemeType }>`
-  color: ${(props) => props.theme.fonts.colors.primary};
+  color: ${(props) => props.theme.colors.white};
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.large};
-  margin-left: ${({ theme }) => theme.spacing.medium};
+  margin-left: 12px;
   margin-bottom: 4px;
   text-align: left;
 `;
 
 const PriceText = styled.Text<{ theme: ThemeType }>`
   color: ${(props) => props.theme.colors.lightGrey};
-  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-family: ${(props) => props.theme.fonts.families.openRegular};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  margin-left: ${({ theme }) => theme.spacing.medium};
+  margin-left: 12px;
   text-align: left;
 `;
 
@@ -904,42 +903,46 @@ const AccountsIndex = () => {
       );
 
       return (
-        <WalletContainer
-          onPress={() => {
-            if (item.isImported) {
+        <MotiView
+          from={{ opacity: 0, translateY: 10 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 500, delay: 400 + index * 100 }}
+        >
+          <WalletContainer
+            onPress={() => {
+              if (item.isImported) {
                 dispatch(setActiveImportedAccount({
                   evmAddress: item.walletDetails.ethereum?.address,
                   solAddress: item.walletDetails.solana?.address,
                 }));
               } else {
-              // Use the seed-only index, not the render list position
-              setNextActiveAccounts(item.ethIndex);
-            }
-            router.back();
-          }}
-          isActiveAccount={item.isActiveAccount}
-          isLast={index === accounts.length - 1}
-        >
-          <AccountDetails>
-            <AccountTitle>{item.accountName}</AccountTitle>
-            <PriceText>{item.isImported ? "Imported" : balance}</PriceText>
-          </AccountDetails>
-          <EditIconContainer
-            onPress={() =>
-              router.push({
-                pathname: ROUTES.accountModal,
-                params: {
-                  ethAddress: item.walletDetails.ethereum?.address ?? "",
-                  solAddress: item.walletDetails.solana?.address ?? "",
-                  balance,
-                },
-              })
-            }
+                setNextActiveAccounts(item.ethIndex);
+              }
+              router.back();
+            }}
+            isActiveAccount={item.isActiveAccount}
+            isLast={index === accounts.length - 1}
           >
-            <EditIcon width={20} height={20} fill={theme.colors.white} />
-          </EditIconContainer>
-        </WalletContainer>
-
+            <AccountDetails>
+              <AccountTitle theme={theme}>{item.accountName}</AccountTitle>
+              <PriceText theme={theme}>{item.isImported ? "Imported" : balance}</PriceText>
+            </AccountDetails>
+            <EditIconContainer
+              onPress={() =>
+                router.push({
+                  pathname: ROUTES.accountModal,
+                  params: {
+                    ethAddress: item.walletDetails.ethereum?.address ?? "",
+                    solAddress: item.walletDetails.solana?.address ?? "",
+                    balance,
+                  },
+                })
+              }
+            >
+              <EditIcon width={20} height={20} fill={theme.colors.white} />
+            </EditIconContainer>
+          </WalletContainer>
+        </MotiView>
       );
     },
     [
@@ -949,46 +952,70 @@ const AccountsIndex = () => {
       setNextActiveAccounts,
       theme.colors.white,
       theme.colors.dark,
+      theme.colors.border
     ]
   );
 
 
   return (
-    <SafeAreaContainer>
-      <ScrollContainer showsVerticalScrollIndicator={false}>
-        <ContentContainer>
-          <PageTitle>Manage Wallets</PageTitle>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ScrollContainer showsVerticalScrollIndicator={false}>
+          <ContentContainer>
+            <MotiView
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600 }}
+            >
+              <PageTitle>Manage Wallets</PageTitle>
+            </MotiView>
 
-          <WalletPhraseContainer
-            onPress={() =>
-              router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
-            }
-          >
-            <PhraseTextContent>
-              <PhraseIcon width={25} height={25} fill={theme.colors.white} />
-              <SectionTitle>Secret Recovery Phrase</SectionTitle>
-            </PhraseTextContent>
-            <RightArrowIcon width={25} height={25} fill={theme.colors.white} />
-          </WalletPhraseContainer>
+            <MotiView
+              from={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "timing", duration: 600, delay: 200 }}
+            >
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
+                }
+              >
+                <WalletPhraseContainer theme={theme}>
+                  <PhraseTextContent>
+                    <PhraseIcon width={24} height={24} fill={theme.colors.white} />
+                    <SectionTitle style={{ color: theme.colors.white }}>
+                      Secret Recovery Phrase
+                    </SectionTitle>
+                  </PhraseTextContent>
+                  <RightArrowIcon width={20} height={20} fill={theme.colors.white} />
+                </WalletPhraseContainer>
+              </TouchableOpacity>
+            </MotiView>
 
-          {memoizedAccounts.map((item: any, index: number) => (
-            <View key={item.id}>
-              {renderItem({ item, index })}
-            </View>
-          ))}
-        </ContentContainer>
-      </ScrollContainer>
+            {memoizedAccounts.map((item: any, index: number) => (
+              <View key={item.id}>{renderItem({ item, index })}</View>
+            ))}
+          </ContentContainer>
+        </ScrollContainer>
 
-      <BottomButtonContainer>
-        <Button
-          linearGradient={theme.colors.primaryLinearGradient}
-          loading={walletCreationLoading}
-          onPress={createNewWalletPair}
-          title="Create Wallet"
-          backgroundColor={theme.colors.primary}
-        />
-      </BottomButtonContainer>
-    </SafeAreaContainer>
+        <MotiView
+          from={{ opacity: 0, translateY: 20 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 600, delay: 800 }}
+        >
+          <BottomButtonContainer>
+            <Button
+              backgroundColor={theme.colors.primary}
+              color={theme.colors.white}
+              loading={walletCreationLoading}
+              onPress={createNewWalletPair}
+              title="Create Wallet"
+            />
+          </BottomButtonContainer>
+        </MotiView>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 };
 

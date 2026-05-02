@@ -27,6 +27,7 @@ import TrashIcon from "../assets/svg/clear.svg";
 import CloseIcon from "../assets/svg/close.svg";
 import CheckIcon from "../assets/svg/check.svg";
 import { BlockchainIcon } from "./BlockchainIcon/BlockchainIcon";
+import { MotiView } from "moti";
 
 const ScrollWrapper = styled.ScrollView`
   flex: 1;
@@ -324,33 +325,40 @@ export const EvmWallet = () => {
             <EmptyText>No custom networks added yet</EmptyText>
           </EmptyState>
         ) : (
-          networkList.map((item) => (
-            <NetworkCard
+          networkList.map((item, index) => (
+            <MotiView
               key={item.chainId}
-              isActive={item.chainId === activeChainId}
-              onPress={() => handleSetActive(item.chainId)}
-              activeOpacity={0.7}
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 500, delay: index * 100 }}
+              style={{ width: "100%" }}
             >
-              <NetworkIconContainer>
-                <BlockchainIcon symbol={item.symbol} size={28} />
-              </NetworkIconContainer>
-          <NetworkInfo>
-            <NetworkName numberOfLines={1} ellipsizeMode="tail">
-              {item.chainName} {item.chainId === activeChainId && "• Active"}
-            </NetworkName>
-            <NetworkMeta numberOfLines={1} ellipsizeMode="tail">
-              Chain ID: {item.chainId} · {item.symbol}
-            </NetworkMeta>
-          </NetworkInfo>
-              <ActionButtons>
-                <IconButton onPress={() => handleEditNetwork(item)}>
-                  <EditIcon width={16} height={16} fill={theme.colors.dark} />
-                </IconButton>
-                <IconButton onPress={() => handleRemoveNetwork(item)}>
-                  <TrashIcon width={16} height={16} fill={theme.colors.dark} />
-                </IconButton>
-              </ActionButtons>
-            </NetworkCard>
+              <NetworkCard
+                isActive={item.chainId === activeChainId}
+                onPress={() => handleSetActive(item.chainId)}
+                activeOpacity={0.7}
+              >
+                <NetworkIconContainer>
+                  <BlockchainIcon symbol={item.symbol} size={28} />
+                </NetworkIconContainer>
+                <NetworkInfo>
+                  <NetworkName numberOfLines={1} ellipsizeMode="tail">
+                    {item.chainName} {item.chainId === activeChainId && "• Active"}
+                  </NetworkName>
+                  <NetworkMeta numberOfLines={1} ellipsizeMode="tail">
+                    Chain ID: {item.chainId} · {item.symbol}
+                  </NetworkMeta>
+                </NetworkInfo>
+                <ActionButtons>
+                  <IconButton onPress={() => handleEditNetwork(item)}>
+                    <EditIcon width={16} height={16} fill={theme.colors.dark} />
+                  </IconButton>
+                  <IconButton onPress={() => handleRemoveNetwork(item)}>
+                    <TrashIcon width={16} height={16} fill={theme.colors.dark} />
+                  </IconButton>
+                </ActionButtons>
+              </NetworkCard>
+            </MotiView>
           ))
         )}
 

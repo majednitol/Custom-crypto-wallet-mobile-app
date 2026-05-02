@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { SafeAreaView, ScrollView } from "react-native";
+import { SafeAreaView, ScrollView, View, StyleSheet, Text, TouchableOpacity } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import styled from "styled-components/native";
 import { useTheme } from "styled-components/native";
 import { ThemeType } from "../../../styles/theme";
 import CopyIcon from "../../../assets/svg/copy.svg";
+import LockIcon from "../../../assets/svg/lock.svg";
+import PhraseIcon from "../../../assets/svg/phrase.svg";
 import Button from "../../../components/Button/Button";
 import Bubble from "../../../components/Bubble/Bubble";
 import { ROUTES } from "../../../constants/routes";
 import { getPhrase } from "../../../hooks/useStorageState";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
-  background-color: ${(props) => props.theme.colors.dark};
 `;
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
@@ -25,21 +28,18 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
 
 const HeaderSection = styled.View`
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  width: 100%;
 `;
 
 const SecurityIconCircle = styled.View<{ theme: ThemeType }>`
   width: 64px;
   height: 64px;
-  border-radius: 32px;
-  background-color: rgba(240, 185, 11, 0.12);
+  border-radius: 20px;
+  background-color: rgba(240, 185, 11, 0.15);
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
-`;
-
-const SecurityIcon = styled.Text`
-  font-size: 28px;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
@@ -103,9 +103,10 @@ const ButtonContainer = styled.View<{ theme: ThemeType }>`
 const WarningContainer = styled.View<{ theme: ThemeType }>`
   flex-direction: row;
   align-items: center;
-  background-color: rgba(240, 185, 11, 0.08);
-  border-radius: 12px;
-  padding: 12px 16px;
+  background-color: rgba(240, 185, 11, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(240, 185, 11, 0.2);
+  padding: 16px;
   margin-bottom: 16px;
   width: 100%;
 `;
@@ -151,58 +152,124 @@ export default function Page() {
   }, [readOnly]);
 
   return (
-    <SafeAreaContainer>
-      <ScrollView contentContainerStyle={{ paddingTop: 40, paddingBottom: 20 }}>
-        <ContentContainer>
-          <HeaderSection>
-            <SecurityIconCircle>
-              <SecurityIcon>🔐</SecurityIcon>
-            </SecurityIconCircle>
-            <Title>Secret Recovery Phrase</Title>
-            <Subtitle>
-              This is the only way you will be able to recover your account.
-              Please store it somewhere safe!
-            </Subtitle>
-          </HeaderSection>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ScrollView 
+          contentContainerStyle={{ paddingTop: 40, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <ContentContainer>
+            <MotiView
+              from={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 12, delay: 200 }}
+            >
+              <HeaderSection>
+                <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
+                  <MotiView
+                    from={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.4, 1] }}
+                    transition={{
+                      type: "timing",
+                      duration: 2000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: theme.colors.primary,
+                        borderRadius: 32,
+                        marginBottom: 20,
+                      },
+                    ]}
+                  />
+                  <SecurityIconCircle>
+                    <LockIcon width={32} height={32} fill={theme.colors.primary} />
+                  </SecurityIconCircle>
+                </View>
+                <Title>Secret Recovery Phrase</Title>
+                <Subtitle>
+                  This is the only way you will be able to recover your account.
+                  Please store it somewhere safe!
+                </Subtitle>
+              </HeaderSection>
+            </MotiView>
 
-          <WarningContainer>
-            <WarningDot />
-            <WarningText>
-              Never share your recovery phrase with anyone. Anyone with this phrase can access your wallet.
-            </WarningText>
-          </WarningContainer>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 400 }}
+              style={{ width: "100%" }}
+            >
+              <WarningContainer>
+                <WarningDot />
+                <WarningText>
+                  Never share your recovery phrase with anyone. Anyone with this phrase can access your wallet.
+                </WarningText>
+              </WarningContainer>
+            </MotiView>
 
-          <SeedCard>
-            <SeedPhraseContainer>
-              {seedPhrase.map((word, index) => (
-                <Bubble key={index} word={word} number={index + 1} />
-              ))}
-            </SeedPhraseContainer>
-          </SeedCard>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 800, delay: 600 }}
+              style={{ width: "100%" }}
+            >
+              <SeedCard>
+                <SeedPhraseContainer>
+                  {seedPhrase.map((word, index) => (
+                    <MotiView
+                      key={index}
+                      from={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "timing", duration: 400, delay: 800 + index * 50 }}
+                    >
+                      <Bubble word={word} number={index + 1} />
+                    </MotiView>
+                  ))}
+                </SeedPhraseContainer>
+              </SeedCard>
+            </MotiView>
 
-          <CopyButton onPress={handleCopy}>
-            <CopyIcon fill={copied ? "#4ade80" : theme.colors.white} width={18} height={18} />
-            <CopyButtonText copied={copied}>
-              {copied ? "Copied!" : "Copy to clipboard"}
-            </CopyButtonText>
-          </CopyButton>
-        </ContentContainer>
-      </ScrollView>
-      {readOnly ? null : (
-        <ButtonContainer>
-          <Button
-            color={theme.colors.white}
-            linearGradient={theme.colors.primaryLinearGradient}
-            onPress={() =>
-              router.push({
-                pathname: ROUTES.confirmSeedPhrase,
-                params: { phrase: seedPhrase },
-              })
-            }
-            title="Ok, I saved it"
-          />
-        </ButtonContainer>
-      )}
-    </SafeAreaContainer>
+            <MotiView
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: "timing", duration: 600, delay: 1500 }}
+            >
+              <CopyButton onPress={handleCopy}>
+                <CopyIcon fill={copied ? "#4ade80" : theme.colors.white} width={18} height={18} />
+                <CopyButtonText copied={copied}>
+                  {copied ? "Copied!" : "Copy to clipboard"}
+                </CopyButtonText>
+              </CopyButton>
+            </MotiView>
+          </ContentContainer>
+        </ScrollView>
+
+        {readOnly ? null : (
+          <MotiView
+            from={{ opacity: 0, translateY: 40 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 1700 }}
+            style={{ width: "100%" }}
+          >
+            <ButtonContainer>
+              <Button
+                backgroundColor={theme.colors.primary}
+                color={theme.colors.black}
+                onPress={() =>
+                  router.push({
+                    pathname: ROUTES.confirmSeedPhrase,
+                    params: { phrase: seedPhrase },
+                  })
+                }
+                title="Ok, I saved it"
+              />
+            </ButtonContainer>
+          </MotiView>
+        )}
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 }

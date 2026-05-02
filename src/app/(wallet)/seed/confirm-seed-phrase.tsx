@@ -10,10 +10,13 @@ import Button from "../../../components/Button/Button";
 import Bubble from "../../../components/Bubble/Bubble";
 import { ROUTES } from "../../../constants/routes";
 import PasteIcon from "../../../assets/svg/paste.svg";
+import ShieldCheckIcon from "../../../assets/svg/shield-check.svg";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
+import { StyleSheet, View } from "react-native";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
-  background-color: ${(props) => props.theme.colors.dark};
 `;
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
@@ -37,8 +40,9 @@ const IconCircle = styled.View<{ theme: ThemeType }>`
   margin-bottom: 16px;
 `;
 
-const VerifyIcon = styled.Text`
-  font-size: 24px;
+const VerifyIcon = styled.View`
+  justify-content: center;
+  align-items: center;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
@@ -209,77 +213,153 @@ export default function Page() {
   };
 
   return (
-    <SafeAreaContainer>
-      <ScrollView contentContainerStyle={{ paddingTop: 30, paddingBottom: 20 }}>
-        <ContentContainer>
-          <HeaderSection>
-            <IconCircle>
-              <VerifyIcon>✅</VerifyIcon>
-            </IconCircle>
-            <Title>Verify you saved it correctly</Title>
-            <Subtitle>
-              Tap the words in the correct order to verify you saved your secret
-              recovery phrase.
-            </Subtitle>
-          </HeaderSection>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ScrollView 
+          contentContainerStyle={{ paddingTop: 30, paddingBottom: 20 }}
+          showsVerticalScrollIndicator={false}
+        >
+          <ContentContainer>
+            <MotiView
+              from={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 12, delay: 200 }}
+            >
+              <HeaderSection>
+                <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
+                  <MotiView
+                    from={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: [0.1, 0.2, 0.1], scale: [1, 1.4, 1] }}
+                    transition={{
+                      type: "timing",
+                      duration: 2000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: theme.colors.primary,
+                        borderRadius: 28,
+                        marginBottom: 16,
+                      },
+                    ]}
+                  />
+                  <IconCircle>
+                    <ShieldCheckIcon color={theme.colors.success || "#4CAF50"} width={32} height={32} />
+                  </IconCircle>
+                </View>
+                <Title>Verify you saved it correctly</Title>
+                <Subtitle>
+                  Tap the words in the correct order to verify you saved your secret
+                  recovery phrase.
+                </Subtitle>
+              </HeaderSection>
+            </MotiView>
 
-          <SelectedCard>
-            <SelectedLabel>
-              {selectedWords.length > 0
-                ? `Selected (${selectedWords.length}/12)`
-                : "Tap words below to select"}
-            </SelectedLabel>
-            <SelectedWordsRow>
-              {selectedWords.map((word, index) => (
-                <Bubble
-                  smallBubble
-                  hideDetails
-                  key={`sel-${index}`}
-                  word={word}
-                  number={index + 1}
-                  onPress={() => handleRemoveSelectedWord(word)}
-                />
-              ))}
-            </SelectedWordsRow>
-          </SelectedCard>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 400 }}
+              style={{ width: "100%" }}
+            >
+              <SelectedCard>
+                <SelectedLabel>
+                  {selectedWords.length > 0
+                    ? `Selected (${selectedWords.length}/12)`
+                    : "Tap words below to select"}
+                </SelectedLabel>
+                <SelectedWordsRow>
+                  {selectedWords.map((word, index) => (
+                    <MotiView
+                      key={`sel-${index}`}
+                      from={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "timing", duration: 300 }}
+                    >
+                      <Bubble
+                        smallBubble
+                        hideDetails
+                        word={word}
+                        number={index + 1}
+                        onPress={() => handleRemoveSelectedWord(word)}
+                      />
+                    </MotiView>
+                  ))}
+                </SelectedWordsRow>
+              </SelectedCard>
+            </MotiView>
 
-          <PasteButton onPress={fetchCopiedText}>
-            <PasteIcon fill={theme.colors.primary} width={18} height={18} />
-            <PasteButtonText>Paste Phrase</PasteButtonText>
-          </PasteButton>
+            <MotiView
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: "timing", duration: 600, delay: 600 }}
+              style={{ width: "100%" }}
+            >
+              <PasteButton onPress={fetchCopiedText}>
+                <PasteIcon fill={theme.colors.primary} width={18} height={18} />
+                <PasteButtonText>Paste Phrase</PasteButtonText>
+              </PasteButton>
+            </MotiView>
 
-          <WordBankCard>
-            <WordBankLabel>Word Bank</WordBankLabel>
-            <WordBankRow>
-              {seedPhrase.map((word, index) => (
-                <Bubble
-                  onPress={() => handleSelectedWord(word)}
-                  smallBubble
-                  hideDetails
-                  key={`bank-${index}`}
-                  word={word}
-                  number={index + 1}
-                />
-              ))}
-            </WordBankRow>
-          </WordBankCard>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 800 }}
+              style={{ width: "100%", flex: 1 }}
+            >
+              <WordBankCard>
+                <WordBankLabel>Word Bank</WordBankLabel>
+                <WordBankRow>
+                  {seedPhrase.map((word, index) => (
+                    <MotiView
+                      key={`bank-${index}`}
+                      from={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: "timing", duration: 300, delay: 1000 + index * 30 }}
+                    >
+                      <Bubble
+                        onPress={() => handleSelectedWord(word)}
+                        smallBubble
+                        hideDetails
+                        word={word}
+                        number={index + 1}
+                      />
+                    </MotiView>
+                  ))}
+                </WordBankRow>
+              </WordBankCard>
+            </MotiView>
 
-          {error && (
-            <ErrorContainer>
-              <ErrorText>{error}</ErrorText>
-            </ErrorContainer>
-          )}
-        </ContentContainer>
-      </ScrollView>
+            {error && (
+              <MotiView
+                from={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                style={{ width: "100%" }}
+              >
+                <ErrorContainer>
+                  <ErrorText>{error}</ErrorText>
+                </ErrorContainer>
+              </MotiView>
+            )}
+          </ContentContainer>
+        </ScrollView>
 
-      <ButtonContainer>
-        <Button
-          color={theme.colors.white}
-          backgroundColor={theme.colors.primary}
-          onPress={handleVerifySeedPhrase}
-          title="Verify seed phrase"
-        />
-      </ButtonContainer>
-    </SafeAreaContainer>
+        <MotiView
+          from={{ opacity: 0, translateY: 40 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 600, delay: 1200 }}
+        >
+          <ButtonContainer>
+            <Button
+              color={theme.colors.white}
+              backgroundColor={theme.colors.primary}
+              onPress={handleVerifySeedPhrase}
+              title="Verify seed phrase"
+            />
+          </ButtonContainer>
+        </MotiView>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 }

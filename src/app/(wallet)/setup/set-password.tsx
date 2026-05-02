@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, View } from "react-native";
+import { Alert, View, TextInput, Keyboard, StyleSheet } from "react-native";
 import styled, { useTheme } from "styled-components/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch } from "react-redux";
@@ -9,6 +9,7 @@ import { setWalletPassword } from "../../../store/biometricsSlice";
 import { ROUTES } from "../../../constants/routes";
 import { LinearGradientBackground } from "../../(app)/_layout";
 import Button from "../../../components/Button/Button";
+import { MotiView } from "moti";
 
 /* ---------------- STYLES ---------------- */
 
@@ -105,6 +106,7 @@ const StrengthText = styled.Text<{ theme: ThemeType }>`
 
 const ButtonWrapper = styled.View<{ theme: ThemeType }>`
   margin-top: 8px;
+  width: 100%;
 `;
 
 /* ---------------- SCREEN ---------------- */
@@ -115,6 +117,8 @@ export default function SetPasswordScreen() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isFocused1, setFocused1] = useState(false);
+  const [isFocused2, setFocused2] = useState(false);
 
   const getStrength = (pass: string) => {
     if (pass.length === 0) return 0;
@@ -124,7 +128,6 @@ export default function SetPasswordScreen() {
   };
 
   const strength = getStrength(password);
-
   const strengthLabel = ["", "Weak", "Medium", "Strong"][strength];
 
   const handleSetPassword = async () => {
@@ -145,7 +148,6 @@ export default function SetPasswordScreen() {
 
     try {
       await dispatch(setWalletPassword(password));
-      // Route to biometric setup (not unlock — wallet is already unlocked at this point)
       router.replace(ROUTES.biometrics);
     } catch (e: any) {
       Alert.alert("Error", e);
@@ -156,58 +158,127 @@ export default function SetPasswordScreen() {
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <Container>
         <Card>
-          <IconCircle>
-            <LockIcon>🔐</LockIcon>
-          </IconCircle>
+          <MotiView
+            from={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", damping: 12, delay: 200 }}
+          >
+            <IconCircle>
+              <LockIcon>🔐</LockIcon>
+            </IconCircle>
+          </MotiView>
 
-          <Title>Secure Your Wallet</Title>
-          <Subtitle>
-            Create a password to protect your wallet. You’ll need this password
-            to unlock your wallet.
-          </Subtitle>
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 400 }}
+          >
+            <Title>Secure Your Wallet</Title>
+            <Subtitle>
+              Create a password to protect your wallet. You’ll need this password
+              to unlock your wallet.
+            </Subtitle>
+          </MotiView>
 
-          <InputWrapper>
-            <InputIcon>🔑</InputIcon>
-            <Input
-              secureTextEntry
-              placeholder="Enter password"
-              placeholderTextColor={theme.colors.lightGrey}
-              value={password}
-              onChangeText={setPassword}
-            />
-          </InputWrapper>
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 600 }}
+          >
+            <MotiView
+              animate={{
+                borderColor: isFocused1 ? theme.colors.primary : theme.colors.border,
+                borderWidth: isFocused1 ? 2 : 1,
+                backgroundColor: isFocused1 ? "rgba(240, 185, 11, 0.05)" : theme.colors.dark,
+              }}
+              transition={{ type: "timing", duration: 200 }}
+              style={localStyles.inputWrapper}
+            >
+              <InputIcon>🔑</InputIcon>
+              <TextInput
+                style={localStyles.input}
+                secureTextEntry
+                placeholder="Enter password"
+                placeholderTextColor={theme.colors.lightGrey}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setFocused1(true)}
+                onBlur={() => setFocused1(false)}
+              />
+            </MotiView>
 
-          {password.length > 0 && (
-            <>
-              <StrengthContainer>
-                <StrengthBar active={strength >= 1} />
-                <StrengthBar active={strength >= 2} />
-                <StrengthBar active={strength >= 3} />
-              </StrengthContainer>
-              <StrengthText>{strengthLabel}</StrengthText>
-            </>
-          )}
+            {password.length > 0 && (
+              <MotiView
+                from={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                style={{ marginBottom: 16 }}
+              >
+                <StrengthContainer>
+                  <StrengthBar active={strength >= 1} theme={theme} />
+                  <StrengthBar active={strength >= 2} theme={theme} />
+                  <StrengthBar active={strength >= 3} theme={theme} />
+                </StrengthContainer>
+                <StrengthText>{strengthLabel}</StrengthText>
+              </MotiView>
+            )}
 
-          <InputWrapper>
-            <InputIcon>🔑</InputIcon>
-            <Input
-              secureTextEntry
-              placeholder="Confirm password"
-              placeholderTextColor={theme.colors.lightGrey}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-          </InputWrapper>
+            <MotiView
+              animate={{
+                borderColor: isFocused2 ? theme.colors.primary : theme.colors.border,
+                borderWidth: isFocused2 ? 2 : 1,
+                backgroundColor: isFocused2 ? "rgba(240, 185, 11, 0.05)" : theme.colors.dark,
+              }}
+              transition={{ type: "timing", duration: 200 }}
+              style={localStyles.inputWrapper}
+            >
+              <InputIcon>🔑</InputIcon>
+              <TextInput
+                style={localStyles.input}
+                secureTextEntry
+                placeholder="Confirm password"
+                placeholderTextColor={theme.colors.lightGrey}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                onFocus={() => setFocused2(true)}
+                onBlur={() => setFocused2(false)}
+              />
+            </MotiView>
+          </MotiView>
 
-          <ButtonWrapper>
-            <Button
-              title="Set Password"
-              linearGradient={theme.colors.primaryLinearGradient}
-              onPress={handleSetPassword}
-            />
-          </ButtonWrapper>
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 800 }}
+          >
+            <ButtonWrapper>
+              <Button
+                title="Set Password"
+                backgroundColor={theme.colors.primary}
+                color={theme.colors.white}
+                onPress={handleSetPassword}
+              />
+            </ButtonWrapper>
+          </MotiView>
         </Card>
       </Container>
     </LinearGradientBackground>
   );
 }
+
+const localStyles = StyleSheet.create({
+  inputWrapper: {
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 54,
+  },
+  input: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontFamily: "OpenSans-Regular",
+    fontSize: 16,
+    height: 54,
+  }
+});

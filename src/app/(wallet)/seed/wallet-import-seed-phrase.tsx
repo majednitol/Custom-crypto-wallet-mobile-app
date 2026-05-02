@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { Dimensions, Keyboard, ScrollView, Platform } from "react-native";
+import { Dimensions, Keyboard, ScrollView, Platform, StyleSheet, View, Text, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native";
 import { router } from "expo-router";
 import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components/native";
 import { useTheme } from "styled-components/native";
-// import ethService from "../../../services/EthereumService";
 import solanaService from "../../../services/SolanaService";
 import { ThemeType } from "../../../styles/theme";
 import {
@@ -30,6 +29,8 @@ import {
   ErrorTextContainer,
 } from "../../../components/Styles/Errors.styles";
 import { evmServices } from "../../../services/EthereumService";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 interface SeedTextInputProps {
   theme: ThemeType;
@@ -40,7 +41,6 @@ const isAndroid = Platform.OS === "android";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
-  background-color: ${(props) => props.theme.colors.lightDark};
   justify-content: center;
   align-items: center;
 `;
@@ -84,8 +84,8 @@ const InfoContainer = styled.View<{ theme: ThemeType }>`
   justify-content: center;
   flex-direction: column;
   align-items: center;
-  background-color: rgba(136, 120, 244, 0.3);
-  border: 2px solid rgba(136, 120, 244, 0.6);
+  background-color: rgba(240, 185, 11, 0.1);
+  border: 1px solid rgba(240, 185, 11, 0.3);
   border-radius: ${(props) => props.theme.borderRadius.large};
   padding: ${(props) => props.theme.spacing.large};
   margin-bottom: ${(props) => props.theme.spacing.large};
@@ -94,14 +94,14 @@ const InfoContainer = styled.View<{ theme: ThemeType }>`
 const InfoTitle = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.large};
-  color: ${(props) => props.theme.colors.white};
+  color: ${(props) => props.theme.colors.primary};
   margin-bottom: 5px;
 `;
 
 const InfoText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openRegular};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.colors.white};
+  color: ${(props) => props.theme.colors.lightGrey};
 `;
 
 const captionsArr: string[] = [
@@ -247,55 +247,115 @@ const activeChainId = useSelector(
   };
 
   return (
-    <SafeAreaContainer>
-      <ScrollView contentContainerStyle={{ paddingVertical: 50 }}>
-        <ContentContainer>
-          <TextContainer>
-            <Title>Secret Recovery Phrase</Title>
-            <Subtitle>
-              Start the process to restore your wallet by entering your 12 or
-              24-word recovery phrase below.
-            </Subtitle>
-          </TextContainer>
-          <SeedTextInput
-            isInputFocused={isInputFocused}
-            autoCapitalize="none"
-            multiline
-            returnKeyType="done"
-            value={textValue}
-            readOnly={false}
-            onChangeText={setTextValue}
-            placeholder="Enter your seed phrase"
-            placeholderTextColor={theme.colors.grey}
-            onFocus={() => setInputFocused(true)}
-            onEndEditing={() => setInputFocused(false)}
-            blurOnSubmit
-            onSubmitEditing={() => Keyboard.dismiss()}
-          />
-        </ContentContainer>
-      </ScrollView>
-      {error && (
-        <ErrorTextContainer>
-          <ErrorTextCenter>{error}</ErrorTextCenter>
-        </ErrorTextContainer>
-      )}
-      <ButtonContainer>
-        {title !== "" && captions !== "" && (
-          <InfoContainer>
-            <InfoTitle>{title}</InfoTitle>
-            <InfoText>{captions}</InfoText>
-          </InfoContainer>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ScrollView 
+          contentContainerStyle={{ paddingVertical: 50, width: Dimensions.get("window").width }}
+          showsVerticalScrollIndicator={false}
+        >
+          <ContentContainer>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 200 }}
+              style={{ width: "100%" }}
+            >
+              <TextContainer>
+                <Title>Secret Recovery Phrase</Title>
+                <Subtitle>
+                  Start the process to restore your wallet by entering your 12 or
+                  24-word recovery phrase below.
+                </Subtitle>
+              </TextContainer>
+            </MotiView>
+
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 400 }}
+              style={{ width: "100%" }}
+            >
+              <MotiView
+                animate={{
+                  borderColor: isInputFocused ? theme.colors.primary : theme.colors.border,
+                  borderWidth: isInputFocused ? 2 : 1,
+                  backgroundColor: isInputFocused ? "rgba(240, 185, 11, 0.05)" : theme.colors.dark,
+                }}
+                transition={{ type: "timing", duration: 200 }}
+                style={localStyles.inputWrapper}
+              >
+                <TextInput
+                  style={localStyles.input}
+                  autoCapitalize="none"
+                  multiline
+                  returnKeyType="done"
+                  value={textValue}
+                  onChangeText={setTextValue}
+                  placeholder="Enter your seed phrase"
+                  placeholderTextColor={theme.colors.grey}
+                  onFocus={() => setInputFocused(true)}
+                  onBlur={() => setInputFocused(false)}
+                  blurOnSubmit
+                  onSubmitEditing={() => Keyboard.dismiss()}
+                />
+              </MotiView>
+            </MotiView>
+          </ContentContainer>
+        </ScrollView>
+
+        {error && (
+          <MotiView
+            from={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            style={{ width: "100%" }}
+          >
+            <ErrorTextContainer>
+              <ErrorTextCenter>{error}</ErrorTextCenter>
+            </ErrorTextContainer>
+          </MotiView>
         )}
-        <Button
-          linearGradient={theme.colors.primaryLinearGradient}
-          loading={loading}
-          disabled={loading}
-          color={theme.colors.white}
-          backgroundColor={theme.colors.primary}
-          onPress={handleVerifySeedPhrase}
-          title="Verify seed phrase"
-        />
-      </ButtonContainer>
-    </SafeAreaContainer>
+
+        <MotiView
+          from={{ opacity: 0, translateY: 40 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 600, delay: 600 }}
+          style={{ width: "100%" }}
+        >
+          <ButtonContainer>
+            {title !== "" && captions !== "" && (
+              <InfoContainer>
+                <InfoTitle>{title}</InfoTitle>
+                <InfoText>{captions}</InfoText>
+              </InfoContainer>
+            )}
+            <Button
+              backgroundColor={theme.colors.primary}
+              color={theme.colors.black}
+              loading={loading}
+              disabled={loading}
+              onPress={handleVerifySeedPhrase}
+              title="Verify seed phrase"
+            />
+          </ButtonContainer>
+        </MotiView>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 }
+
+const localStyles = StyleSheet.create({
+  inputWrapper: {
+    borderRadius: 24,
+    padding: 20,
+    width: "100%",
+    minHeight: 150,
+    justifyContent: "flex-start",
+  },
+  input: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontFamily: "OpenSans-Regular",
+    fontSize: 18,
+    textAlignVertical: "top",
+  }
+});

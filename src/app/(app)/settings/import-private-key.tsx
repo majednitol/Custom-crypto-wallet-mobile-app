@@ -38,6 +38,8 @@ import {
   storeImportedEvmKey,
   storeImportedSolKey,
 } from "../../../utils/importedKeyStorage";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -276,72 +278,105 @@ export default function ImportPrivateKeyScreen() {
   };
 
   return (
-    <SafeAreaContainer>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={{ flex: 1 }}>
-            <ContentContainer>
-              <HeaderTitle>Import Private Key</HeaderTitle>
-
-              <WarningBox theme={theme}>
-                <WarningText theme={theme}>
-                  ⚠️ Warning: Importing a private key gives this wallet full
-                  control over that account. Never share your private keys with
-                  anyone.
-                </WarningText>
-              </WarningBox>
-
-              <Label theme={theme}>Select Chain</Label>
-              <ChainSelector>
-                <ChainButton
-                  theme={theme}
-                  isActive={selectedChain === "evm"}
-                  onPress={() => setSelectedChain("evm")}
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={{ flex: 1 }}>
+              <ContentContainer>
+                <MotiView
+                  from={{ opacity: 0, translateY: -20 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", duration: 600 }}
                 >
-                  <ChainButtonText theme={theme} isActive={selectedChain === "evm"}>
-                    Ethereum / EVM
-                  </ChainButtonText>
-                </ChainButton>
-                <ChainButton
-                  theme={theme}
-                  isActive={selectedChain === "sol"}
-                  onPress={() => setSelectedChain("sol")}
+                  <HeaderTitle>Import Private Key</HeaderTitle>
+                </MotiView>
+
+                <MotiView
+                  from={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "timing", duration: 600, delay: 200 }}
                 >
-                  <ChainButtonText theme={theme} isActive={selectedChain === "sol"}>
-                    Solana
-                  </ChainButtonText>
-                </ChainButton>
-              </ChainSelector>
+                  <WarningBox theme={theme}>
+                    <WarningText theme={theme}>
+                      ⚠️ Warning: Importing a private key gives this wallet full
+                      control over that account. Never share your private keys with
+                      anyone.
+                    </WarningText>
+                  </WarningBox>
+                </MotiView>
 
-              <Label theme={theme}>
-                Private Key ({selectedChain === "evm" ? "0x..." : "hex or base58"})
-              </Label>
-              <Input
-                theme={theme}
-                multiline
-                placeholder="Paste your private key here..."
-                placeholderTextColor={theme.colors.lightGrey}
-                value={privateKey}
-                onChangeText={setPrivateKey}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </ContentContainer>
+                <MotiView
+                  from={{ opacity: 0, translateY: 20 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 400 }}
+                >
+                  <Label theme={theme}>Select Chain</Label>
+                  <ChainSelector>
+                    <ChainButton
+                      theme={theme}
+                      isActive={selectedChain === "evm"}
+                      onPress={() => setSelectedChain("evm")}
+                    >
+                      <ChainButtonText theme={theme} isActive={selectedChain === "evm"}>
+                        Ethereum / EVM
+                      </ChainButtonText>
+                    </ChainButton>
+                    <ChainButton
+                      theme={theme}
+                      isActive={selectedChain === "sol"}
+                      onPress={() => setSelectedChain("sol")}
+                    >
+                      <ChainButtonText theme={theme} isActive={selectedChain === "sol"}>
+                        Solana
+                      </ChainButtonText>
+                    </ChainButton>
+                  </ChainSelector>
+                </MotiView>
 
-            <BottomContainer theme={theme}>
-              <Button
-                title="Import Account"
-                onPress={handleImport}
-                loading={isLoading}
-                backgroundColor={theme.colors.primary}
-              />
-            </BottomContainer>
-          </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaContainer>
+                <MotiView
+                  from={{ opacity: 0, translateY: 20 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 600 }}
+                >
+                  <Label theme={theme}>
+                    Private Key ({selectedChain === "evm" ? "0x..." : "hex or base58"})
+                  </Label>
+                  <Input
+                    theme={theme}
+                    multiline
+                    placeholder="Paste your private key here..."
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={privateKey}
+                    onChangeText={setPrivateKey}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </MotiView>
+              </ContentContainer>
+
+              <MotiView
+                from={{ opacity: 0, translateY: 40 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: "timing", duration: 600, delay: 800 }}
+              >
+                <BottomContainer theme={theme}>
+                  <Button
+                    title="Import Account"
+                    onPress={handleImport}
+                    loading={isLoading}
+                    backgroundColor={theme.colors.primary}
+                    color={theme.colors.white}
+                  />
+                </BottomContainer>
+              </MotiView>
+            </View>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 }

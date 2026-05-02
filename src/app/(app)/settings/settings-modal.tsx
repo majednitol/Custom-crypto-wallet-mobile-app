@@ -9,7 +9,9 @@ import { EvmWallet } from "../../../components/EvmWallet";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { authenticateBiometric, saveBiometricPreference } from "../../../store/biometricsSlice";
-import { Switch, Alert } from "react-native";
+import { Switch, Alert, View } from "react-native";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 const ScrollContainer = styled.ScrollView`
   flex: 1;
@@ -127,81 +129,112 @@ const SettingsIndex = () => {
   };
 
   return (
-    <SafeAreaContainer>
-      <ScrollContainer showsVerticalScrollIndicator={false}>
-        <ContentContainer>
-          <HeaderTitle>Settings</HeaderTitle>
-
-          <SettingsGroup>
-            <GroupTitle>Security</GroupTitle>
-            <OptionCard
-              activeOpacity={0.7}
-              onPress={() => handleToggleBiometrics(!bioEnabled)}
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ScrollContainer showsVerticalScrollIndicator={false}>
+          <ContentContainer>
+            <MotiView
+              from={{ opacity: 0, translateY: -20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600 }}
             >
-              <OptionLeft>
-                <IconCircle>
-                  <FingerprintIcon width={20} height={20} fill={theme.colors.primary} />
-                </IconCircle>
-                <View>
-                  <OptionText>Enable FaceID / TouchID</OptionText>
-                  <OptionSubtext>
-                    {bioEnabled ? "Biometric authentication is on" : "Use biometrics to unlock"}
-                  </OptionSubtext>
-                </View>
-              </OptionLeft>
-              <Switch
-                value={bioEnabled}
-                onValueChange={handleToggleBiometrics}
-                thumbColor={bioEnabled ? theme.colors.primary : theme.colors.lightGrey}
-                trackColor={{ false: theme.colors.grey, true: theme.colors.primaryLight }}
-              />
-            </OptionCard>
-          </SettingsGroup>
+              <HeaderTitle>Settings</HeaderTitle>
+            </MotiView>
 
-          <SettingsGroup>
-            <GroupTitle>Accounts</GroupTitle>
-            <OptionCard
-              activeOpacity={0.7}
-              onPress={() => router.push("/(app)/settings/import-private-key")}
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 200 }}
             >
-              <OptionLeft>
-                <IconCircle>
-                  <ImportIcon width={20} height={20} fill={theme.colors.primary} />
-                </IconCircle>
-                <View>
-                  <OptionText>Import Private Key</OptionText>
-                  <OptionSubtext>Import an existing account</OptionSubtext>
-                </View>
-              </OptionLeft>
-            </OptionCard>
-          </SettingsGroup>
+              <SettingsGroup>
+                <GroupTitle>Security</GroupTitle>
+                <OptionCard
+                  activeOpacity={0.7}
+                  onPress={() => handleToggleBiometrics(!bioEnabled)}
+                >
+                  <OptionLeft>
+                    <IconCircle>
+                      <FingerprintIcon width={20} height={20} fill={theme.colors.primary} />
+                    </IconCircle>
+                    <View>
+                      <OptionText>Enable FaceID / TouchID</OptionText>
+                      <OptionSubtext>
+                        {bioEnabled ? "Biometric authentication is on" : "Use biometrics to unlock"}
+                      </OptionSubtext>
+                    </View>
+                  </OptionLeft>
+                  <Switch
+                    value={bioEnabled}
+                    onValueChange={handleToggleBiometrics}
+                    thumbColor={bioEnabled ? theme.colors.primary : theme.colors.lightGrey}
+                    trackColor={{ false: theme.colors.grey, true: theme.colors.primaryLight }}
+                  />
+                </OptionCard>
+              </SettingsGroup>
+            </MotiView>
 
-          <SettingsGroup>
-            <GroupTitle>Networks</GroupTitle>
-            <EvmWallet />
-          </SettingsGroup>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 400 }}
+            >
+              <SettingsGroup>
+                <GroupTitle>Accounts</GroupTitle>
+                <OptionCard
+                  activeOpacity={0.7}
+                  onPress={() => router.push("/(app)/settings/import-private-key")}
+                >
+                  <OptionLeft>
+                    <IconCircle>
+                      <ImportIcon width={20} height={20} fill={theme.colors.primary} />
+                    </IconCircle>
+                    <View>
+                      <OptionText>Import Private Key</OptionText>
+                      <OptionSubtext>Import an existing account</OptionSubtext>
+                    </View>
+                  </OptionLeft>
+                </OptionCard>
+              </SettingsGroup>
+            </MotiView>
 
-          <SettingsGroup>
-            <GroupTitle>Data</GroupTitle>
-            <OptionCard danger activeOpacity={0.7} onPress={clearWallets}>
-              <OptionLeft>
-                <IconCircle danger>
-                  <TrashIcon width={20} height={20} fill={theme.colors.error} />
-                </IconCircle>
-                <View>
-                  <OptionText danger>Clear Wallets</OptionText>
-                  <OptionSubtext>Remove all wallets and reset app</OptionSubtext>
-                </View>
-              </OptionLeft>
-            </OptionCard>
-          </SettingsGroup>
-        </ContentContainer>
-      </ScrollContainer>
-    </SafeAreaContainer>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 600 }}
+            >
+              <SettingsGroup>
+                <GroupTitle>Networks</GroupTitle>
+                <EvmWallet />
+              </SettingsGroup>
+            </MotiView>
+
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 800 }}
+            >
+              <SettingsGroup>
+                <GroupTitle>Data</GroupTitle>
+                <OptionCard danger activeOpacity={0.7} onPress={clearWallets}>
+                  <OptionLeft>
+                    <IconCircle danger>
+                      <TrashIcon width={20} height={20} fill={theme.colors.error} />
+                    </IconCircle>
+                    <View>
+                      <OptionText danger>Clear Wallets</OptionText>
+                      <OptionSubtext>Remove all wallets and reset app</OptionSubtext>
+                    </View>
+                  </OptionLeft>
+                </OptionCard>
+              </SettingsGroup>
+            </MotiView>
+          </ContentContainer>
+        </ScrollContainer>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 };
 
-const View = styled.View``;
 
 import FingerprintIcon from "../../../assets/svg/edit.svg";
 import TrashIcon from "../../../assets/svg/clear.svg";

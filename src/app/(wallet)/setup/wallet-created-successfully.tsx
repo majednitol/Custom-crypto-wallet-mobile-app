@@ -7,6 +7,8 @@ import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 import { ThemeType } from "../../../styles/theme";
 import { ROUTES } from "../../../constants/routes";
 import CheckMark from "../../../assets/svg/check-mark.svg";
+import ShieldCheckIcon from "../../../assets/svg/shield-check.svg";
+import { MotiView } from "moti";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
@@ -25,18 +27,20 @@ const HeroSection = styled.View`
   margin-bottom: 32px;
 `;
 
-const SuccessCircle = styled.View<{ theme: ThemeType }>`
+const HaloContainer = styled.View`
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+`;
+
+const SuccessCircleBase = styled.View<{ theme: ThemeType }>`
   width: 100px;
   height: 100px;
   border-radius: 50px;
-  background-color: rgba(240, 185, 11, 0.15);
+  background-color: ${(props) => props.theme.colors.primary};
   justify-content: center;
   align-items: center;
-  margin-bottom: 28px;
-`;
-
-const SuccessIcon = styled.Text`
-  font-size: 44px;
+  z-index: 2;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
@@ -88,23 +92,75 @@ export default function WalletCreationSuccessPage() {
       <SafeAreaContainer>
         <ContentContainer>
           <HeroSection>
-            <SuccessCircle>
-              <SuccessIcon>🎉</SuccessIcon>
-            </SuccessCircle>
-            <Title>{title}</Title>
-            <Subtitle>{subtitle}</Subtitle>
+            <HaloContainer>
+              {/* Outer pulsing halo */}
+              <MotiView
+                from={{ scale: 1, opacity: 0.3 }}
+                animate={{ scale: 1.5, opacity: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 2000,
+                  loop: true,
+                  repeatReverse: false,
+                }}
+                style={{
+                  position: "absolute",
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: theme.colors.primary,
+                }}
+              />
+              <MotiView
+                from={{ scale: 1, opacity: 0.5 }}
+                animate={{ scale: 1.2, opacity: 0 }}
+                transition={{
+                  type: "timing",
+                  duration: 2000,
+                  loop: true,
+                  repeatReverse: false,
+                  delay: 500,
+                }}
+                style={{
+                  position: "absolute",
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: theme.colors.primary,
+                }}
+              />
+              <SuccessCircleBase>
+                <ShieldCheckIcon color={theme.colors.white} width={48} height={48} />
+              </SuccessCircleBase>
+            </HaloContainer>
+
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 800, delay: 300 }}
+              style={{ alignItems: "center" }}
+            >
+              <Title>{title}</Title>
+              <Subtitle>{subtitle}</Subtitle>
+            </MotiView>
           </HeroSection>
         </ContentContainer>
-        <ButtonContainer>
-          <Button
-            linearGradient={theme.colors.secondaryLinearGradient}
-            onPress={() => router.push(ROUTES.setPassword)}
-            title="Continue to wallet"
-            icon={
-              <CheckMark width={25} height={25} fill={theme.colors.white} />
-            }
-          />
-        </ButtonContainer>
+
+        <MotiView
+          from={{ opacity: 0, translateY: 40 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 800, delay: 600 }}
+        >
+          <ButtonContainer>
+            <Button
+              backgroundColor={theme.colors.primary}
+              color={theme.colors.white}
+              onPress={() => router.push(ROUTES.setPassword)}
+              title="Continue to wallet"
+              icon={<CheckMark width={20} height={20} fill={theme.colors.white} />}
+            />
+          </ButtonContainer>
+        </MotiView>
       </SafeAreaContainer>
     </LinearGradientBackground>
   );

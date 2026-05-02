@@ -13,6 +13,8 @@ import {
   ErrorText,
   ErrorTextContainer,
 } from "../../../components/Styles/Errors.styles";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -84,32 +86,42 @@ const ethereumAccount = useSelector((state: RootState) => {
   };
 
   return (
-    <>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaContainer>
-        
         <ContentContainer>
-          <AccountInput
-            isWalletNameFocused={isWalletNameFocused}
-            autoCapitalize="none"
-            multiline
-            returnKeyType="done"
-            value={accountNameValue}
-            readOnly={false}
-            onChangeText={setAccountNameValue}
-            placeholderTextColor={theme.colors.grey}
-            blurOnSubmit
-            onFocus={() => setWalletNameFocused(true)}
-            onEndEditing={() => setWalletNameFocused(false)}
-            onSubmitEditing={() => handleNameChange()}
-          />
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 200 }}
+          >
+            <AccountInput
+              isWalletNameFocused={isWalletNameFocused}
+              autoCapitalize="none"
+              multiline
+              returnKeyType="done"
+              value={accountNameValue}
+              readOnly={false}
+              onChangeText={setAccountNameValue}
+              placeholderTextColor={theme.colors.grey}
+              blurOnSubmit
+              onFocus={() => setWalletNameFocused(true)}
+              onEndEditing={() => setWalletNameFocused(false)}
+              onSubmitEditing={() => handleNameChange()}
+            />
+          </MotiView>
           {errorText && (
-            <ErrorTextContainer>
-              <ErrorText>{errorText}</ErrorText>
-            </ErrorTextContainer>
+            <MotiView
+              from={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+            >
+              <ErrorTextContainer>
+                <ErrorText>{errorText}</ErrorText>
+              </ErrorTextContainer>
+            </MotiView>
           )}
         </ContentContainer>
       </SafeAreaContainer>
-    </>
+    </LinearGradientBackground>
   );
 };
 

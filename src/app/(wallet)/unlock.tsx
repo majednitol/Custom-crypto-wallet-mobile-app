@@ -14,6 +14,10 @@ import {
 import { LinearGradientBackground } from "../(app)/_layout";
 import Button from "../../components/Button/Button";
 import { ROUTES } from "../../constants/routes";
+import { MotiView, AnimatePresence } from "moti";
+import LockIcon from "../../assets/svg/lock.svg";
+import KeyIcon from "../../assets/svg/key.svg";
+import FingerprintIcon from "../../assets/svg/fingerprint.svg";
 
 export default function UnlockScreen() {
   const theme = useTheme() as ThemeType;
@@ -62,24 +66,42 @@ export default function UnlockScreen() {
     setShowPasswordInput(true);
   }, [dispatch]);
 
+  const [isFocused, setIsFocused] = useState(false);
+
   const isBioLoading = status === "loading";
   const showBiometricUI = biometricPreference && biometricAvailable;
 
   return (
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaView style={styles.container}>
-        <View style={styles.card}>
+        <MotiView
+          from={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "timing", duration: 600 }}
+          style={styles.card}
+        >
           {/* Lock icon */}
-          <View style={styles.iconCircle}>
-            <Text style={styles.lockIcon}>🔒</Text>
-          </View>
+          <MotiView
+            from={{ opacity: 0, translateY: -20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 200 }}
+            style={styles.iconCircle}
+          >
+            <LockIcon color={theme.colors.primary} width={32} height={32} />
+          </MotiView>
 
-          <Text style={styles.title}>Unlock Wallet</Text>
-          <Text style={styles.subtitle}>
-            {showBiometricUI && !showPasswordInput
-              ? "Use biometrics to access your wallet quickly."
-              : "Enter your password to access your wallet."}
-          </Text>
+          <MotiView
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 300 }}
+          >
+            <Text style={styles.title}>Unlock Wallet</Text>
+            <Text style={styles.subtitle}>
+              {showBiometricUI && !showPasswordInput
+                ? "Use biometrics to access your wallet quickly."
+                : "Enter your password to access your wallet."}
+            </Text>
+          </MotiView>
 
           {/* Biometric loading state */}
           {isBioLoading && (
@@ -91,17 +113,38 @@ export default function UnlockScreen() {
 
           {/* Error message */}
           {errorMessage && !isBioLoading ? (
-            <View style={styles.errorContainer}>
+            <MotiView
+              from={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              style={styles.errorContainer}
+            >
               <View style={styles.errorDot} />
               <Text style={styles.errorText}>{errorMessage}</Text>
-            </View>
+            </MotiView>
           ) : null}
 
-          {/* Password input — shown when user clicks "Use password" or bio unavailable */}
+          {/* Password input */}
           {showPasswordInput && (
-            <>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.inputIcon}>🔑</Text>
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 400 }}
+            >
+              <MotiView
+                animate={{
+                  borderColor: isFocused ? theme.colors.primary : theme.colors.border,
+                  borderWidth: isFocused ? 2 : 1,
+                  backgroundColor: isFocused ? "rgba(240, 185, 11, 0.05)" : theme.colors.dark,
+                }}
+                transition={{ type: "timing", duration: 200 }}
+                style={styles.inputWrapper}
+              >
+                <KeyIcon 
+                  color={isFocused ? theme.colors.primary : theme.colors.lightGrey} 
+                  width={20} 
+                  height={20} 
+                  style={{ marginRight: 12 }} 
+                />
                 <TextInput
                   style={styles.input}
                   secureTextEntry
@@ -110,43 +153,58 @@ export default function UnlockScreen() {
                   value={password}
                   onChangeText={setPassword}
                   autoFocus={!showBiometricUI}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   onSubmitEditing={handlePasswordUnlock}
                   returnKeyType="done"
                 />
-              </View>
+              </MotiView>
 
               <View style={styles.buttonWrapper}>
                 <Button
                   title="Unlock"
-                  linearGradient={theme.colors.primaryLinearGradient}
+                  backgroundColor={theme.colors.primary}
+                  color={theme.colors.black}
                   onPress={handlePasswordUnlock}
                   loading={status === "loading"}
                 />
               </View>
-            </>
+            </MotiView>
           )}
 
-          {/* Biometric button — retry or initial trigger */}
+          {/* Biometric button */}
           {showBiometricUI && !isBioLoading && (
-            <TouchableOpacity
-              style={styles.bioButton}
-              onPress={handleBiometricRetry}
+            <MotiView
+              from={{ opacity: 0, translateY: 10 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 500 }}
             >
-              <Text style={styles.bioEmoji}>👆</Text>
-              <Text style={styles.bioText}>Use FaceID / TouchID</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.bioButton}
+                onPress={handleBiometricRetry}
+              >
+                <FingerprintIcon color={theme.colors.primary} width={24} height={24} />
+                <Text style={styles.bioText}>Use FaceID / TouchID</Text>
+              </TouchableOpacity>
+            </MotiView>
           )}
 
-          {/* "Use password instead" link — only when bio is primary */}
+          {/* Fallback button */}
           {showBiometricUI && !showPasswordInput && !isBioLoading && (
-            <TouchableOpacity
-              style={styles.fallbackButton}
-              onPress={handleShowPassword}
+            <MotiView
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: "timing", duration: 600, delay: 600 }}
             >
-              <Text style={styles.fallbackText}>Use password instead</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.fallbackButton}
+                onPress={handleShowPassword}
+              >
+                <Text style={styles.fallbackText}>Use password instead</Text>
+              </TouchableOpacity>
+            </MotiView>
           )}
-        </View>
+        </MotiView>
       </SafeAreaView>
     </LinearGradientBackground>
   );

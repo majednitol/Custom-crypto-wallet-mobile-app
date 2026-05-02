@@ -1,9 +1,15 @@
 import { router } from "expo-router";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import styled, { useTheme } from "styled-components/native";
 import { ThemeType } from "../../../styles/theme";
 import { ROUTES } from "../../../constants/routes";
 import ImportWalletIcon from "../../../assets/svg/import-wallet.svg";
+import LockIcon from "../../../assets/svg/lock.svg";
+import PhraseIcon from "../../../assets/svg/phrase.svg";
+import KeyIcon from "../../../assets/svg/key.svg";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -43,14 +49,6 @@ const IconCircleSecondary = styled.View<{ theme: ThemeType }>`
   justify-content: center;
   align-items: center;
   margin-horizontal: 8px;
-`;
-
-const Emoji = styled.Text`
-  font-size: 24px;
-`;
-
-const EmojiLarge = styled.Text`
-  font-size: 28px;
 `;
 
 const Title = styled.Text<{ theme: ThemeType }>`
@@ -115,49 +113,123 @@ const Circle = styled.View<{ theme: ThemeType }>`
   margin-right: ${(props) => props.theme.spacing.large};
 `;
 
-const InfoButton = () => {
+interface ImportOptionProps {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  onPress: () => void;
+  delay: number;
+}
+
+const ImportOption: React.FC<ImportOptionProps> = ({ title, subtitle, icon, onPress, delay }) => {
   const theme = useTheme();
   return (
-    <InfoButtonContainer
-      onPress={() => router.push(ROUTES.walletImportSeedPhrase)}
+    <MotiView
+      from={{ opacity: 0, translateX: -20 }}
+      animate={{ opacity: 1, translateX: 0 }}
+      transition={{ type: "timing", duration: 600, delay }}
+      style={{ width: "100%", marginBottom: 16 }}
     >
-      <Circle>
-        <ImportWalletIcon width={25} height={25} fill={theme.colors.primary} />
-      </Circle>
-      <InfoTextContainer>
-        <InfoButtonText>Import Secret Recovery Phrase</InfoButtonText>
-        <InfoText>Import an existing wallet</InfoText>
-      </InfoTextContainer>
-    </InfoButtonContainer>
+      <InfoButtonContainer onPress={onPress}>
+        <Circle>
+          {icon}
+        </Circle>
+        <InfoTextContainer>
+          <InfoButtonText>{title}</InfoButtonText>
+          <InfoText>{subtitle}</InfoText>
+        </InfoTextContainer>
+      </InfoButtonContainer>
+    </MotiView>
   );
 };
 
-export default function WalletSetup() {
+export default function WalletImportOptions() {
+  const theme = useTheme();
   return (
-    <SafeAreaContainer>
-      <ContentContainer>
-        <HeroSection>
-          <IconGrid>
-            <IconCircleSecondary>
-              <Emoji>📥</Emoji>
-            </IconCircleSecondary>
-            <IconCircle>
-              <EmojiLarge>🔐</EmojiLarge>
-            </IconCircle>
-            <IconCircleSecondary>
-              <Emoji>📝</Emoji>
-            </IconCircleSecondary>
-          </IconGrid>
-          <Title>Import a wallet</Title>
-          <Subtitle>
-            Import an existing wallet with your secret phrase or with your
-            private key
-          </Subtitle>
-        </HeroSection>
-      </ContentContainer>
-      <ButtonContainer>
-        <InfoButton />
-      </ButtonContainer>
-    </SafeAreaContainer>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaContainer>
+        <ContentContainer>
+          <HeroSection>
+            <MotiView
+              from={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 12, delay: 200 }}
+            >
+              <IconGrid>
+                <MotiView
+                  from={{ opacity: 0, translateX: -20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 400 }}
+                >
+                  <IconCircleSecondary>
+                    <ImportWalletIcon color={theme.colors.primary} width={24} height={24} fill={theme.colors.primary} />
+                  </IconCircleSecondary>
+                </MotiView>
+
+                <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
+                  <MotiView
+                    from={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.4, 1] }}
+                    transition={{
+                      type: "timing",
+                      duration: 2000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: theme.colors.primary,
+                        borderRadius: 32,
+                        marginHorizontal: 8,
+                      },
+                    ]}
+                  />
+                  <IconCircle>
+                    <LockIcon 
+                      color={theme.colors.primary} 
+                      width={32} 
+                      height={32} 
+                      fill={theme.colors.primary} 
+                    />
+                  </IconCircle>
+                </View>
+
+                <MotiView
+                  from={{ opacity: 0, translateX: 20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 400 }}
+                >
+                  <IconCircleSecondary>
+                    <PhraseIcon color={theme.colors.primary} width={24} height={24} fill={theme.colors.primary} />
+                  </IconCircleSecondary>
+                </MotiView>
+              </IconGrid>
+            </MotiView>
+
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 800, delay: 600 }}
+            >
+              <Title>Import a wallet</Title>
+              <Subtitle>
+                Import an existing wallet using your secret recovery phrase
+              </Subtitle>
+            </MotiView>
+          </HeroSection>
+        </ContentContainer>
+
+        <ButtonContainer>
+          <ImportOption 
+            title="Secret Recovery Phrase"
+            subtitle="Import an existing wallet"
+            icon={<PhraseIcon width={24} height={24} fill={theme.colors.primary} />}
+            onPress={() => router.push(ROUTES.walletImportSeedPhrase)}
+            delay={800}
+          />
+        </ButtonContainer>
+      </SafeAreaContainer>
+    </LinearGradientBackground>
   );
 }

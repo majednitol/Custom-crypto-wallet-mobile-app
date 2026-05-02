@@ -17,6 +17,8 @@ import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import { authenticateBiometric } from "../../../store/biometricsSlice";
 import { deriveEthPrivateKey, deriveSolPrivateKey } from "../../../utils/privateKeyUtils";
 import { getImportedEvmKey, getImportedSolKey } from "../../../utils/importedKeyStorage";
+import { MotiView } from "moti";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -44,45 +46,42 @@ const AccountSettingsContainer = styled.View<{ theme: ThemeType }>`
   margin-bottom: ${(props) => props.theme.spacing.medium};
 `;
 
-const AccountSection = styled.View<{
+const AccountSection = styled(MotiView)<{
   theme: ThemeType;
   isBottom?: boolean;
   isTop?: boolean;
 }>`
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  padding: ${(props) => props.theme.spacing.medium};
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  padding: 16px 20px;
   border-bottom-left-radius: ${({ theme, isBottom }) =>
-    isBottom ? theme.borderRadius.large : "0px"};
+    isBottom ? "16px" : "0px"};
   border-bottom-right-radius: ${({ theme, isBottom }) =>
-    isBottom ? theme.borderRadius.large : "0px"};
+    isBottom ? "16px" : "0px"};
   border-top-left-radius: ${({ theme, isTop }) =>
-    isTop ? theme.borderRadius.large : "0px"};
+    isTop ? "16px" : "0px"};
   border-top-right-radius: ${({ theme, isTop }) =>
-    isTop ? theme.borderRadius.large : "0px"};
-  padding-right: ${(props) => props.theme.spacing.large};
-  padding-left: ${(props) => props.theme.spacing.large};
-  border: 1px solid ${(props) => props.theme.colors.dark};
+    isTop ? "16px" : "0px"};
+  border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
-const CryptoSection = styled.View<{
+const CryptoSection = styled(MotiView)<{
   theme: ThemeType;
   isBottom?: boolean;
   isTop?: boolean;
 }>`
   flex-direction: row;
-  background-color: ${({ theme }) => theme.colors.lightDark};
-  padding: ${(props) => props.theme.spacing.medium};
+  align-items: center;
+  background-color: ${({ theme }) => theme.colors.cardBackground};
+  padding: 16px 20px;
   border-bottom-left-radius: ${({ theme, isBottom }) =>
-    isBottom ? theme.borderRadius.large : "0px"};
+    isBottom ? "16px" : "0px"};
   border-bottom-right-radius: ${({ theme, isBottom }) =>
-    isBottom ? theme.borderRadius.large : "0px"};
+    isBottom ? "16px" : "0px"};
   border-top-left-radius: ${({ theme, isTop }) =>
-    isTop ? theme.borderRadius.large : "0px"};
+    isTop ? "16px" : "0px"};
   border-top-right-radius: ${({ theme, isTop }) =>
-    isTop ? theme.borderRadius.large : "0px"};
-  padding-right: ${(props) => props.theme.spacing.large};
-  padding-left: ${(props) => props.theme.spacing.large};
-  border: 1px solid ${(props) => props.theme.colors.dark};
+    isTop ? "16px" : "0px"};
+  border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 const CryptoName = styled.Text<{ theme: ThemeType }>`
@@ -127,15 +126,15 @@ const IconOnPressView = styled.TouchableOpacity`
 
 const RevealButton = styled.TouchableOpacity<{ theme: ThemeType }>`
   background-color: ${({ theme }) => theme.colors.primary};
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px 16px;
-  margin-left: ${(props) => props.theme.spacing.small};
+  margin-left: 12px;
 `;
 
 const RevealButtonText = styled.Text<{ theme: ThemeType }>`
-  color: ${({ theme }) => theme.colors.dark};
+  color: ${({ theme }) => theme.colors.white};
   font-family: ${(props) => props.theme.fonts.families.openBold};
-  font-size: ${(props) => props.theme.fonts.sizes.small};
+  font-size: 12px;
 `;
 
 const AccountsModalIndex = () => {
@@ -250,157 +249,189 @@ const AccountsModalIndex = () => {
   } as SAddressState : undefined);
 
   return (
-    <>
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaContainer>
         <ContentContainer>
-          <SectionTitle>Settings</SectionTitle>
-          <AccountSettingsContainer>
-            <AccountSection isTop>
-              <Row>
-                <Col>
-                  <SectionCaption>Account Name</SectionCaption>
-                  <AccountDetailsText>
-                    {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
-                  </AccountDetailsText>
-                </Col>
-                {!isImported && (
-                  <IconOnPressView
-                    onPress={() =>
-                      router.push({
-                        pathname: ROUTES.accountNameModal,
-                        params: {
-                          ethAddress: displayEthAccount?.address || "",
-                          solAddress: displaySolAccount?.address || "",
-                        },
-                      })
-                    }
-                  >
-                    <EditIcon width={25} height={25} fill={theme.colors.white} />
-                  </IconOnPressView>
-                )}
-              </Row>
-            </AccountSection>
-            <AccountSection isBottom>
-              <SectionCaption>Total Balance</SectionCaption>
-              <AccountDetailsText>{balance}</AccountDetailsText>
-            </AccountSection>
-          </AccountSettingsContainer>
+          <MotiView
+            from={{ opacity: 0, translateY: -20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600 }}
+          >
+            <SectionTitle>Settings</SectionTitle>
+          </MotiView>
 
-          <SectionTitle>Advanced Settings</SectionTitle>
-          {/* Ethereum Private Key */}
-          {ethAddress && (
+          <MotiView
+            from={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "timing", duration: 600, delay: 200 }}
+          >
             <AccountSettingsContainer>
-              <CryptoSection isTop>
-                <IconContainer>
-                  <BlockchainIcon symbol="eth" size={25} />
-                </IconContainer>
-                <CryptoName>Ethereum</CryptoName>
-              </CryptoSection>
-              <AccountSection isBottom>
+              <AccountSection isTop>
                 <Row>
-                  <Col style={{ flex: 1 }}>
-                    <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
-                    <AccountDetailsText
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
-                    >
-                      {ethKeyRevealed
-                        ? ethPrivateKey
-                        : "••••••••••••••••••••••••••••••••"}
+                  <Col>
+                    <SectionCaption>Account Name</SectionCaption>
+                    <AccountDetailsText>
+                      {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
                     </AccountDetailsText>
                   </Col>
-                  <Row>
-                    {ethKeyRevealed ? (
-                      <>
-                        <IconOnPressView
-                          onPress={() => setEthKeyRevealed(false)}
-                        >
-                          <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
-                            HIDE
-                          </AccountDetailsText>
-                        </IconOnPressView>
-                        <IconOnPressView
-                          onPress={() => handleCopy(ethPrivateKey)}
-                        >
-                          <CopyIcon
-                            width={22}
-                            height={22}
-                            fill={theme.colors.white}
-                          />
-                        </IconOnPressView>
-                      </>
-                    ) : (
-                      <RevealButton
-                        theme={theme}
-                        onPress={() => authenticateAndReveal("eth")}
-                      >
-                        <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
-                      </RevealButton>
-                    )}
-                  </Row>
+                  {!isImported && (
+                    <IconOnPressView
+                      onPress={() =>
+                        router.push({
+                          pathname: ROUTES.accountNameModal,
+                          params: {
+                            ethAddress: displayEthAccount?.address || "",
+                            solAddress: displaySolAccount?.address || "",
+                          },
+                        })
+                      }
+                    >
+                      <EditIcon width={24} height={24} fill={theme.colors.white} />
+                    </IconOnPressView>
+                  )}
                 </Row>
               </AccountSection>
+              <AccountSection isBottom>
+                <SectionCaption>Total Balance</SectionCaption>
+                <AccountDetailsText>{balance}</AccountDetailsText>
+              </AccountSection>
             </AccountSettingsContainer>
+          </MotiView>
+
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 600, delay: 400 }}
+          >
+            <SectionTitle>Advanced Settings</SectionTitle>
+          </MotiView>
+
+          {/* Ethereum Private Key */}
+          {ethAddress && (
+            <MotiView
+              from={{ opacity: 0, translateX: -20 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 600 }}
+            >
+              <AccountSettingsContainer>
+                <CryptoSection isTop>
+                  <IconContainer>
+                    <BlockchainIcon symbol="eth" size={24} />
+                  </IconContainer>
+                  <CryptoName>Ethereum</CryptoName>
+                </CryptoSection>
+                <AccountSection isBottom>
+                  <Row>
+                    <Col style={{ flex: 1 }}>
+                      <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
+                      <AccountDetailsText
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
+                      >
+                        {ethKeyRevealed
+                          ? ethPrivateKey
+                          : "••••••••••••••••••••••••••••••••"}
+                      </AccountDetailsText>
+                    </Col>
+                    <Row>
+                      {ethKeyRevealed ? (
+                        <>
+                          <IconOnPressView
+                            onPress={() => setEthKeyRevealed(false)}
+                          >
+                            <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
+                              HIDE
+                            </AccountDetailsText>
+                          </IconOnPressView>
+                          <IconOnPressView
+                            onPress={() => handleCopy(ethPrivateKey)}
+                          >
+                            <CopyIcon
+                              width={20}
+                              height={20}
+                              fill={theme.colors.white}
+                            />
+                          </IconOnPressView>
+                        </>
+                      ) : (
+                        <RevealButton
+                          theme={theme}
+                          onPress={() => authenticateAndReveal("eth")}
+                        >
+                          <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
+                        </RevealButton>
+                      )}
+                    </Row>
+                  </Row>
+                </AccountSection>
+              </AccountSettingsContainer>
+            </MotiView>
           )}
 
           {/* Solana Private Key */}
           {solAddress && (
-            <AccountSettingsContainer>
-              <CryptoSection isTop>
-                <IconContainer>
-                  <BlockchainIcon symbol="sol" size={25} />
-                </IconContainer>
-                <CryptoName>Solana</CryptoName>
-              </CryptoSection>
-              <AccountSection isBottom>
-                <Row>
-                  <Col style={{ flex: 1 }}>
-                    <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
-                    <AccountDetailsText
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
-                    >
-                      {solKeyRevealed
-                        ? solPrivateKey
-                        : "••••••••••••••••••••••••••••••••"}
-                    </AccountDetailsText>
-                  </Col>
+            <MotiView
+              from={{ opacity: 0, translateX: 20 }}
+              animate={{ opacity: 1, translateX: 0 }}
+              transition={{ type: "timing", duration: 600, delay: 800 }}
+            >
+              <AccountSettingsContainer>
+                <CryptoSection isTop>
+                  <IconContainer>
+                    <BlockchainIcon symbol="sol" size={24} />
+                  </IconContainer>
+                  <CryptoName>Solana</CryptoName>
+                </CryptoSection>
+                <AccountSection isBottom>
                   <Row>
-                    {solKeyRevealed ? (
-                      <>
-                        <IconOnPressView
-                          onPress={() => setSolKeyRevealed(false)}
-                        >
-                          <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
-                            HIDE
-                          </AccountDetailsText>
-                        </IconOnPressView>
-                        <IconOnPressView
-                          onPress={() => handleCopy(solPrivateKey)}
-                        >
-                          <CopyIcon
-                            width={22}
-                            height={22}
-                            fill={theme.colors.white}
-                          />
-                        </IconOnPressView>
-                      </>
-                    ) : (
-                      <RevealButton
-                        theme={theme}
-                        onPress={() => authenticateAndReveal("sol")}
+                    <Col style={{ flex: 1 }}>
+                      <SectionCaption>Private Key {isImported ? "(Imported)" : ""}</SectionCaption>
+                      <AccountDetailsText
+                        numberOfLines={1}
+                        ellipsizeMode="middle"
                       >
-                        <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
-                      </RevealButton>
-                    )}
+                        {solKeyRevealed
+                          ? solPrivateKey
+                          : "••••••••••••••••••••••••••••••••"}
+                      </AccountDetailsText>
+                    </Col>
+                    <Row>
+                      {solKeyRevealed ? (
+                        <>
+                          <IconOnPressView
+                            onPress={() => setSolKeyRevealed(false)}
+                          >
+                            <AccountDetailsText style={{ fontSize: 12, color: theme.colors.lightGrey }}>
+                              HIDE
+                            </AccountDetailsText>
+                          </IconOnPressView>
+                          <IconOnPressView
+                            onPress={() => handleCopy(solPrivateKey)}
+                          >
+                            <CopyIcon
+                              width={20}
+                              height={20}
+                              fill={theme.colors.white}
+                            />
+                          </IconOnPressView>
+                        </>
+                      ) : (
+                        <RevealButton
+                          theme={theme}
+                          onPress={() => authenticateAndReveal("sol")}
+                        >
+                          <RevealButtonText theme={theme}>REVEAL</RevealButtonText>
+                        </RevealButton>
+                      )}
+                    </Row>
                   </Row>
-                </Row>
-              </AccountSection>
-            </AccountSettingsContainer>
+                </AccountSection>
+              </AccountSettingsContainer>
+            </MotiView>
           )}
         </ContentContainer>
       </SafeAreaContainer>
-    </>
+    </LinearGradientBackground>
   );
 };
 

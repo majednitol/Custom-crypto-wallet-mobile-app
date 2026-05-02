@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
-import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator } from "react-native";
-import { Image } from "expo-image";
+import { SafeAreaView, View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import { useTheme } from "styled-components/native";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,6 +12,10 @@ import { type AppDispatch, type RootState } from "../../../store";
 import Button from "../../../components/Button/Button";
 import { ROUTES } from "../../../constants/routes";
 import { ThemeType } from "../../../styles/theme";
+import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import { MotiView } from "moti";
+import FingerprintIcon from "../../../assets/svg/fingerprint.svg";
+import LeftArrow from "../../../assets/svg/left-arrow.svg";
 
 export default function BiometricsSetup() {
   const theme = useTheme() as ThemeType;
@@ -53,65 +56,109 @@ export default function BiometricsSetup() {
   const isLoading = status === "loading";
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.contentContainer}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={require("../../../assets/images/biometrics.png")}
-            contentFit="cover"
-            style={styles.image}
-          />
+    <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <LeftArrow color={theme.colors.white} width={24} height={24} />
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Secure With Biometrics</Text>
-          <Text style={styles.subtitle}>
-            {biometricAvailable
-              ? "Use FaceID or TouchID for quick and secure access to your wallet. You can always change this in Settings."
-              : "Biometric authentication is not available on this device. You can use your password to unlock."}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        {/* Error display */}
-        {error ? (
-          <View style={styles.errorView}>
-            <View style={styles.errorCard}>
-              <Text style={styles.errorText}>{error}</Text>
+        <View style={styles.contentContainer}>
+          <View style={styles.iconHaloContainer}>
+            {/* Outer pulsing halo */}
+            <MotiView
+              from={{ scale: 1, opacity: 0.3 }}
+              animate={{ scale: 1.5, opacity: 0 }}
+              transition={{
+                type: "timing",
+                duration: 2500,
+                loop: true,
+                repeatReverse: false,
+              }}
+              style={styles.haloOuter}
+            />
+            <MotiView
+              from={{ scale: 1, opacity: 0.5 }}
+              animate={{ scale: 1.25, opacity: 0 }}
+              transition={{
+                type: "timing",
+                duration: 2500,
+                loop: true,
+                repeatReverse: false,
+                delay: 600,
+              }}
+              style={styles.haloInner}
+            />
+            <View style={styles.iconCircle}>
+              <FingerprintIcon color={theme.colors.white} width={64} height={64} />
             </View>
           </View>
-        ) : null}
 
-        {/* Loading state */}
-        {isLoading && (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={theme.colors.white} size="small" />
-          </View>
-        )}
+          <MotiView
+            from={{ opacity: 0, translateY: 20 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            transition={{ type: "timing", duration: 800, delay: 300 }}
+            style={styles.textContainer}
+          >
+            <Text style={styles.title}>Secure With Biometrics</Text>
+            <Text style={styles.subtitle}>
+              {biometricAvailable
+                ? "Use FaceID or TouchID for quick and secure access to your wallet. You can always change this in Settings."
+                : "Biometric authentication is not available on this device. You can use your password to unlock."}
+            </Text>
+          </MotiView>
+        </View>
 
-        {biometricAvailable ? (
-          <>
+        <MotiView
+          from={{ opacity: 0, translateY: 40 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 800, delay: 600 }}
+          style={styles.buttonContainer}
+        >
+          {/* Error display */}
+          {error ? (
+            <View style={styles.errorView}>
+              <View style={styles.errorCard}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Loading state */}
+          {isLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator color={theme.colors.white} size="small" />
+            </View>
+          )}
+
+          {biometricAvailable ? (
+            <>
+              <Button
+                backgroundColor={theme.colors.primary}
+                color={theme.colors.white}
+                loading={isLoading}
+                onPress={handleEnableBiometrics}
+                title="Enable Biometrics"
+              />
+              <Button
+                onPress={handleSkip}
+                title="Skip for Now"
+                variant="outline"
+                style={{ marginTop: 12 }}
+              />
+            </>
+          ) : (
             <Button
-              loading={isLoading}
-              onPress={handleEnableBiometrics}
-              title="Enable Biometrics"
-            />
-            <Button
+              backgroundColor={theme.colors.primary}
+              color={theme.colors.white}
               onPress={handleSkip}
-              title="Skip for Now"
-              variant="outline"
-              style={{ marginTop: 12 }}
+              title="Continue"
             />
-          </>
-        ) : (
-          <Button
-            onPress={handleSkip}
-            title="Continue"
-          />
-        )}
-      </View>
-    </SafeAreaView>
+          )}
+        </MotiView>
+      </SafeAreaView>
+    </LinearGradientBackground>
   );
 }
 
@@ -119,42 +166,73 @@ function createStyles(theme: ThemeType) {
   return StyleSheet.create({
     safeArea: {
       flex: 1,
-      justifyContent: "flex-end",
-      backgroundColor: theme.colors.primary,
+    },
+    header: {
+      paddingHorizontal: parseFloat(theme.spacing.large as string),
+      paddingTop: 10,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: "center",
+      alignItems: "center",
     },
     contentContainer: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
+      paddingHorizontal: parseFloat(theme.spacing.large as string),
     },
-    imageContainer: {
-      flex: 1,
-      width: "100%",
+    iconHaloContainer: {
       justifyContent: "center",
       alignItems: "center",
+      marginBottom: 60,
     },
-    image: {
-      flex: 1,
-      width: "100%",
+    haloOuter: {
+      position: "absolute",
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: theme.colors.primary,
+    },
+    haloInner: {
+      position: "absolute",
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: theme.colors.primary,
+    },
+    iconCircle: {
+      width: 140,
+      height: 140,
+      borderRadius: 70,
+      backgroundColor: "rgba(240, 185, 11, 0.1)",
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: theme.colors.primary,
+      zIndex: 2,
     },
     textContainer: {
-      padding: parseFloat(theme.spacing.large as string),
+      alignItems: "center",
     },
     title: {
       fontFamily: theme.fonts.families.openBold,
       fontSize: 32,
-      color: theme.fonts.colors.primary,
+      color: theme.colors.white,
+      textAlign: "center",
       marginBottom: parseFloat(theme.spacing.small as string),
     },
     subtitle: {
       fontFamily: theme.fonts.families.openRegular,
-      fontSize: parseFloat(theme.fonts.sizes.large as string),
-      color: theme.fonts.colors.primary,
+      fontSize: parseFloat(theme.fonts.sizes.normal as string),
+      color: theme.colors.lightGrey,
+      textAlign: "center",
+      lineHeight: 24,
     },
     buttonContainer: {
       paddingHorizontal: parseFloat(theme.spacing.large as string),
       paddingBottom: parseFloat(theme.spacing.large as string),
-      paddingTop: parseFloat(theme.spacing.small as string),
     },
     errorView: {
       marginBottom: parseFloat(theme.spacing.medium as string),

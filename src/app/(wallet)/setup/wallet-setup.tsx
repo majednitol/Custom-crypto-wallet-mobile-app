@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SafeAreaView, Text } from "react-native";
+import { SafeAreaView, Text, TouchableOpacity, View } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
@@ -12,9 +12,12 @@ import type { AddressState, SAddressState } from "../../../store/types";
 import { GeneralStatus } from "../../../store/types";
 import { ROUTES } from "../../../constants/routes";
 import WalletIcon from "../../../assets/svg/wallet.svg";
+import ShieldIcon from "../../../assets/svg/shield.svg";
+import CoinsIcon from "../../../assets/svg/coins.svg";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 import { EVMService } from "../../../services/EthereumService";
 import { RootState } from "../../../store";
+import { MotiView } from "moti";
 
 const SafeAreaContainer = styled(SafeAreaView)<{ theme: ThemeType }>`
   flex: 1;
@@ -104,7 +107,7 @@ const SecondaryButtonContainer = styled.TouchableOpacity<{ theme: ThemeType }>`
 const SecondaryButtonText = styled.Text<{ theme: ThemeType }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => props.theme.colors.white};
+  color: ${(props) => props.theme.colors.primary};
 `;
 
 export default function WalletSetup() {
@@ -187,44 +190,109 @@ export default function WalletSetup() {
       <SafeAreaContainer>
         <ContentContainer>
           <HeroSection>
-            <IconGrid>
-              <IconCircleSecondary>
-                <Emoji>🔐</Emoji>
-              </IconCircleSecondary>
-              <IconCircle>
-                <EmojiLarge>👛</EmojiLarge>
-              </IconCircle>
-              <IconCircleSecondary>
-                <Emoji>🪙</Emoji>
-              </IconCircleSecondary>
-            </IconGrid>
-            <Title>Get Started with Ease</Title>
-            <Subtitle>
-              Secure your financial future with a few easy steps. Your
-              decentralized wallet awaits.
-            </Subtitle>
+            <MotiView
+              from={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", damping: 12, delay: 200 }}
+            >
+              <IconGrid>
+                <MotiView
+                  from={{ opacity: 0, translateX: -20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 400 }}
+                >
+                  <IconCircleSecondary>
+                    <ShieldIcon color={theme.colors.primary} width={24} height={24} />
+                  </IconCircleSecondary>
+                </MotiView>
+
+                <View style={{ position: "relative", justifyContent: "center", alignItems: "center" }}>
+                  <MotiView
+                    from={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: [0.15, 0.3, 0.15], scale: [1, 1.4, 1] }}
+                    transition={{
+                      type: "timing",
+                      duration: 2000,
+                      loop: true,
+                      repeatReverse: true,
+                    }}
+                    style={[
+                      StyleSheet.absoluteFill,
+                      {
+                        backgroundColor: theme.colors.primary,
+                        borderRadius: 32,
+                        marginHorizontal: 8,
+                      },
+                    ]}
+                  />
+                  <IconCircle>
+                    <WalletIcon 
+                      color={theme.colors.primary} 
+                      width={32} 
+                      height={32} 
+                      fill="transparent" 
+                      stroke={theme.colors.primary} 
+                      strokeWidth={2} 
+                    />
+                  </IconCircle>
+                </View>
+
+                <MotiView
+                  from={{ opacity: 0, translateX: 20 }}
+                  animate={{ opacity: 1, translateX: 0 }}
+                  transition={{ type: "timing", duration: 600, delay: 400 }}
+                >
+                  <IconCircleSecondary>
+                    <CoinsIcon color={theme.colors.primary} width={24} height={24} />
+                  </IconCircleSecondary>
+                </MotiView>
+              </IconGrid>
+            </MotiView>
+
+            <MotiView
+              from={{ opacity: 0, translateY: 20 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: "timing", duration: 800, delay: 600 }}
+            >
+              <Title>Get Started with Ease</Title>
+              <Subtitle>
+                Secure your financial future with a few easy steps. Your
+                decentralized wallet awaits.
+              </Subtitle>
+            </MotiView>
           </HeroSection>
         </ContentContainer>
-        <ButtonContainer>
-          <Button
-            linearGradient={theme.colors.secondaryLinearGradient}
-            loading={loading}
-            disabled={loading}
-            onPress={walletSetup}
-            title="Create Wallet"
-            icon={
-              <WalletIcon width={25} height={25} fill={theme.colors.white} />
-            }
-          />
-          <SecondaryButtonContainer
-            onPress={() => router.push(ROUTES.walletImportOptions)}
-          >
-            <SecondaryButtonText>
-              Got a wallet? Let's import it
-            </SecondaryButtonText>
-          </SecondaryButtonContainer>
-        </ButtonContainer>
+
+        <MotiView
+          from={{ opacity: 0, translateY: 40 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: "timing", duration: 800, delay: 800 }}
+        >
+          <ButtonContainer>
+            <Button
+              backgroundColor={theme.colors.primary}
+              color={theme.colors.white}
+              loading={loading}
+              disabled={loading}
+              onPress={walletSetup}
+              title="Create Wallet"
+              icon={
+                <WalletIcon width={25} height={25} fill={theme.colors.white} />
+              }
+            />
+            <SecondaryButtonContainer
+              onPress={() => router.push(ROUTES.walletImportOptions)}
+            >
+              <SecondaryButtonText>
+                Got a wallet? Let's import it
+              </SecondaryButtonText>
+            </SecondaryButtonContainer>
+          </ButtonContainer>
+        </MotiView>
       </SafeAreaContainer>
     </LinearGradientBackground>
   );
 }
+
+const styles = StyleSheet.create({}); // For absoluteFill usage if needed, though styled covers most
+import { StyleSheet } from "react-native";
