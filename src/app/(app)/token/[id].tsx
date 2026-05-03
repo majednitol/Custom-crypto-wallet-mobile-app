@@ -41,6 +41,7 @@ import {
   ErrorText,
 } from "../../../components/Styles/Errors.styles";
 import { addToken, fetchTokenErc20Balance } from "../../../store/tokenSlice";
+import NETWORKS from "../../../services/defaultNetwork";
 
 import Nfts from "../../(wallet)/nfts/nft";
 import { addSolToken, fetchSplTokenBalance } from "../../../store/solTokenSlice";
@@ -498,10 +499,12 @@ export default function Index() {
   };
 
   const urlBuilder = (hash: string) => {
-    if (isEvm) {
-      return `https://sepolia.etherscan.io/tx/${hash}`;
+    if (isSolana) {
+      return `https://explorer.solana.com/tx/${hash}`;
     }
-    return `https://explorer.solana.com/tx/${hash}`;
+    const net = NETWORKS.find(n => n.chainId === activeChainId);
+    const base = net?.explorerUrl || "https://etherscan.io";
+    return `${base}/tx/${hash}`;
   };
 
   // ═══════════════════════════════════════════════════════════

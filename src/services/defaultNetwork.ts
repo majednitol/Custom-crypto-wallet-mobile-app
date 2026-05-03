@@ -310,7 +310,7 @@ const NETWORKS: CustomNetwork[] = [
     "rpcUrl": "https://mainnet-rpc.scai.network",
     "socketUrl": "wss://mainnet-rpc.scai.network", // Assumed standard WSS pattern
     "symbol": "SCAI",
-    "explorerUrl": "https://explorer.scai.network",
+    "explorerUrl": "https://explorer.securechain.ai",
     "nftRpcUrl" :"https://explorer.securechain.ai/api/v2"
   },
   {
@@ -320,7 +320,7 @@ const NETWORKS: CustomNetwork[] = [
     "rpcUrl": "https://mainnet-rpc.scai.network", // Note: RPC usually differs for testnet, using provided URL
     "socketUrl": "wss://mainnet-rpc.scai.network",
     "symbol": "SCAI",
-    "explorerUrl": "https://explorer.scai.network",
+    "explorerUrl": "https://explorer.securechain.ai",
     "nftRpcUrl" :"https://explorer.securechain.ai/api/v2"
   },
   {
