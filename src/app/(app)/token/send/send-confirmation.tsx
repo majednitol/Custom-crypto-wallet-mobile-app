@@ -34,6 +34,7 @@ import { ROUTES } from "../../../../constants/routes";
 import { EVMService, evmServices } from "../../../../services/EthereumService";
 import { sendErc20 } from "../../../../store/tokenSlice";
 import { getImportedEvmKey, getImportedSolKey } from "../../../../utils/importedKeyStorage";
+import NETWORKS from "../../../../services/defaultNetwork";
 
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -158,7 +159,17 @@ export default function SendConfirmationPage() {
   console.log("token", token);
   const chainName = chain as string;
   console.log("chainName conf", chainName,tokenAmount);
-  const ticker = TICKERS[chainName] ;
+  const activeChainId = useSelector(
+    (state: RootState) => state.ethereum.activeChainId
+  );
+  const ticker = (() => {
+    if (tokenSymbol) return Array.isArray(tokenSymbol) ? tokenSymbol[0] : tokenSymbol;
+    if (chainName === Chains.EVM) {
+      const network = NETWORKS.find((n) => n.chainId === activeChainId);
+      return network ? network.symbol : "ETH";
+    }
+    return "SOL";
+  })();
   const amount = tokenAmount as string;
   const address = toAddress as string;
 
@@ -170,9 +181,7 @@ export default function SendConfirmationPage() {
   const activeSolIndex = useSelector(
     (state: RootState) => state.solana.activeIndex
   );
-  const activeChainId = useSelector(
-    (state: RootState) => state.ethereum.activeChainId
-  );
+
 
   // Imported wallet detection — must be before walletAddress/derivationPath
   const importedEvmAddress = useSelector((state: RootState) => state.importedAccounts?.activeEvmAddress);
@@ -496,11 +505,12 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
   }, [address, amount]);
 
   const renderNetworkName = () => {
-    const isDev = "development" === "development";
     if (chainName === Chains.EVM) {
-      return isDev ? "Sepolia" : "Mainnet";
+      const network = NETWORKS.find((n) => n.chainId === activeChainId);
+      return network ? network.chainName : "Unknown Network";
     }
-    return isDev ? "Devnet" : "Mainnet";
+    const isDev = "development" === "development";
+    return isDev ? "Solana Devnet" : "Solana Mainnet";
   };
 
   return (
@@ -519,9 +529,7 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
         <CryptoInfoCardContainer>
           <SendConfCard
             toAddress={truncateWalletAddress(address)}
-            network={`${capitalizeFirstLetter(
-              chainName
-            )} ${renderNetworkName()}`}
+            network={renderNetworkName()}
             networkFee={`Up to ${transactionFeeEstimate}`}
           />
           {error && (
@@ -533,7 +541,6 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
         <ButtonView>
           <ButtonContainer>
             <Button
-              linearGradient={theme.colors.primaryLinearGradient}
               loading={loading}
               disabled={isBtnDisabled}
               backgroundColor={theme.colors.primary}
