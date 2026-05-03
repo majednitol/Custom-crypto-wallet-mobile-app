@@ -44,7 +44,9 @@ const CenterContainer = styled.TouchableOpacity<ThemeComponent>`
   padding-vertical: 6px;
   padding-horizontal: 20px;
   border: 1px solid ${(props) => props.theme.colors.border};
-  min-width: 200px;
+  min-width: 140px;
+  max-width: 220px;
+  flex-shrink: 1;
 `;
 
 const RightContainer = styled.View<ThemeComponent>``;
@@ -116,11 +118,13 @@ const Header: React.FC = () => {
         <CenterContainer onPress={() => router.push(ROUTES.accounts)}>
           <NetworkDot />
           <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={{
               fontFamily: theme.fonts.families.openBold,
               fontSize: 14,
               color: theme.colors.white,
-              minWidth: 90,
+              flexShrink: 1,
               textAlign: "center",
               includeFontPadding: false,
             }}

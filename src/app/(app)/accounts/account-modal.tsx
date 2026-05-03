@@ -17,7 +17,6 @@ import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import { authenticateBiometric } from "../../../store/biometricsSlice";
 import { deriveEthPrivateKey, deriveSolPrivateKey } from "../../../utils/privateKeyUtils";
 import { getImportedEvmKey, getImportedSolKey } from "../../../utils/importedKeyStorage";
-import { MotiView } from "moti";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
@@ -46,7 +45,7 @@ const AccountSettingsContainer = styled.View<{ theme: ThemeType }>`
   margin-bottom: ${(props) => props.theme.spacing.medium};
 `;
 
-const AccountSection = styled(MotiView)<{
+const AccountSection = styled.View<{
   theme: ThemeType;
   isBottom?: boolean;
   isTop?: boolean;
@@ -64,7 +63,7 @@ const AccountSection = styled(MotiView)<{
   border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
-const CryptoSection = styled(MotiView)<{
+const CryptoSection = styled.View<{
   theme: ThemeType;
   isBottom?: boolean;
   isTop?: boolean;
@@ -252,67 +251,43 @@ const AccountsModalIndex = () => {
     <LinearGradientBackground colors={theme.colors.primaryLinearGradient}>
       <SafeAreaContainer>
         <ContentContainer>
-          <MotiView
-            from={{ opacity: 0, translateY: -20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 600 }}
-          >
-            <SectionTitle>Settings</SectionTitle>
-          </MotiView>
+          <SectionTitle>Settings</SectionTitle>
 
-          <MotiView
-            from={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "timing", duration: 600, delay: 200 }}
-          >
-            <AccountSettingsContainer>
-              <AccountSection isTop>
-                <Row>
-                  <Col>
-                    <SectionCaption>Account Name</SectionCaption>
-                    <AccountDetailsText>
-                      {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
-                    </AccountDetailsText>
-                  </Col>
-                  {!isImported && (
-                    <IconOnPressView
-                      onPress={() =>
-                        router.push({
-                          pathname: ROUTES.accountNameModal,
-                          params: {
-                            ethAddress: displayEthAccount?.address || "",
-                            solAddress: displaySolAccount?.address || "",
-                          },
-                        })
-                      }
-                    >
-                      <EditIcon width={24} height={24} fill={theme.colors.white} />
-                    </IconOnPressView>
-                  )}
-                </Row>
-              </AccountSection>
-              <AccountSection isBottom>
-                <SectionCaption>Total Balance</SectionCaption>
-                <AccountDetailsText>{balance}</AccountDetailsText>
-              </AccountSection>
-            </AccountSettingsContainer>
-          </MotiView>
+          <AccountSettingsContainer>
+            <AccountSection isTop>
+              <Row>
+                <Col>
+                  <SectionCaption>Account Name</SectionCaption>
+                  <AccountDetailsText>
+                    {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
+                  </AccountDetailsText>
+                </Col>
+                {!isImported && (
+                  <IconOnPressView
+                    onPress={() =>
+                      router.push({
+                        pathname: ROUTES.accountNameModal,
+                        params: {
+                          ethAddress: displayEthAccount?.address || "",
+                          solAddress: displaySolAccount?.address || "",
+                        },
+                      })
+                    }
+                  >
+                    <EditIcon width={24} height={24} fill={theme.colors.white} />
+                  </IconOnPressView>
+                )}
+              </Row>
+            </AccountSection>
+            <AccountSection isBottom>
+              <SectionCaption>Total Balance</SectionCaption>
+              <AccountDetailsText>{balance}</AccountDetailsText>
+            </AccountSection>
+          </AccountSettingsContainer>
 
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: "timing", duration: 600, delay: 400 }}
-          >
-            <SectionTitle>Advanced Settings</SectionTitle>
-          </MotiView>
+          <SectionTitle>Advanced Settings</SectionTitle>
 
-          {/* Ethereum Private Key */}
           {ethAddress && (
-            <MotiView
-              from={{ opacity: 0, translateX: -20 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: "timing", duration: 600, delay: 600 }}
-            >
               <AccountSettingsContainer>
                 <CryptoSection isTop>
                   <IconContainer>
@@ -365,16 +340,9 @@ const AccountsModalIndex = () => {
                   </Row>
                 </AccountSection>
               </AccountSettingsContainer>
-            </MotiView>
           )}
 
-          {/* Solana Private Key */}
           {solAddress && (
-            <MotiView
-              from={{ opacity: 0, translateX: 20 }}
-              animate={{ opacity: 1, translateX: 0 }}
-              transition={{ type: "timing", duration: 600, delay: 800 }}
-            >
               <AccountSettingsContainer>
                 <CryptoSection isTop>
                   <IconContainer>
@@ -427,7 +395,6 @@ const AccountsModalIndex = () => {
                   </Row>
                 </AccountSection>
               </AccountSettingsContainer>
-            </MotiView>
           )}
         </ContentContainer>
       </SafeAreaContainer>

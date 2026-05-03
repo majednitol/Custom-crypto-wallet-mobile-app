@@ -3,11 +3,11 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { View, FlatList, Dimensions, Platform, TouchableOpacity } from "react-native";
 import { router } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
+import { debounce } from "lodash";
 import { useSelector, useDispatch } from "react-redux";
 import * as ethers from "ethers";
 import { MotiView } from "moti";
 import { Skeleton } from "moti/skeleton";
-import { debounce } from "lodash";
 import { formatDollar } from "../../../utils/formatDollars";
 import solanaService from "../../../services/SolanaService";
 import { getPhrase } from "../../../hooks/useStorageState";
@@ -87,7 +87,7 @@ const WalletContainer = styled.TouchableOpacity<WalletContainerProps>`
     isActiveAccount ? "rgba(240, 185, 11, 0.3)" : theme.colors.border};
 `;
 
-const WalletSkeletonContainer = styled(MotiView) <WalletSkeletonContainerProps>`
+const WalletSkeletonContainer = styled.View <WalletSkeletonContainerProps>`
   flex-direction: row;
   justify-content: space-between;
   background-color: ${({ theme, isActiveAccount }) =>
@@ -113,7 +113,7 @@ const EditIconContainer = styled.TouchableOpacity`
   height: 44px;
 `;
 
-const WalletPhraseContainer = styled(MotiView)<{ theme: ThemeType }>`
+const WalletPhraseContainer = styled.View<{ theme: ThemeType }>`
   justify-content: space-between;
   align-items: center;
   flex-direction: row;
@@ -903,46 +903,40 @@ const AccountsIndex = () => {
       );
 
       return (
-        <MotiView
-          from={{ opacity: 0, translateY: 10 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 500, delay: 400 + index * 100 }}
+        <WalletContainer
+          onPress={() => {
+            if (item.isImported) {
+              dispatch(setActiveImportedAccount({
+                evmAddress: item.walletDetails.ethereum?.address,
+                solAddress: item.walletDetails.solana?.address,
+              }));
+            } else {
+              setNextActiveAccounts(item.ethIndex);
+            }
+            router.back();
+          }}
+          isActiveAccount={item.isActiveAccount}
+          isLast={index === accounts.length - 1}
         >
-          <WalletContainer
-            onPress={() => {
-              if (item.isImported) {
-                dispatch(setActiveImportedAccount({
-                  evmAddress: item.walletDetails.ethereum?.address,
-                  solAddress: item.walletDetails.solana?.address,
-                }));
-              } else {
-                setNextActiveAccounts(item.ethIndex);
-              }
-              router.back();
-            }}
-            isActiveAccount={item.isActiveAccount}
-            isLast={index === accounts.length - 1}
+          <AccountDetails>
+            <AccountTitle theme={theme}>{item.accountName}</AccountTitle>
+            <PriceText theme={theme}>{item.isImported ? "Imported" : balance}</PriceText>
+          </AccountDetails>
+          <EditIconContainer
+            onPress={() =>
+              router.push({
+                pathname: ROUTES.accountModal,
+                params: {
+                  ethAddress: item.walletDetails.ethereum?.address ?? "",
+                  solAddress: item.walletDetails.solana?.address ?? "",
+                  balance,
+                },
+              })
+            }
           >
-            <AccountDetails>
-              <AccountTitle theme={theme}>{item.accountName}</AccountTitle>
-              <PriceText theme={theme}>{item.isImported ? "Imported" : balance}</PriceText>
-            </AccountDetails>
-            <EditIconContainer
-              onPress={() =>
-                router.push({
-                  pathname: ROUTES.accountModal,
-                  params: {
-                    ethAddress: item.walletDetails.ethereum?.address ?? "",
-                    solAddress: item.walletDetails.solana?.address ?? "",
-                    balance,
-                  },
-                })
-              }
-            >
-              <EditIcon width={20} height={20} fill={theme.colors.white} />
-            </EditIconContainer>
-          </WalletContainer>
-        </MotiView>
+            <EditIcon width={20} height={20} fill={theme.colors.white} />
+          </EditIconContainer>
+        </WalletContainer>
       );
     },
     [
@@ -962,36 +956,24 @@ const AccountsIndex = () => {
       <SafeAreaContainer>
         <ScrollContainer showsVerticalScrollIndicator={false}>
           <ContentContainer>
-            <MotiView
-              from={{ opacity: 0, translateY: -20 }}
-              animate={{ opacity: 1, translateY: 0 }}
-              transition={{ type: "timing", duration: 600 }}
-            >
-              <PageTitle>Manage Wallets</PageTitle>
-            </MotiView>
+            <PageTitle>Manage Wallets</PageTitle>
 
-            <MotiView
-              from={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "timing", duration: 600, delay: 200 }}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() =>
+                router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
+              }
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() =>
-                  router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
-                }
-              >
-                <WalletPhraseContainer theme={theme}>
-                  <PhraseTextContent>
-                    <PhraseIcon width={24} height={24} fill={theme.colors.white} />
-                    <SectionTitle style={{ color: theme.colors.white }}>
-                      Secret Recovery Phrase
-                    </SectionTitle>
-                  </PhraseTextContent>
-                  <RightArrowIcon width={20} height={20} fill={theme.colors.white} />
-                </WalletPhraseContainer>
-              </TouchableOpacity>
-            </MotiView>
+              <WalletPhraseContainer theme={theme}>
+                <PhraseTextContent>
+                  <PhraseIcon width={24} height={24} fill={theme.colors.white} />
+                  <SectionTitle style={{ color: theme.colors.white }}>
+                    Secret Recovery Phrase
+                  </SectionTitle>
+                </PhraseTextContent>
+                <RightArrowIcon width={20} height={20} fill={theme.colors.white} />
+              </WalletPhraseContainer>
+            </TouchableOpacity>
 
             {memoizedAccounts.map((item: any, index: number) => (
               <View key={item.id}>{renderItem({ item, index })}</View>
@@ -999,21 +981,15 @@ const AccountsIndex = () => {
           </ContentContainer>
         </ScrollContainer>
 
-        <MotiView
-          from={{ opacity: 0, translateY: 20 }}
-          animate={{ opacity: 1, translateY: 0 }}
-          transition={{ type: "timing", duration: 600, delay: 800 }}
-        >
-          <BottomButtonContainer>
-            <Button
-              backgroundColor={theme.colors.primary}
-              color={theme.colors.white}
-              loading={walletCreationLoading}
-              onPress={createNewWalletPair}
-              title="Create Wallet"
-            />
-          </BottomButtonContainer>
-        </MotiView>
+        <BottomButtonContainer>
+          <Button
+            backgroundColor={theme.colors.primary}
+            color={theme.colors.white}
+            loading={walletCreationLoading}
+            onPress={createNewWalletPair}
+            title="Create Wallet"
+          />
+        </BottomButtonContainer>
       </SafeAreaContainer>
     </LinearGradientBackground>
   );

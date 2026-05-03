@@ -135,12 +135,12 @@ const CryptoInfoCard: React.FC<ButtonProps> = ({
       <ChainContainer>
         <Circle iconBackgroundColor={iconBackgroundColor}>{icon}</Circle>
         <PrimaryTextContainer>
-          <CryptoInfoCardText>{title}</CryptoInfoCardText>
-          <CryptoBalanceText>{caption}</CryptoBalanceText>
+          <CryptoInfoCardText numberOfLines={1}>{title}</CryptoInfoCardText>
+          <CryptoBalanceText numberOfLines={1}>{caption}</CryptoBalanceText>
         </PrimaryTextContainer>
       </ChainContainer>
       <DetailsContainer>
-        <DetailsText>{details}</DetailsText>
+        <DetailsText numberOfLines={1}>{details}</DetailsText>
         {changePercent && (
           <ChangeIndicator positive={changePercent.startsWith("+")}>
             {changePercent}
