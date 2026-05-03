@@ -88,8 +88,13 @@ function computeDashboardData(state: RootState): DashboardData {
 
   // Aggregate transactions from ALL EVM chains for the home screen
   const txByChain = currentEvmAccount?.transactionMetadataByChain ?? {};
-  const ethTransactions: Transaction[] = Object.values(txByChain)
-    .flatMap((meta) => meta?.transactions ?? []);
+  const ethTransactions: Transaction[] = Object.entries(txByChain)
+    .flatMap(([chainId, meta]) => 
+      (meta?.transactions ?? []).map(tx => ({
+        ...tx,
+        chainId: tx.chainId ?? Number(chainId)
+      }))
+    );
 
   const failedEthStatus =
     currentEvmAccount?.statusByChain?.[activeChainId] === GeneralStatus.Failed;
@@ -103,7 +108,10 @@ function computeDashboardData(state: RootState): DashboardData {
   const solWalletAddress = currentSolAccount?.address || "";
   const solBalance = currentSolAccount?.balance ?? 0;
   const solTransactions =
-    currentSolAccount?.transactionMetadata?.transactions ?? EMPTY_TRANSACTIONS;
+    (currentSolAccount?.transactionMetadata?.transactions ?? EMPTY_TRANSACTIONS).map(tx => ({
+      ...tx,
+      chainId: 101
+    }));
   const failedSolStatus =
     currentSolAccount?.status === GeneralStatus.Failed;
 

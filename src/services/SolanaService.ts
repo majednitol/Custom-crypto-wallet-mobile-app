@@ -128,6 +128,7 @@ class SolanaService {
       direction,
       blockTime,
       asset: "SOL",
+      chainId: 101,
     };
   }
 

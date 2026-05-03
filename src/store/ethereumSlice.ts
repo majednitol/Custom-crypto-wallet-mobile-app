@@ -111,7 +111,7 @@ export const fetchEvmBalance = createAsyncThunk(
   }
 );
 
-function mapTransferToTransaction(tx: Transfer): Transaction {
+function mapTransferToTransaction(tx: Transfer, chainId: number): Transaction {
   return {
     uniqueId: tx.hash,               
     hash: tx.hash,
@@ -121,6 +121,7 @@ function mapTransferToTransaction(tx: Transfer): Transaction {
     blockTime: Date.now(),          
     asset: tx.category,              
     direction: tx.direction.toLowerCase(), 
+    chainId: chainId,
   };
 }
 export const fetchEvmBalanceInterval = createAsyncThunk(
@@ -413,7 +414,10 @@ updateBalance(
   }
 
   // Add the new transaction at the top
-  account.transactionMetadataByChain[chainId].transactions.unshift(tx);
+  account.transactionMetadataByChain[chainId].transactions.unshift({
+    ...tx,
+    chainId: chainId,
+  });
 }
 
 ,
@@ -539,7 +543,7 @@ extraReducers: (builder) => {
     };
   }
 account.transactionMetadataByChain[chainId].transactions = txs.transferHistory
-  .map(mapTransferToTransaction)
+  .map(tx => mapTransferToTransaction(tx, chainId))
   .sort((a, b) => b.blockTime - a.blockTime);
 
   account.transactionMetadataByChain[chainId].paginationKey = txs.pageKey ? [txs.pageKey] : [];
@@ -580,6 +584,7 @@ account.transactionMetadataByChain[chainId].transactions = txs.transferHistory
     blockTime: Date.now(),
     asset: "ETH", // optionally dynamically based on network
     direction: tx.from.toLowerCase() === userAddress ? "sent" : "received",
+    chainId: chainId,
   });
 })
 

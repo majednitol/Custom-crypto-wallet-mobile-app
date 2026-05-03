@@ -27,6 +27,7 @@ export interface Transaction {
   blockTime: number;
   asset: string;
   direction: string;
+  chainId?: number;
 }
 
 export interface TransactionConfirmation {

@@ -8,6 +8,8 @@ import { useTheme } from "styled-components/native";
 import { ROUTES } from "../../constants/routes";
 import type { ThemeType } from "../../styles/theme";
 import { type AppDispatch, store, type RootState } from "../../store";
+import { Transaction } from "../../store/types";
+import NETWORKS from "../../services/defaultNetwork";
 
 import { fetchPrices } from "../../store/priceSlice";
 import {
@@ -278,15 +280,21 @@ export default function Index() {
       .slice(0, 30);
   }, [solTransactions, ethTransactions]);
 
-  const renderTx = useCallback(({ item }: any) => {
+  const renderTx = useCallback(({ item }: { item: Transaction }) => {
     const sign = item.direction === "received" ? "+" : "-";
+    const explorerBase = (() => {
+      if (item.chainId === 101) return "https://explorer.solana.com";
+      const net = NETWORKS.find(n => n.chainId === item.chainId);
+      return net?.explorerUrl || "https://etherscan.io";
+    })();
+
     return (
       <CryptoInfoCard
         icon=""
         title={capitalizeFirstLetter(item.direction)}
         caption={item.direction === "received" ? `From ${truncateWalletAddress(item.from)}` : `To ${truncateWalletAddress(item.to)}`}
         details={`${sign} ${item.value}`}
-        onPress={() => WebBrowser.openBrowserAsync(`https://etherscan.io/tx/${item.hash}`)}
+        onPress={() => WebBrowser.openBrowserAsync(`${explorerBase}/tx/${item.hash}`)}
       />
     );
   }, []);
