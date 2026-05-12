@@ -180,6 +180,24 @@ const SettingsIndex = () => {
             </SettingsGroup>
 
             <SettingsGroup>
+              <GroupTitle>Browser</GroupTitle>
+              <OptionCard
+                activeOpacity={0.7}
+                onPress={() => router.push(ROUTES.browser)}
+              >
+                <OptionLeft>
+                  <IconCircle>
+                    <BrowserIcon width={20} height={20} fill={theme.colors.primary} />
+                  </IconCircle>
+                  <View>
+                    <OptionText>dApp Browser</OptionText>
+                    <OptionSubtext>Open CoinMask DeFi platform</OptionSubtext>
+                  </View>
+                </OptionLeft>
+              </OptionCard>
+            </SettingsGroup>
+
+            <SettingsGroup>
               <GroupTitle>Networks</GroupTitle>
               <EvmWallet />
             </SettingsGroup>
@@ -209,5 +227,6 @@ const SettingsIndex = () => {
 import FingerprintIcon from "../../../assets/svg/edit.svg";
 import TrashIcon from "../../../assets/svg/clear.svg";
 import ImportIcon from "../../../assets/svg/import-wallet.svg";
+import BrowserIcon from "../../../assets/svg/send.svg";
 
 export default SettingsIndex;

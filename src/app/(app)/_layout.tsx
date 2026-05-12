@@ -246,6 +246,13 @@ const onLayoutRootView = useCallback(async () => {
             }}
           />
           <Stack.Screen
+            name="settings/dapp-browser"
+            options={{
+              headerShown: false,
+              gestureEnabled: true,
+            }}
+          />
+          <Stack.Screen
             name="accounts/account-name-modal"
             options={{
               headerShown: false,

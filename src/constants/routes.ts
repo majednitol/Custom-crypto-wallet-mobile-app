@@ -24,6 +24,7 @@ export interface Routes {
   accountModal: string;
   accountNameModal: string;
   confirmation: string;
+  browser: string;
 }
 
 export const ROUTES: Routes = {
@@ -53,4 +54,5 @@ export const ROUTES: Routes = {
   accountModal: "/(app)/accounts/account-modal",
   accountNameModal: "/(app)/accounts/account-name-modal",
   confirmation: "/(app)/token/confirmation",
+  browser: "/(app)/settings/dapp-browser",
 };
