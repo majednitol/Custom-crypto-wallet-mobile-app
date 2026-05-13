@@ -2,6 +2,7 @@ import styled from "styled-components/native";
 import { ThemeType } from "../../styles/theme";
 import React, { memo } from "react";
 import { LinearGradient } from "expo-linear-gradient";
+import { widthPercentageToDP as wp } from "react-native-responsive-screen";
 
 interface ButtonTextProps {
   color?: string;
@@ -28,10 +29,9 @@ const CryptoInfoCardContainer = styled.TouchableOpacity<ButtonContainerProps>`
   background-color: ${({ theme, hideBackground }) =>
     hideBackground ? "transparent" : theme.colors.cardBackground};
   border-radius: ${(props) => props.theme.borderRadius.medium};
-  height: 72px;
-  padding: ${(props) => props.theme.spacing.medium};
-  padding-left: 16px;
-  padding-right: 20px;
+  min-height: 72px;
+  padding-vertical: 12px;
+  padding-horizontal: ${wp("4%")}px;
   width: 100%;
   border: ${({ theme, hideBackground }) =>
     hideBackground ? "none" : `1px solid ${theme.colors.border}`};
@@ -55,7 +55,7 @@ const DetailsContainer = styled.View`
   flex-direction: column;
   justify-content: center;
   align-items: flex-end;
-  flex-shrink: 0;
+  flex: 0.8;
   margin-left: 8px;
 `;
 
@@ -135,12 +135,31 @@ const CryptoInfoCard: React.FC<ButtonProps> = ({
       <ChainContainer>
         <Circle iconBackgroundColor={iconBackgroundColor}>{icon}</Circle>
         <PrimaryTextContainer>
-          <CryptoInfoCardText numberOfLines={1}>{title}</CryptoInfoCardText>
-          <CryptoBalanceText numberOfLines={1}>{caption}</CryptoBalanceText>
+          <CryptoInfoCardText 
+            numberOfLines={1} 
+            adjustsFontSizeToFit 
+            minimumFontScale={0.8}
+          >
+            {title}
+          </CryptoInfoCardText>
+          <CryptoBalanceText 
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
+            {caption}
+          </CryptoBalanceText>
         </PrimaryTextContainer>
       </ChainContainer>
       <DetailsContainer>
-        <DetailsText numberOfLines={1}>{details}</DetailsText>
+        <DetailsText 
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.5}
+          style={{ width: "100%" }}
+        >
+          {details}
+        </DetailsText>
         {changePercent && (
           <ChangeIndicator positive={changePercent.startsWith("+")}>
             {changePercent}

@@ -100,17 +100,19 @@ console.log("network",network)
   }
 }
 // ----------------- Fetch Transfers -----------------
-async function fetchTransfers(chainId: number, wallet: string): Promise<Transfer[]> {
+export async function fetchTransfers(chainId: number, wallet: string, explorerUrl?: string): Promise<Transfer[]> {
   const network = NETWORKS.find(n => n.chainId === chainId);
-  if (!network) throw new Error(`Network not found for chainId ${chainId}`);
-console.log("chainId", chainId,wallet);
+  const effectiveExplorerUrl = explorerUrl || network?.explorerUrl;
+  
+  console.log("chainId", chainId, wallet, "explorer", effectiveExplorerUrl);
+  
   const isSecureChain = chainId === 34 || chainId === 3434;
   const isAlchemy =
-  !isSecureChain &&
-  network.rpcUrl.includes("alchemy.com");
+    !isSecureChain &&
+    network?.rpcUrl.includes("alchemy.com");
 
   // ----------------- Alchemy-style -----------------
-  if (isAlchemy) {
+  if (isAlchemy && network) {
     try {
       const outgoing = await axios.post(network.rpcUrl, {
         jsonrpc: "2.0",
@@ -160,62 +162,92 @@ console.log("chainId", chainId,wallet);
     }
   }
 
+  // ----------------- Explorer-style (Etherscan/Blockscout) -----------------
+  if (effectiveExplorerUrl || isSecureChain) {
+    let baseUrl = effectiveExplorerUrl ? 
+      (effectiveExplorerUrl.endsWith("/") ? effectiveExplorerUrl.slice(0, -1) : effectiveExplorerUrl) : 
+      "https://explorer.securechain.ai";
+    
+    // Most explorers expose the API at /api
+    let apiEndpoint = `${baseUrl}/api`;
 
+    // Intelligent check: if it's a known explorer that uses 'api.' subdomain (like Monadscan, Etherscan)
+    if (baseUrl.includes("monadscan.com") && !baseUrl.includes("api.")) {
+      apiEndpoint = "https://api.monadscan.com/api";
+    } else if (baseUrl.includes("etherscan.io") && !baseUrl.includes("api-")) {
+      // Note: etherscan uses subdomains like api.etherscan.io or api-sepolia.etherscan.io
+      // But we usually use Alchemy for these, so this is just a fallback
+    }
 
-if (chainId === 34 || chainId === 3434) {
-  const BLOCKSCOUT_API = "https://explorer.securechain.ai/api";
+    try {
+      // Helper to try a request and return results
+      const tryFetch = async (endpoint: string) => {
+        try {
+          const [normal, token] = await Promise.all([
+            axios.get(`${endpoint}?module=account&action=txlist&address=${wallet}&sort=desc`, { timeout: 8000 }),
+            axios.get(`${endpoint}?module=account&action=tokentx&address=${wallet}&sort=desc`, { timeout: 8000 })
+          ]);
+          
+          // Detect V1 deprecation (Monadscan etc)
+          if (typeof normal.data.result === "string" && normal.data.result.includes("deprecated V1")) {
+            return null;
+          }
 
-  try {
-    const normalTxsRes = await axios.get(
-      `${BLOCKSCOUT_API}?module=account&action=txlist&address=${wallet}&sort=desc`
-    );
-    const normalTxs = normalTxsRes.data.result || [];
+          return { normal: normal.data.result, token: token.data.result };
+        } catch (e) {
+          return null;
+        }
+      };
 
-    const tokenTxsRes = await axios.get(
-      `${BLOCKSCOUT_API}?module=account&action=tokentx&address=${wallet}&sort=desc`
-    );
-    const tokenTxs = tokenTxsRes.data.result || [];
+      let res = await tryFetch(apiEndpoint);
+      if (!res) {
+        const v2 = apiEndpoint.replace(/\/api$/, "/api/v2");
+        console.log(`⚠️  V1 Deprecated, trying V2: ${v2}`);
+        res = await tryFetch(v2);
+      }
 
-    const allTxs: Transfer[] = [
-      ...normalTxs.map((tx: any): Transfer => ({
-        hash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: ethers.formatEther(tx.value ?? "0"), 
-        category: "NORMAL",
-        direction:
-          tx.from.toLowerCase() === wallet.toLowerCase()
-            ? "sent"
-            : "received", 
-        type: "NORMAL",
-        blockNumber: Number(tx.blockNumber),
-      })),
+      const normalTxs = res?.normal || [];
+      const tokenTxs = res?.token || [];
 
-      ...tokenTxs.map((tx: any): Transfer => ({
-        hash: tx.hash,
-        from: tx.from,
-        to: tx.to,
-        value: ethers.formatUnits(
-          tx.value ?? "0",
-          Number(tx.tokenDecimal ?? 18)
-        ), 
-        category: tx.tokenName || "TOKEN",
-        direction:
-          tx.from.toLowerCase() === wallet.toLowerCase()
-            ? "sent"
-            : "received",
-        type: "ERC20/ERC721/ERC1155", 
-        blockNumber: Number(tx.blockNumber),
-      })),
-    ];
+      const allTxs: Transfer[] = [
+        ...(Array.isArray(normalTxs) ? normalTxs : []).map((tx: any): Transfer => ({
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          value: ethers.formatEther(tx.value ?? "0"), 
+          category: "NORMAL",
+          direction:
+            tx.from.toLowerCase() === wallet.toLowerCase()
+              ? "sent"
+              : "received", 
+          type: "NORMAL",
+          blockNumber: Number(tx.blockNumber),
+        })),
 
-    return allTxs.sort((a, b) => b.blockNumber - a.blockNumber);
-  } catch (err: any) {
-    console.error(`[ChainId ${chainId}] SecureChain fetch error:`, err?.message || err);
-    return [];
+        ...(Array.isArray(tokenTxs) ? tokenTxs : []).map((tx: any): Transfer => ({
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          value: ethers.formatUnits(
+            tx.value ?? "0",
+            Number(tx.tokenDecimal ?? 18)
+          ), 
+          category: tx.tokenName || "TOKEN",
+          direction:
+            tx.from.toLowerCase() === wallet.toLowerCase()
+              ? "sent"
+              : "received",
+          type: "ERC20/ERC721/ERC1155", 
+          blockNumber: Number(tx.blockNumber),
+        })),
+      ];
+
+      return allTxs.sort((a, b) => b.blockNumber - a.blockNumber);
+    } catch (err: any) {
+      console.warn(`[ChainId ${chainId}] Explorer fetch error at ${apiEndpoint}:`, err?.message || err);
+      return [];
+    }
   }
-}
-
 
   console.warn(`[ChainId ${chainId}] No fetch method implemented.`);
   return [];
@@ -225,21 +257,29 @@ export default fetchTransfers;
 
 
  
-// ----------------- Example Usage -----------------
-// (async () => {
-//   const wallet = "0x58BFd42F60b20BF1Ec934B0EfA9F0a6efeCe29F0";
-//   const chainId = 34; 
+// ----------------- Example Usage / Testing -----------------
+// To test, uncomment the lines below and run with a TS-friendly node environment.
+/*
+(async () => {
+  const wallet = "0x58BFd42F60b20BF1Ec934B0EfA9F0a6efeCe29F0";
+  const chainId = 534351; // Scroll Sepolia
+  const explorerUrl = "https://sepolia.scrollscan.com";
 
-//   const transfers = await fetchTransfers(chainId, wallet);
+  console.log(`\n🔍 Testing data fetch for wallet ${wallet} on chain ${chainId}...`);
+  try {
+    const transfers = await fetchTransfers(chainId, wallet, explorerUrl);
 
-//   console.log(`\n📊 Transfers for wallet ${wallet} on chain ${chainId}:`);
-//   transfers.forEach((tx, idx) => {
-//     console.log(`${idx + 1}. Hash: ${tx.hash}`);
-//     console.log(`   From: ${tx.from}`);
-//     console.log(`   To:   ${tx.to}`);
-//     console.log(`   Value: ${tx.value}`);
-//     console.log(`   Category: ${tx.category}`);
-//     console.log(`   Direction: ${tx.direction}`);
-//     console.log(`   Type: ${tx.type}\n`);
-//   });
-// })();
+    console.log(`\n📊 Transfers found: ${transfers.length}`);
+    transfers.slice(0, 5).forEach((tx, idx) => {
+      console.log(`${idx + 1}. Hash: ${tx.hash}`);
+      console.log(`   From: ${tx.from}`);
+      console.log(`   To:   ${tx.to}`);
+      console.log(`   Value: ${tx.value}`);
+      console.log(`   Direction: ${tx.direction}`);
+      console.log(`   Type: ${tx.type}\n`);
+    });
+  } catch (err) {
+    console.error("Test fetch failed:", err);
+  }
+})();
+*/

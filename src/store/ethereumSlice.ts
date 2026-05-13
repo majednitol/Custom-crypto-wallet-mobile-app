@@ -15,6 +15,7 @@ import {
 } from "../services/EthereumService";
 import NETWORKS from "../services/defaultNetwork";
 import { Transfer } from "../services/helper";
+import { withRetry } from "../utils/retry";
 
 
 const CONFIRMATION_TIMEOUT = 60000;
@@ -101,7 +102,12 @@ export const fetchEvmBalance = createAsyncThunk(
     const service = evmServices[chainId];
     if (!service) throw new Error("Service not initialized");
 
-    const balanceBN = await service.getBalance(address);
+    const balanceBN = await withRetry(
+      () => service.getBalance(address),
+      3,
+      1000,
+      (err) => console.warn(`Retrying balance for ${chainId}: ${err.message}`)
+    );
 
     return {
       chainId,
@@ -139,7 +145,12 @@ export const fetchEvmTransactions = createAsyncThunk(
     if (!service) throw new Error("Service not initialized");
 
 
-    const txs = await service.fetchTransactions(chainId.toString(), address);
+    const txs = await withRetry(
+      () => service.fetchTransactions(chainId.toString(), address),
+      2,
+      1500,
+      (err) => console.warn(`Retrying transactions for ${chainId}: ${err.message}`)
+    );
 
     return { chainId, address, txs };
   }

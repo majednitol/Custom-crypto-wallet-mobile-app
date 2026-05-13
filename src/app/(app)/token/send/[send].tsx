@@ -1,4 +1,4 @@
-import { useState, ChangeEvent, useRef } from "react";
+import { useEffect, useState, ChangeEvent, useRef } from "react";
 import { Platform, View } from "react-native";
 
 import { useSelector } from "react-redux";
@@ -22,6 +22,8 @@ import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 import { EVMService, evmServices } from "../../../../services/EthereumService";
 import { getPhrase } from "../../../../hooks/useStorageState";
 import { getImportedEvmKey } from "../../../../utils/importedKeyStorage";
+import QRCodeIcon from "../../../../assets/svg/qr-code.svg";
+import { TouchableOpacity } from "react-native";
 
 type FormikChangeHandler = {
   (e: ChangeEvent<any>): void;
@@ -61,14 +63,22 @@ const IconBackground = styled.View<{ theme: ThemeType }>`
   border: 1px solid ${({ theme }) => theme.colors.border};
 `;
 
-const AddressTextInput = styled.TextInput<TextInputProps>`
+const AddressInputContainer = styled.View<TextInputProps>`
   height: 60px;
+  flex-direction: row;
+  align-items: center;
   background-color: ${({ theme }) => theme.colors.cardBackground};
-  padding: ${({ theme }) => theme.spacing.medium};
   border: 1px solid
     ${({ theme, isAddressInputFocused }) =>
       isAddressInputFocused ? theme.colors.primary : theme.colors.border};
   border-radius: 16px;
+  padding-right: ${({ theme }) => theme.spacing.medium};
+`;
+
+const AddressTextInput = styled.TextInput<TextInputProps>`
+  flex: 1;
+  height: 60px;
+  padding-horizontal: ${({ theme }) => theme.spacing.medium};
   color: ${({ theme }) => theme.colors.white};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
   font-family: ${(props) => props.theme.fonts.families.openRegular};
@@ -206,6 +216,13 @@ export default function SendPage() {
 
   const theme = useTheme();
   const formRef = useRef<FormikProps<FormValues>>(null);
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (toAddress && formRef.current) {
+      formRef.current.setFieldValue("address", toAddress as string);
+    }
+  }, [toAddress]);
 
   const chainName = send as string;
   let currentChainName = "";
@@ -544,6 +561,7 @@ export default function SendPage() {
           initialValues={initialValues}
           validate={validateFields}
           onSubmit={handleSubmit}
+          enableReinitialize={true}
         >
           {({
             handleChange,
@@ -556,18 +574,34 @@ export default function SendPage() {
             <FormWrapper>
               <TextContainer>
                 <TextView>
-                  <AddressTextInput
-                    isAddressInputFocused={isAddressInputFocused}
-                    placeholder={`Recipient's ${capitalizeFirstLetter(
-                      currentChainName
-                    )} address`}
-                    value={values.address}
-                    onChangeText={handleChange("address")}
-                    onFocus={() => setIsAddressInputFocused(true)}
-                    onBlur={handleBlur("email")}
-                    onEndEditing={() => setIsAddressInputFocused(false)}
-                    placeholderTextColor={theme.colors.lightGrey}
-                  />
+                  <AddressInputContainer isAddressInputFocused={isAddressInputFocused}>
+                    <AddressTextInput
+                      isAddressInputFocused={isAddressInputFocused}
+                      placeholder={`Recipient's ${capitalizeFirstLetter(
+                        currentChainName
+                      )} address`}
+                      value={values.address}
+                      onChangeText={handleChange("address")}
+                      onFocus={() => setIsAddressInputFocused(true)}
+                      onBlur={handleBlur("email")}
+                      onEndEditing={() => setIsAddressInputFocused(false)}
+                      placeholderTextColor={theme.colors.lightGrey}
+                    />
+                    <TouchableOpacity
+                      onPress={() =>
+                        router.push({
+                          pathname: ROUTES.camera,
+                          params: { ...params, chain: currentChainName },
+                        })
+                      }
+                    >
+                      <QRCodeIcon
+                        width={24}
+                        height={24}
+                        fill={theme.colors.lightGrey}
+                      />
+                    </TouchableOpacity>
+                  </AddressInputContainer>
                 </TextView>
                 {errors.address && <ErrorText>{errors.address}</ErrorText>}
                 <TextView>

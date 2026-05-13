@@ -64,7 +64,9 @@ export class EVMService {
   async getBalance(address: AddressLike): Promise<bigint> {
     if (this.isUnreachable) return BigInt(0);
     try {
-      return await this.provider.getBalance(address);
+      const balance = await this.provider.getBalance(address);
+      this.isUnreachable = false; // Reset on success
+      return balance;
     } catch (error) {
       console.warn(`[EVM] Balance check failed for ${this.network.chainName}:`, error instanceof Error ? error.message : "Unknown error");
       this.isUnreachable = true; // Mark as unreachable to prevent spam
@@ -341,7 +343,7 @@ async calculateGasAndAmountsForERC20Transfer(privateKey: string, tokenAddress: s
 
       const chainId = Number(chain);
       if (isNaN(chainId)) throw new Error("Invalid chainId");
-      const transfers = await fetchTransfers(chainId, address);
+      const transfers = await fetchTransfers(chainId, address, this.network.explorerUrl);
 
       return {
         transferHistory: transfers,

@@ -93,7 +93,14 @@ const PrimaryButton: React.FC<ButtonProps> = ({
         end={{ x: 1, y: 1 }}
       >
         <Circle style={{ backgroundColor: "rgba(0,0,0,0.2)" }}>{icon}</Circle>
-        <PrimaryButtonText variant="primary">{btnText}</PrimaryButtonText>
+        <PrimaryButtonText 
+          variant="primary"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {btnText}
+        </PrimaryButtonText>
       </GradientContainer>
     );
   }
@@ -107,7 +114,14 @@ const PrimaryButton: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       <Circle>{icon}</Circle>
-      <PrimaryButtonText variant={variant}>{btnText}</PrimaryButtonText>
+      <PrimaryButtonText 
+        variant={variant}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+      >
+        {btnText}
+      </PrimaryButtonText>
     </PrimaryButtonContainer>
   );
 };

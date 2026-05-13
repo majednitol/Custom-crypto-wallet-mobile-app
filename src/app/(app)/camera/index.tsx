@@ -22,7 +22,8 @@ import LeftArrow from "../../../assets/svg/left-arrow.svg";
 export default function Camera() {
   const theme = useTheme() as ThemeType;
   const styles = createStyles(theme);
-  const { chain } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const { chain } = params;
   const chainName = chain as string;
   const [loading, setLoading] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
@@ -45,6 +46,7 @@ export default function Camera() {
       return router.push({
         pathname: `token/send/${routeName}`,
         params: {
+          ...params,
           toAddress: data.data,
         },
       });
@@ -151,9 +153,6 @@ export default function Camera() {
         loading ? onBarcodeScanned(null as any) : onBarcodeScanned(data)
       }
     >
-      <TouchableOpacity style={styles.closeIconContainer} onPress={() => router.back()}>
-        <CloseIcon width={30} height={30} fill={theme.colors.white} />
-      </TouchableOpacity>
       <QRCodeCamera width={250} height={250} fill={theme.colors.white} />
     </CameraView>
   );

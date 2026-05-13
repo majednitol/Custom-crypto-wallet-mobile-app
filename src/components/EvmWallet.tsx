@@ -222,6 +222,7 @@ export const EvmWallet = () => {
   const [chainId, setChainId] = useState("");
   const [rpcUrl, setRpcUrl] = useState("");
   const [symbol, setSymbol] = useState("");
+  const [explorerUrl, setExplorerUrl] = useState("");
   const [editingNetworkId, setEditingNetworkId] = useState<number | null>(null);
 
   const handleSaveNetwork = () => {
@@ -233,6 +234,7 @@ export const EvmWallet = () => {
       chainName: networkName,
       rpcUrl,
       symbol,
+      explorerUrl: explorerUrl || undefined,
     };
 
     if (editingNetworkId !== null) {
@@ -249,6 +251,7 @@ export const EvmWallet = () => {
     setChainId("");
     setRpcUrl("");
     setSymbol("");
+    setExplorerUrl("");
     setEditingNetworkId(null);
     setModalVisible(false);
   };
@@ -259,6 +262,7 @@ export const EvmWallet = () => {
     setChainId(network.chainId?.toString());
     setRpcUrl(network.rpcUrl);
     setSymbol(network.symbol);
+    setExplorerUrl(network.explorerUrl || "");
     setModalVisible(true);
   };
 
@@ -417,6 +421,13 @@ export const EvmWallet = () => {
                     value={symbol}
                     onChangeText={setSymbol}
                     autoCapitalize="characters"
+                  />
+                  <Input
+                    placeholder="Explorer URL (Optional)"
+                    placeholderTextColor={theme.colors.lightGrey}
+                    value={explorerUrl}
+                    onChangeText={setExplorerUrl}
+                    autoCapitalize="none"
                   />
 
                   <ModalButtons>

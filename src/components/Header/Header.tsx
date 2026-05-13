@@ -5,12 +5,12 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 import { ThemeType } from "../../styles/theme";
 import SettingsIcon from "../../assets/svg/settings.svg";
-import QRCodeIcon from "../../assets/svg/qr-code.svg";
-import DownArrowIcon from "../../assets/svg/down-arrow.svg";
 import { ROUTES } from "../../constants/routes";
+import Svg, { Path, Circle as SvgCircle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "react-native";
+import { widthPercentageToDP as wp } from "react-native-responsive-screen";
 
 interface ThemeComponent {
   theme: ThemeType;
@@ -35,17 +35,17 @@ const Container = styled.View<ThemeComponent>`
 
 const LeftContainer = styled.View<ThemeComponent>``;
 
-const CenterContainer = styled.TouchableOpacity<ThemeComponent>`
+const CenterContainer = styled.View<ThemeComponent>`
   flex-direction: row;
   align-items: center;
   justify-content: center;
   background-color: ${(props) => props.theme.colors.cardBackground};
   border-radius: ${(props) => props.theme.borderRadius.pill};
   padding-vertical: 6px;
-  padding-horizontal: 20px;
+  padding-horizontal: 16px;
   border: 1px solid ${(props) => props.theme.colors.border};
-  min-width: 140px;
-  max-width: 220px;
+  min-width: ${wp("30%")}px;
+  max-width: ${wp("60%")}px;
   flex-shrink: 1;
 `;
 
@@ -77,6 +77,40 @@ const NetworkDot = styled.View`
   background-color: ${(props) => props.theme.colors.success};
   margin-right: 8px;
 `;
+
+const AccountIcon = ({ color }: { color: string }) => (
+  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+    {/* Wallet Body */}
+    <Path
+      d="M19 7H5C3.89543 7 3 7.89543 3 9V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V9C21 7.89543 20.1046 7 19 7Z"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Wallet Top Part */}
+    <Path
+      d="M16 7V5C16 3.89543 15.1046 3 14 3H10C8.89543 3 8 3.89543 8 5V7"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Token/Coin Detail */}
+    <Path
+      d="M12 11V16"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    <Path
+      d="M10 13.5H14"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </Svg>
+);
 
 const Header: React.FC = () => {
   const theme = useTheme();
@@ -115,11 +149,13 @@ const Header: React.FC = () => {
           </IconTouchContainer>
         </LeftContainer>
 
-        <CenterContainer onPress={() => router.push(ROUTES.accounts)}>
+        <CenterContainer>
           <NetworkDot />
           <Text
             numberOfLines={1}
             ellipsizeMode="tail"
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
             style={{
               fontFamily: theme.fonts.families.openBold,
               fontSize: 14,
@@ -131,17 +167,12 @@ const Header: React.FC = () => {
           >
             {activeAccountName}
           </Text>
-          <DownArrowIcon
-            width={14}
-            height={14}
-            fill={theme.colors.lightGrey}
-            style={{ marginLeft: 6 }}
-          />
+          
         </CenterContainer>
 
         <RightContainer>
-          <IconTouchContainer onPress={() => router.push(ROUTES.camera)}>
-            <QRCodeIcon width={20} height={20} fill={theme.colors.lightGrey} />
+          <IconTouchContainer onPress={() => router.push(ROUTES.accounts)}>
+            <AccountIcon color={theme.colors.lightGrey} />
           </IconTouchContainer>
         </RightContainer>
       </Container>

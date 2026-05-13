@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { View, RefreshControl, FlatList, Text, StyleSheet, InteractionManager } from "react-native";
+import { View, RefreshControl, FlatList, Text, StyleSheet, InteractionManager, AppState, AppStateStatus } from "react-native";
+import { widthPercentageToDP as wp, heightPercentageToDP as hp } from "react-native-responsive-screen";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
@@ -271,6 +272,19 @@ export default function Index() {
     return () => clearInterval(interval);
   }, [fetchAndUpdatePricesInternal]);
 
+  // Handle app coming from background to foreground
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        console.log("[Dashboard] App returned to active state, refreshing data...");
+        onRefresh();
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => subscription.remove();
+  }, [onRefresh]);
+
   const mergedAndSortedTransactions = useMemo(() => {
     const ethTx = ethTransactions ?? [];
     const solTx = solTransactions ?? [];
@@ -388,8 +402,19 @@ export default function Index() {
     <SafeAreaContainer>
       <View style={contentContainerStyle}>
         <View style={styles.balanceContainer}>
-          <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceText}>
+          <Text 
+            style={styles.balanceLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
+            Total Balance
+          </Text>
+          <Text 
+            style={styles.balanceText}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
             <Text style={styles.dollarSign}>$</Text>
             {formatDollarRaw(totalUsdBalance)}
           </Text>
@@ -491,23 +516,26 @@ function createStyles(theme: ThemeType) {
     },
     balanceLabel: {
       fontFamily: theme.fonts.families.openRegular,
-      fontSize: sp(theme.fonts.sizes.small),
+      fontSize: wp("3.5%"),
       color: theme.colors.lightGrey,
       textTransform: "uppercase",
       letterSpacing: 1.5,
       marginBottom: 8,
+      width: "100%",
+      textAlign: "center",
     },
     balanceText: {
       fontFamily: theme.fonts.families.openBold,
-      fontSize: sp(theme.fonts.sizes.uberHuge),
+      fontSize: wp("12%"),
       color: theme.colors.white,
       textAlign: "center",
       letterSpacing: -1,
+      width: "100%",
     },
     dollarSign: {
       color: theme.colors.primary,
       fontFamily: theme.fonts.families.openBold,
-      fontSize: sp(theme.fonts.sizes.huge),
+      fontSize: wp("8%"),
       textAlign: "center",
     },
     actionContainer: {

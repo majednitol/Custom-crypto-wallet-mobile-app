@@ -4,6 +4,7 @@ import "@ethersproject/shims";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import solanaService from "../services/SolanaService";
 import { truncateBalance } from "../utils/truncateBalance";
+import { withRetry } from "../utils/retry";
 import {
   GeneralStatus,
  
@@ -44,9 +45,14 @@ export const fetchSolanaTransactions = createAsyncThunk(
   "wallet/fetchSolanaTransactions",
   async (address: string, { rejectWithValue }): Promise<any> => {
     try {
-      const transactions = await solanaService.getTransactionsByWallet(address);
+      const transactions = await withRetry(
+        () => solanaService.getTransactionsByWallet(address),
+        2,
+        1500,
+        (err) => console.warn(`Retrying Solana transactions: ${err.message}`)
+      );
       return transactions;
-    } catch (error) {
+    } catch (error: any) {
       console.error("error", error);
       return rejectWithValue(error.message);
     }
@@ -70,9 +76,14 @@ export const fetchSolanaBalance = createAsyncThunk(
   "wallet/fetchSolanaBalance",
   async (tokenAddress: string, { rejectWithValue }): Promise<any> => {
     try {
-      const currentSolBalance = await solanaService.getBalance(tokenAddress);
+      const currentSolBalance = await withRetry(
+        () => solanaService.getBalance(tokenAddress),
+        3,
+        1000,
+        (err) => console.warn(`Retrying Solana balance: ${err.message}`)
+      );
       return currentSolBalance;
-    } catch (error) {
+    } catch (error: any) {
       console.error("error", error);
       return rejectWithValue(error.message);
     }

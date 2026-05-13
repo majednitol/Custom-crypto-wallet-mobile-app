@@ -301,6 +301,9 @@ console.log("ethPrivateKey",ethPrivateKey)
             params: {
               txHash,
               blockchain: Chains.EVM,
+              amount,
+              symbol: ticker,
+              recipientAddress: address,
             },
           });
           console.log("txResult", txHash)
@@ -362,7 +365,13 @@ console.log("ethPrivateKey",ethPrivateKey)
           navigation.dispatch(StackActions.popToTop());
           router.push({
             pathname: ROUTES.confirmation,
-            params: { txHash: result.txHash, blockchain: Chains.Solana },
+            params: { 
+              txHash: result.txHash, 
+              blockchain: Chains.Solana,
+              amount,
+              symbol: ticker,
+              recipientAddress: address,
+            },
           });
         }
       }
