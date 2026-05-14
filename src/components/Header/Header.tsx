@@ -9,7 +9,7 @@ import { ROUTES } from "../../constants/routes";
 import Svg, { Path, Circle as SvgCircle } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import { widthPercentageToDP as wp } from "react-native-responsive-screen";
 
 interface ThemeComponent {
@@ -44,9 +44,8 @@ const CenterContainer = styled.View<ThemeComponent>`
   padding-vertical: 6px;
   padding-horizontal: 16px;
   border: 1px solid ${(props) => props.theme.colors.border};
-  min-width: ${wp("30%")}px;
-  max-width: ${wp("60%")}px;
-  flex-shrink: 1;
+  flex: 1;
+  margin-horizontal: 12px;
 `;
 
 const RightContainer = styled.View<ThemeComponent>``;
@@ -135,7 +134,6 @@ const Header: React.FC = () => {
     return accounts?.[activeIndex]?.accountName ?? "Account";
   });
 
-
   return (
     <GradientHeader
       colors={["rgba(11,14,20,0.95)", "rgba(11,14,20,0)"]}
@@ -151,23 +149,28 @@ const Header: React.FC = () => {
 
         <CenterContainer>
           <NetworkDot />
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            adjustsFontSizeToFit
-            minimumFontScale={0.7}
-            style={{
-              fontFamily: theme.fonts.families.openBold,
-              fontSize: 14,
-              color: theme.colors.white,
-              flexShrink: 1,
-              textAlign: "center",
-              includeFontPadding: false,
-            }}
-          >
-            {activeAccountName}
-          </Text>
-          
+          {/* 
+            CRITICAL FIX: Wrap Text in a View with flex:1.
+            On Android, Text with numberOfLines inside a flex-direction:row 
+            parent gets its width measured BEFORE the flex layout resolves.
+            The text engine sees 0 available width and truncates everything.
+            The View wrapper receives its definite width from flex first,
+            then Text fills the View's known width without truncation.
+          */}
+          <View style={{ flex: 1 }}>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: theme.fonts.families.openBold,
+                fontSize: 14,
+                color: theme.colors.white,
+                textAlign: "center",
+                includeFontPadding: false,
+              }}
+            >
+              {activeAccountName}
+            </Text>
+          </View>
         </CenterContainer>
 
         <RightContainer>

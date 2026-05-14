@@ -118,13 +118,18 @@ export const fetchEvmBalance = createAsyncThunk(
 );
 
 function mapTransferToTransaction(tx: Transfer, chainId: number): Transaction {
+  // Guard against NaN: explorer may return empty strings or "N/A" for value
+  const rawValue = tx.value === "N/A (ERC721/ERC1155)" ? 0 : Number(tx.value);
+  // Use blockNumber as a stable, monotonically-increasing sort key.
+  // Multiplied by 1000 to keep magnitude similar to Date.now() for existing sort logic.
+  const stableBlockTime = tx.blockNumber ? tx.blockNumber * 1000 : Date.now();
   return {
     uniqueId: tx.hash,               
     hash: tx.hash,
     from: tx.from,
     to: tx.to,
-    value: Number(tx.value === "N/A (ERC721/ERC1155)" ? 0 : tx.value),
-    blockTime: Date.now(),          
+    value: isNaN(rawValue) ? 0 : rawValue,
+    blockTime: stableBlockTime,
     asset: tx.category,              
     direction: tx.direction.toLowerCase(), 
     chainId: chainId,

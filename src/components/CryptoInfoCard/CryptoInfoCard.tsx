@@ -55,7 +55,7 @@ const DetailsContainer = styled.View`
   flex-direction: column;
   justify-content: center;
   align-items: flex-end;
-  flex: 0.8;
+  flex-shrink: 0;
   margin-left: 8px;
 `;
 
@@ -138,7 +138,7 @@ const CryptoInfoCard: React.FC<ButtonProps> = ({
           <CryptoInfoCardText 
             numberOfLines={1} 
             adjustsFontSizeToFit 
-            minimumFontScale={0.8}
+            minimumFontScale={0.65}
           >
             {title}
           </CryptoInfoCardText>

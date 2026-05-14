@@ -17,14 +17,14 @@ const TabsContainer = styled.View`
   justify-content: space-around;
   align-items: center;
   padding-horizontal: 16px;
-  padding-vertical: 8px;
+  padding-vertical: 4px;
   border-bottom-width: 1px;
   border-bottom-color: ${({ theme }: { theme: ThemeType }) =>
     theme.colors.border};
 `;
 
 const TabButton = styled.TouchableOpacity`
-  padding-vertical: 8px;
+  padding-vertical: 4px;
   padding-horizontal: 12px;
   align-items: center;
 `;

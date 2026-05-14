@@ -64,6 +64,7 @@ const Label = styled.Text<{ theme: ThemeType }>`
 const ChainSelector = styled.View`
   flex-direction: row;
   margin-bottom: 16px;
+  gap: 12px;
 `;
 
 const ChainButton = styled.TouchableOpacity<{
@@ -78,8 +79,6 @@ const ChainButton = styled.TouchableOpacity<{
   border: 1px solid
     ${({ theme, isActive }) =>
       isActive ? theme.colors.primary : theme.colors.border};
-  margin-right: ${({ isActive }) => (isActive ? "0px" : "8px")};
-  margin-left: ${({ isActive }) => (isActive ? "8px" : "0px")};
   align-items: center;
 `;
 

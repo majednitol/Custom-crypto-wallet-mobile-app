@@ -159,10 +159,8 @@ const onLayoutRootView = useCallback(async () => {
           <Stack.Screen
             name="index"
             options={{
-              headerShown: true,
-              headerTransparent: true,
+              headerShown: false,
               gestureEnabled: true,
-              header: (props) => <Header {...props} />,
             }}
           />
           <Stack.Screen

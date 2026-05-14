@@ -63,12 +63,12 @@ const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
   justify-content: flex-start;
   padding: ${(props) => props.theme.spacing.medium};
-  margin-top: ${(props) => (Platform.OS === "android" ? "40px" : "0px")};
+  margin-top: 0px;
 `;
 
 const ChainLogoContainer = styled.View`
   align-items: center;
-  margin-vertical: 16px;
+  margin-vertical: 8px;
 `;
 
 const BalanceText = styled.Text<{ theme: ThemeType }>`
@@ -96,7 +96,7 @@ const PriceChangeText = styled.Text<{ positive: boolean; theme: ThemeType }>`
 const TimeSelectorContainer = styled.View`
   flex-direction: row;
   justify-content: center;
-  margin-top: 16px;
+  margin-top: 8px;
   margin-bottom: 8px;
 `;
 
@@ -205,11 +205,9 @@ const AddTokenText = styled.Text<{ theme: ThemeType }>`
 
 const FilterContainer = styled.View<{ theme: ThemeType }>`
   flex-direction: row;
-  padding-right: ${(props) => props.theme.spacing.medium};
-  padding-left: ${(props) => props.theme.spacing.medium};
   width: 100%;
-  margin-bottom: ${(props) => props.theme.spacing.small};
-  margin-top: 12px;
+  margin-bottom: ${(props) => props.theme.spacing.tiny};
+  margin-top: 0px;
 `;
 
 const FilterButton = styled.TouchableOpacity<{

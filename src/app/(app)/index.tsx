@@ -5,6 +5,7 @@ import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { useDispatch, useSelector } from "react-redux";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import NetInfo from "@react-native-community/netinfo";
 import { useTheme } from "styled-components/native";
 import { ROUTES } from "../../constants/routes";
 import type { ThemeType } from "../../styles/theme";
@@ -45,6 +46,7 @@ import { loadSolTokens } from "../../store/solTokenSlice";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Didcomm from "../../../native-modules/didcomm";
 import { useRenderLog } from "../../utils/PerformanceMonitor";
+import Header from "../../components/Header/Header";
 
 // ─── THE SINGLE DATA HOOK ───
 import { useDashboardData } from "../../hooks/useDashboardData";
@@ -237,12 +239,14 @@ export default function Index() {
     ]);
     setRefreshing(false);
   }, [dispatch, allChainIds, fetchTokenBalances, fetchTransactions]);
+  
 
   // Re-init: fires whenever the active wallet address changes (import, switch account)
   // OR when a new unlock session starts (ensures fresh data after lock/unlock cycle)
   const unlockedAt = useSelector((state: RootState) => state.biometrics.unlockedAt);
   const prevAddrRef = useRef<string>("");
   const prevUnlockRef = useRef<number | undefined>();
+  const initRetryRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     if (!ethWalletAddress || !unlockedAt) return;
 
@@ -257,14 +261,45 @@ export default function Index() {
     // Defer ALL network work until after React finishes rendering and animating.
     // Without this, RPC responses block the JS thread and freeze the UI.
     const handle = InteractionManager.runAfterInteractions(() => {
-      const init = async () => {
-        await dispatch(fetchPrices(allChainIds));
-        await fetchTokenBalances();
-        await fetchTransactions();
+      const init = async (attempt = 1): Promise<void> => {
+        let anyFailed = false;
+
+        // Each step is independent — one failure doesn't block the others
+        try {
+          await dispatch(fetchPrices(allChainIds));
+        } catch (err) {
+          console.warn(`[Init] fetchPrices failed (attempt ${attempt}):`, err);
+          anyFailed = true;
+        }
+
+        try {
+          await fetchTokenBalances();
+        } catch (err) {
+          console.warn(`[Init] fetchTokenBalances failed (attempt ${attempt}):`, err);
+          anyFailed = true;
+        }
+
+        try {
+          await fetchTransactions();
+        } catch (err) {
+          console.warn(`[Init] fetchTransactions failed (attempt ${attempt}):`, err);
+          anyFailed = true;
+        }
+
+        // Watchdog: if anything failed and we haven't exhausted retries,
+        // schedule another attempt with exponential backoff
+        if (anyFailed && attempt < 3) {
+          const delay = attempt * 3000; // 3s, 6s
+          console.log(`[Init] Scheduling retry #${attempt + 1} in ${delay / 1000}s...`);
+          initRetryRef.current = setTimeout(() => init(attempt + 1), delay);
+        }
       };
       init();
     });
-    return () => handle.cancel();
+    return () => {
+      handle.cancel();
+      if (initRetryRef.current) clearTimeout(initRetryRef.current);
+    };
   }, [ethWalletAddress, unlockedAt, allChainIds, fetchTokenBalances, fetchTransactions, dispatch]);
 
   useEffect(() => {
@@ -273,16 +308,105 @@ export default function Index() {
   }, [fetchAndUpdatePricesInternal]);
 
   // Handle app coming from background to foreground
+  // Throttled: only refreshes if the app was in background for >5 seconds
+  // This prevents duplicate fetches that conflict with the unlock-init effect
   useEffect(() => {
+    let lastBackgroundedAt = Date.now();
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "active") {
-        console.log("[Dashboard] App returned to active state, refreshing data...");
-        onRefresh();
+        const elapsed = Date.now() - lastBackgroundedAt;
+        if (elapsed > 5000) {
+          console.log(`[Dashboard] App returned to active after ${Math.round(elapsed / 1000)}s, refreshing...`);
+          // Clear any pending retry
+          if (retryTimer) clearTimeout(retryTimer);
+
+          const refreshWithRetry = async (attempt = 1) => {
+            try {
+              await onRefresh();
+            } catch (err) {
+              if (attempt < 3) {
+                console.warn(`[Dashboard] Foreground refresh failed (attempt ${attempt}), retrying...`);
+                retryTimer = setTimeout(() => refreshWithRetry(attempt + 1), attempt * 2000);
+              }
+            }
+          };
+          refreshWithRetry();
+        }
+      } else if (nextAppState === "background" || nextAppState === "inactive") {
+        lastBackgroundedAt = Date.now();
       }
     };
 
     const subscription = AppState.addEventListener("change", handleAppStateChange);
-    return () => subscription.remove();
+    return () => {
+      subscription.remove();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [onRefresh]);
+
+  // ─── Network reconnection auto-refresh ───
+  // Two strategies:
+  // 1. NetInfo native listener (requires rebuild after install)
+  // 2. Pure-JS polling fallback (works immediately without rebuild)
+  useEffect(() => {
+    let wasOffline = false;
+    let netInfoUnsub: (() => void) | null = null;
+
+    // Strategy 1: Try NetInfo (needs native rebuild)
+    try {
+      NetInfo.fetch().then((state) => {
+        const offline = state.isConnected === false || state.isInternetReachable === false;
+        wasOffline = offline;
+        if (offline) {
+          console.log("[Dashboard] App started offline (NetInfo), waiting for connectivity...");
+        }
+      }).catch(() => { /* NetInfo not linked yet */ });
+
+      netInfoUnsub = NetInfo.addEventListener((state) => {
+        const isOffline = state.isConnected === false || state.isInternetReachable !== true;
+        const isOnline = state.isConnected === true && state.isInternetReachable === true;
+
+        if (isOnline && wasOffline) {
+          console.log("[Dashboard] Network reconnected (NetInfo)! Refreshing...");
+          onRefresh();
+        }
+        wasOffline = isOffline;
+      });
+    } catch (e) {
+      console.warn("[Dashboard] NetInfo not available, using polling fallback");
+    }
+
+    // Strategy 2: Pure-JS polling fallback — detects connectivity without native modules
+    // Polls every 10s; when a fetch succeeds after previous failure, triggers refresh
+    let pollFailed = false;
+    const pollInterval = setInterval(async () => {
+      try {
+        // Lightweight check: fetch a tiny known endpoint with a short timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        await fetch("https://www.google.com/generate_204", {
+          method: "HEAD",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        // If we get here, internet is working
+        if (pollFailed) {
+          console.log("[Dashboard] Network reconnected (polling)! Refreshing...");
+          pollFailed = false;
+          onRefresh();
+        }
+      } catch {
+        pollFailed = true;
+      }
+    }, 10000);
+
+    return () => {
+      if (netInfoUnsub) netInfoUnsub();
+      clearInterval(pollInterval);
+    };
   }, [onRefresh]);
 
   const mergedAndSortedTransactions = useMemo(() => {
@@ -296,6 +420,12 @@ export default function Index() {
 
   const renderTx = useCallback(({ item }: { item: Transaction }) => {
     const sign = item.direction === "received" ? "+" : "-";
+    // Guard against NaN, undefined, and falsy values
+    const rawValue = typeof item.value === "number" && !isNaN(item.value) ? item.value : 0;
+    // Format: small values get more decimals, strip trailing zeros
+    const formattedValue = rawValue === 0
+      ? "0"
+      : rawValue.toFixed(rawValue < 0.001 ? 6 : 4).replace(/\.?0+$/, "");
     const explorerBase = (() => {
       if (item.chainId === 101) return "https://explorer.solana.com";
       const net = NETWORKS.find(n => n.chainId === item.chainId);
@@ -307,7 +437,7 @@ export default function Index() {
         icon=""
         title={capitalizeFirstLetter(item.direction)}
         caption={item.direction === "received" ? `From ${truncateWalletAddress(item.from)}` : `To ${truncateWalletAddress(item.to)}`}
-        details={`${sign} ${item.value}`}
+        details={`${sign}${formattedValue}`}
         onPress={() => WebBrowser.openBrowserAsync(`${explorerBase}/tx/${item.hash}`)}
       />
     );
@@ -400,6 +530,7 @@ export default function Index() {
 
   return (
     <SafeAreaContainer>
+      <Header />
       <View style={contentContainerStyle}>
         <View style={styles.balanceContainer}>
           <Text 
