@@ -20,7 +20,11 @@ import {
   removeNetwork,
   setActiveChain,
   updateNetwork,
+  fetchEvmBalance,
+  fetchEvmTransactions,
 } from "../store/ethereumSlice";
+import { registerEvmService } from "../services/EthereumService";
+import { store } from "../store";
 import { ThemeType } from "../styles/theme";
 import EditIcon from "../assets/svg/edit.svg";
 import TrashIcon from "../assets/svg/clear.svg";
@@ -239,8 +243,27 @@ export const EvmWallet = () => {
 
     if (editingNetworkId !== null) {
       dispatch(updateNetwork(network));
+      // Re-register in case the RPC URL was changed
+      registerEvmService(network);
     } else {
       dispatch(addNetwork(network));
+      // Register the EVMService so balance/transaction fetches don't fail
+      registerEvmService(network);
+
+      // Immediately fetch balance + transactions for the new chain
+      const state = store.getState();
+      const idx = state.ethereum.activeIndex ?? 0;
+      const importedAddr = state.importedAccounts?.activeEvmAddress;
+      const addr = importedAddr
+        ? state.ethereum.globalAddresses?.find(
+            (a) => a.address?.toLowerCase() === importedAddr.toLowerCase()
+          )?.address
+        : state.ethereum.globalAddresses?.[idx]?.address;
+
+      if (addr) {
+        dispatch(fetchEvmBalance({ chainId: Number(chainId), address: addr }));
+        dispatch(fetchEvmTransactions({ chainId: Number(chainId), address: addr }));
+      }
     }
 
     resetForm();

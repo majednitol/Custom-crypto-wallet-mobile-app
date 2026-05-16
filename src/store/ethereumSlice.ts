@@ -12,6 +12,7 @@ import {
 import {
   EVMService,
   evmServices,
+  registerEvmService,
 } from "../services/EthereumService";
 import NETWORKS from "../services/defaultNetwork";
 import { Transfer } from "../services/helper";
@@ -72,7 +73,15 @@ export const loadWalletState = createAsyncThunk(
     const json = await AsyncStorage.getItem(STORAGE_KEY);
     let state: EvmWalletState = json ? JSON.parse(json) : initialState;
 
-   
+    // Re-initialize EVMService for ALL networks (default + custom) that are
+    // persisted in AsyncStorage but may be missing from the in-memory registry.
+    // This fixes the "Service not initialized" error for custom networks after restart.
+    Object.values(state.networks).forEach((net: any) => {
+      if (net?.rpcUrl) {
+        registerEvmService(net);
+      }
+    });
+
     Object.keys(state.networks).forEach((chainIdStr) => {
       const chainId = Number(chainIdStr);
       if (!state.globalAddresses || state.globalAddresses.length === 0) {
