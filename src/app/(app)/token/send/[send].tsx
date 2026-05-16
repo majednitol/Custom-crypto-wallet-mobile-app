@@ -206,6 +206,7 @@ export default function SendPage() {
     send,
     toAddress,
     token,
+    selectedTokenAddress,
     balance,
     symbol: tokenSymbol,
     Erc20TokenName,
@@ -213,11 +214,19 @@ export default function SendPage() {
     solAddess,
     chainId,
     nativeTokenSymbol,
+    mint,
+    decimals,
+    isNative,
   } = useLocalSearchParams();
 
   const theme = useTheme();
   const formRef = useRef<FormikProps<FormValues>>(null);
   const params = useLocalSearchParams();
+
+  const tokenParam = (Array.isArray(selectedTokenAddress) ? selectedTokenAddress[0] : selectedTokenAddress) || (Array.isArray(token) ? token[0] : token);
+  const tokenSymbolParam = Array.isArray(tokenSymbol)
+    ? tokenSymbol[0]
+    : tokenSymbol;
 
   useEffect(() => {
     if (toAddress && formRef.current) {
@@ -234,7 +243,30 @@ export default function SendPage() {
   }
 
   const toWalletAddress = toAddress as string;
-  const ticker = TICKERS[currentChainName];
+  let ticker = TICKERS[currentChainName];
+  
+  // Robust token detection
+  const isNativeParam = isNative === "true";
+  const detectedToken = tokenParam || mint || erc20tokenAddress;
+  const isTokenSend = isNative === "false" || (!!detectedToken && !isNativeParam);
+
+  console.log("SendPage Params Debug:", { 
+    send, 
+    selectedTokenAddress, 
+    token, 
+    detectedToken, 
+    isTokenSend, 
+    isNative,
+    balance 
+  });
+
+  if (currentChainName === "solana" && isTokenSend) {
+    ticker = (tokenSymbolParam as string) || "SPL";
+  } else if (currentChainName === "ethereum" && isTokenSend) {
+    ticker = (tokenSymbolParam as string) || "TOKEN";
+  }
+
+  console.log("SendPage Params:", { send, token, balance, currentChainName, tokenParam });
 
   const activeChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
@@ -273,11 +305,15 @@ export default function SendPage() {
       return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[
         state.ethereum.activeChainId
       ];
-    } else if (currentChainName === Chains.Solana) {
-      if (token) {
-        return tokenParam
-          ? state.solToken.balances[tokenParam]?.amount ?? 0
-          : 0;
+    } else if (currentChainName === "solana") {
+      if (isTokenSend) {
+        // Fallback to balance from params if available for immediate UI response
+        const paramBalance = Array.isArray(balance) ? balance[0] : balance;
+        if (paramBalance !== undefined && paramBalance !== null && paramBalance !== "") {
+          return paramBalance;
+        }
+
+        return state.solToken.balances[detectedToken as string]?.amount ?? 0;
       }
       // For imported wallets, find by address
       if (importedSolAddress) {
@@ -287,7 +323,7 @@ export default function SendPage() {
         return account?.balance ?? 0;
       }
       const activeSolIndex = state.solana.activeIndex ?? 0;
-      return state.solana.addresses[activeSolIndex].balance;
+      return state.solana.addresses[activeSolIndex]?.balance ?? 0;
     }
     return undefined;
   });
@@ -302,10 +338,6 @@ export default function SendPage() {
 
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);
-  const tokenParam = Array.isArray(token) ? token[0] : token;
-  const tokenSymbolParam = Array.isArray(tokenSymbol)
-    ? tokenSymbol[0]
-    : tokenSymbol;
 
   const evmNetwork = NETWORKS.find((n) => n.chainId === Number(chainId));
   const evmChainName = evmNetwork?.chainName || "Ethereum";
@@ -313,7 +345,7 @@ export default function SendPage() {
   const renderIcons = () => {
     switch (currentChainName) {
       case Chains.Solana:
-        return <BlockchainIcon symbol="sol" size={56} />;
+        return <BlockchainIcon symbol={isTokenSend ? "spl" : "sol"} size={56} />;
       case Chains.EVM:
         const iconSymbol = tokenSymbolParam
           ? (tokenSymbolParam as string)
@@ -338,12 +370,12 @@ export default function SendPage() {
   const renderDollarAmount = (amountValue: string) => {
     if (amountValue === "") return formatDollar(0);
     const chainPrice =
-      currentChainName === Chains.Solana
-        ? token
-          ? prices[tokenParam]?.usd ?? 0
+      currentChainName === "solana"
+        ? isTokenSend
+          ? prices[detectedToken as string]?.usd ?? 0
           : solPrice
-        : token
-        ? prices[tokenParam]?.usd ?? 0
+        : isTokenSend
+        ? prices[detectedToken as string]?.usd ?? 0
         : ethPrice;
     const USDAmount = chainPrice * parseFloat(amountValue);
     return formatDollar(USDAmount);
@@ -550,10 +582,14 @@ export default function SendPage() {
         amount: values.amount,
         chainName: currentChainName,
         Erc20TokenName: Erc20TokenName,
-        tokenSymbol: tokenSymbol,
-        token: token,
-        erc20tokenAddress: erc20tokenAddress,
-        solAddess: solAddess,
+        token: detectedToken,
+        tokenSymbol: ticker,
+        erc20tokenAddress: erc20tokenAddress || (currentChainName === "ethereum" ? detectedToken : undefined),
+        solAddess: address,
+        mint: mint || (currentChainName === "solana" ? detectedToken : undefined),
+        decimals: decimals,
+        balance: tokenBalance,
+        isNative: isNativeParam ? "true" : "false",
       },
     });
   };
@@ -655,8 +691,7 @@ export default function SendPage() {
                     {renderDollarAmount(values.amount)}
                   </TransactionDetailsText>
                   <TransactionDetailsText>
-                    Available {token ? balance : tokenBalance}{" "}
-                    {tokenSymbol || nativeTokenSymbol}
+                    Available {tokenBalance} {ticker}
                   </TransactionDetailsText>
                 </TransactionDetailsContainer>
               </TextContainer>

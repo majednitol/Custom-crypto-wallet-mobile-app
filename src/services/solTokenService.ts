@@ -12,6 +12,7 @@ import {
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
+  createTransferCheckedInstruction,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
@@ -19,12 +20,9 @@ import {
 
 /* ---------------- CONFIG ---------------- */
 
-const RPC_URL = "https://api.devnet.solana.com";
-const COMMITMENT: Commitment = "confirmed";
-
 const HELIUS_RPC = "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
 
-export const connection = new Connection(RPC_URL, COMMITMENT);
+export const connection = new Connection(HELIUS_RPC, "confirmed");
 
 /* ---------------- TYPES ---------------- */
 
@@ -130,14 +128,22 @@ export async function calculateSplTokenTransactionFee(params: {
   const mintPubkey = new PublicKey(mint);
   const toPubkey = new PublicKey(toAddress);
 
+  // Detect token program
+  const mintAccountInfo = await connection.getAccountInfo(mintPubkey);
+  const programId = mintAccountInfo?.owner || TOKEN_PROGRAM_ID;
+
   const senderAta = await getAssociatedTokenAddress(
     mintPubkey,
-    fromPubkey
+    fromPubkey,
+    false,
+    programId
   );
 
   const receiverAta = await getAssociatedTokenAddress(
     mintPubkey,
-    toPubkey
+    toPubkey,
+    false,
+    programId
   );
 
   const instructions = [];
@@ -149,7 +155,8 @@ export async function calculateSplTokenTransactionFee(params: {
         fromPubkey,
         receiverAta,
         toPubkey,
-        mintPubkey
+        mintPubkey,
+        programId
       )
     );
   }
@@ -159,11 +166,15 @@ export async function calculateSplTokenTransactionFee(params: {
   );
 
   instructions.push(
-    createTransferInstruction(
+    createTransferCheckedInstruction(
       senderAta,
+      mintPubkey,
       receiverAta,
       fromPubkey,
-      amountInBaseUnits
+      amountInBaseUnits,
+      decimals,
+      [],
+      programId
     )
   );
 
@@ -261,14 +272,22 @@ export async function sendSplToken(
   const toPubkey = new PublicKey(toAddress);
   const mintPubkey = new PublicKey(mint);
 
+  // Detect token program
+  const mintAccountInfo = await connection.getAccountInfo(mintPubkey);
+  const programId = mintAccountInfo?.owner || TOKEN_PROGRAM_ID;
+
   const senderAta = await getAssociatedTokenAddress(
     mintPubkey,
-    fromPubkey
+    fromPubkey,
+    false,
+    programId
   );
 
   const receiverAta = await getAssociatedTokenAddress(
     mintPubkey,
-    toPubkey
+    toPubkey,
+    false,
+    programId
   );
 
   const instructions = [];
@@ -280,7 +299,8 @@ export async function sendSplToken(
         fromPubkey,
         receiverAta,
         toPubkey,
-        mintPubkey
+        mintPubkey,
+        programId
       )
     );
   }
@@ -290,11 +310,15 @@ export async function sendSplToken(
   );
 
   instructions.push(
-    createTransferInstruction(
+    createTransferCheckedInstruction(
       senderAta,
+      mintPubkey,
       receiverAta,
       fromPubkey,
-      amountInBaseUnits
+      amountInBaseUnits,
+      decimals,
+      [],
+      programId
     )
   );
 

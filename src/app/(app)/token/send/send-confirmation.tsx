@@ -4,7 +4,7 @@ import styled, { useTheme } from "styled-components/native";
 import { useLocalSearchParams, router, useNavigation } from "expo-router";
 import { StackActions } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { LAMPORTS_PER_SOL, Keypair } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, Keypair, PublicKey } from "@solana/web3.js";
 import { Chains } from "../../../../types";
 import type { ThemeType } from "../../../../styles/theme";
 import ConfirmSend from "../../../../assets/svg/confirm-send.svg";
@@ -28,6 +28,8 @@ import {
   fetchSolanaBalance,
   fetchSolanaTransactions,
 } from "../../../../store/solanaSlice";
+import { sendSolToken } from "../../../../store/solTokenSlice";
+import { calculateSplTokenTransactionFee as calculateSolSplFee } from "../../../../services/solTokenService";
 import { BalanceContainer } from "../../../../components/Styles/Layout.styles";
 import { SafeAreaContainer } from "../../../../components/Styles/Layout.styles";
 import { ROUTES } from "../../../../constants/routes";
@@ -153,7 +155,12 @@ export default function SendConfirmationPage() {
     address: toAddress,
     amount: tokenAmount,
     chainName: chain,
-    token, Erc20TokenName, tokenSymbol,erc20tokenAddress,solAddess
+    token, Erc20TokenName, tokenSymbol,erc20tokenAddress,    solAddess,
+    chainId,
+    nativeTokenSymbol,
+    mint,
+    decimals,
+    balance,
   } = useLocalSearchParams();
   const navigation = useNavigation();
   console.log("token", token);
@@ -199,6 +206,14 @@ export default function SendConfirmationPage() {
       state.solana.addresses[activeSolIndex]?.derivationPath
   );
 
+  const nativeSolBalance = useSelector((state: RootState) => {
+    if (isImportedSol && importedSolAddress) {
+      const account = state.solana.addresses?.find(a => a.address === importedSolAddress);
+      return account?.balance ?? 0;
+    }
+    return state.solana.addresses[activeSolIndex]?.balance ?? 0;
+  });
+
   const solPrice = prices[101]?.usd;
   const ethPrice = prices[activeChainId].usd;
 
@@ -215,9 +230,13 @@ export default function SendConfirmationPage() {
     throw new Error("EVM service not initialized");
   }
 
-const csolAddess = Array.isArray(solAddess) // or whatever variable name
-  ? solAddess[0]
-  : solAddess;
+  const senderSolAddress = useSelector((state: RootState) => {
+    if (solAddess) return Array.isArray(solAddess) ? solAddess[0] : solAddess;
+    if (importedSolAddress) return importedSolAddress;
+    return state.solana.addresses[activeSolIndex]?.address;
+  });
+
+  const csolAddess = senderSolAddress;
   
   const handleSubmit = async () => {
 
@@ -343,16 +362,31 @@ console.log("ethPrivateKey",ethPrivateKey)
 
         console.log("solPrivateKey",solPrivateKey)
         const senderSolAddress = solSenderAddress || csolAddess;
-        const result = await dispatch(
-          sendSolanaTransaction({
-            privateKey: solPrivateKey,
-            address,
-            amount,
-            fromAddress: senderSolAddress as string,
-          })
-        ).unwrap();
 
-        if (result?.txHash) {
+        let result;
+        if (mint) {
+          result = await dispatch(
+            sendSolToken({
+              mint: mint as string,
+              to: address,
+              amount: parseFloat(amount),
+              decimals: Number(decimals),
+              secretKey: solPrivateKey,
+            })
+          ).unwrap();
+        } else {
+          result = await dispatch(
+            sendSolanaTransaction({
+              privateKey: solPrivateKey,
+              address,
+              amount,
+              fromAddress: senderSolAddress as string,
+            })
+          ).unwrap();
+        }
+
+        if (result?.txHash || result?.signature) {
+          const txHash = result?.txHash || result?.signature;
           // Schedule balance + tx re-fetch after 2s for blockchain propagation
           const senderAddr = senderSolAddress || csolAddess;
           setTimeout(() => {
@@ -366,7 +400,7 @@ console.log("ethPrivateKey",ethPrivateKey)
           router.push({
             pathname: ROUTES.confirmation,
             params: { 
-              txHash: result.txHash, 
+              txHash: txHash, 
               blockchain: Chains.Solana,
               amount,
               symbol: ticker,
@@ -466,12 +500,24 @@ console.log("ethPrivateKey",ethPrivateKey)
         console.log("wefwefew",
             address,solAddess,
             parseFloat(amount))
-        const transactionFeeLamports =
-          await solanaService.calculateTransactionFee(
+        let transactionFeeLamports: number = 0;
+        
+        if (mint && csolAddess) {
+          const feeResult = await calculateSolSplFee({
+            mint: mint as string,
+            fromPubkey: new PublicKey(csolAddess as string),
+            toAddress: address,
+            amount: parseFloat(amount),
+            decimals: Number(decimals),
+          });
+          transactionFeeLamports = feeResult.lamports;
+        } else {
+          transactionFeeLamports = await solanaService.calculateTransactionFee(
             csolAddess,
             address,
             parseFloat(amount)
           );
+        }
 
         const tokenBalanceLamports = parseFloat(amount) * LAMPORTS_PER_SOL;
         const maxAmountLamports = tokenBalanceLamports - transactionFeeLamports;
@@ -493,12 +539,29 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
 
         setTotalCost(totalCostPlusTxFeeUsd);
 
-        if (maxAmount > parseFloat(amount)) {
-          setError("Not enough funds to send transaction.");
-          setBtnDisabled(true);
+        if (mint) {
+          const splBalance = Number(balance || 0);
+          const sendAmount = parseFloat(amount || "0");
+          
+          if (sendAmount > splBalance) {
+            setError(`Not enough ${ticker} to send.`);
+            setBtnDisabled(true);
+          } else if (transactionFeeSol > Number(nativeSolBalance)) {
+            setError("Not enough SOL to cover transaction fees.");
+            setBtnDisabled(true);
+          } else {
+            setError("");
+            setBtnDisabled(false);
+          }
         } else {
-          setError("");
-          setBtnDisabled(false);
+          const sendAmount = parseFloat(amount || "0");
+          if (sendAmount + transactionFeeSol > Number(nativeSolBalance)) {
+            setError("Not enough SOL to cover amount plus fees.");
+            setBtnDisabled(true);
+          } else {
+            setError("");
+            setBtnDisabled(false);
+          }
         }
       }
     } catch (error) {

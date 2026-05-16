@@ -650,6 +650,7 @@ export default function Index() {
                   chainId: activeChainId,
                   solAddess: assetObj?.address,
                   nativeTokenSymbol: symbol,
+                  isNative: "true",
                 },
               })
             }
@@ -796,6 +797,7 @@ export default function Index() {
                       symbol: data.symbol,
                       erc20tokenAddress: t.token,
                       Erc20TokenName: data.name,
+                      isNative: "false",
                     },
                   })
                 }
@@ -819,9 +821,12 @@ export default function Index() {
                     router.push({
                       pathname: `token/send/solana`,
                       params: {
+                        selectedTokenAddress: t.mint,
                         mint: t.mint,
+                        symbol: data?.symbol || "SPL",
                         balance: data?.amount ?? 0,
                         decimals: data?.decimals ?? 0,
+                        isNative: "false",
                       },
                     })
                   }
