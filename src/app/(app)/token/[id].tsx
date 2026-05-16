@@ -749,7 +749,7 @@ export default function Index() {
           )}
 
           {filteredTransactions.map((item, index) => (
-            <View key={`${item?.uniqueId ?? index}-${item?.hash ?? index}`}>
+            <View key={`${item?.uniqueId || 'tx'}-${index}`}>
               {renderTransactionItem({ item })}
             </View>
           ))}
