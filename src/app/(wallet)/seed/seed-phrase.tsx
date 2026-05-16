@@ -88,7 +88,7 @@ const CopyButton = styled.TouchableOpacity<{ theme: ThemeType }>`
 const CopyButtonText = styled.Text<{ theme: ThemeType; copied: boolean }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  color: ${(props) => (props.copied ? props.theme.colors.success : props.theme.colors.white)};
+  color: ${(props) => (props.copied ? props.theme.colors.primary : props.theme.colors.white)};
   margin-left: 10px;
 `;
 
@@ -238,7 +238,7 @@ export default function Page() {
               transition={{ type: "timing", duration: 600, delay: 1500 }}
             >
               <CopyButton onPress={handleCopy}>
-                <CopyIcon fill={copied ? "#4ade80" : theme.colors.white} width={18} height={18} />
+                <CopyIcon fill={copied ? theme.colors.primary : theme.colors.white} width={18} height={18} />
                 <CopyButtonText copied={copied}>
                   {copied ? "Copied!" : "Copy to clipboard"}
                 </CopyButtonText>

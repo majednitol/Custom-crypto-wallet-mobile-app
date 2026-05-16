@@ -91,7 +91,7 @@ const AddressText = styled.Text<{ theme: ThemeType }>`
 
 const CopyButton = styled.TouchableOpacity<{ copied: boolean; theme: ThemeType }>`
   background-color: ${({ copied, theme }) =>
-    copied ? "#22c55e" : theme.colors.primary};
+    copied ? theme.colors.primary : theme.colors.primary};
   padding: 10px 18px;
   border-radius: 12px;
   align-items: center;
