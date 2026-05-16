@@ -958,22 +958,24 @@ const AccountsIndex = () => {
           <ContentContainer>
             <PageTitle>Manage Wallets</PageTitle>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() =>
-                router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
-              }
-            >
-              <WalletPhraseContainer theme={theme}>
-                <PhraseTextContent>
-                  <PhraseIcon width={24} height={24} fill={theme.colors.white} />
-                  <SectionTitle style={{ color: theme.colors.white }}>
-                    Secret Recovery Phrase
-                  </SectionTitle>
-                </PhraseTextContent>
-                <RightArrowIcon width={20} height={20} fill={theme.colors.white} />
-              </WalletPhraseContainer>
-            </TouchableOpacity>
+            {!(activeImportedEvmAddress || activeImportedSolAddress) && (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() =>
+                  router.push({ pathname: ROUTES.seedPhrase, params: { readOnly: "true" } })
+                }
+              >
+                <WalletPhraseContainer theme={theme}>
+                  <PhraseTextContent>
+                    <PhraseIcon width={24} height={24} fill={theme.colors.white} />
+                    <SectionTitle style={{ color: theme.colors.white }}>
+                      Secret Recovery Phrase
+                    </SectionTitle>
+                  </PhraseTextContent>
+                  <RightArrowIcon width={20} height={20} fill={theme.colors.white} />
+                </WalletPhraseContainer>
+              </TouchableOpacity>
+            )}
 
             {memoizedAccounts.map((item: any, index: number) => (
               <View key={item.id}>{renderItem({ item, index })}</View>
