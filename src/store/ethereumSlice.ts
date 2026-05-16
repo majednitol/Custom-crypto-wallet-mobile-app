@@ -133,7 +133,7 @@ function mapTransferToTransaction(tx: Transfer, chainId: number): Transaction {
   // Multiplied by 1000 to keep magnitude similar to Date.now() for existing sort logic.
   const stableBlockTime = tx.blockNumber ? tx.blockNumber * 1000 : Date.now();
   return {
-    uniqueId: tx.hash,               
+    uniqueId: `${tx.hash}-${tx.category}-${tx.type}-${tx.to}-${tx.value}`,               
     hash: tx.hash,
     from: tx.from,
     to: tx.to,
@@ -567,9 +567,20 @@ extraReducers: (builder) => {
       paginationKey: undefined,
     };
   }
-account.transactionMetadataByChain[chainId].transactions = txs.transferHistory
-  .map(tx => mapTransferToTransaction(tx, chainId))
-  .sort((a, b) => b.blockTime - a.blockTime);
+  // Map and deduplicate by uniqueId
+  const mappedTxs = txs.transferHistory.map(tx => mapTransferToTransaction(tx, chainId));
+  const uniqueTxs: Transaction[] = [];
+  const seenIds = new Set<string>();
+  
+  for (const tx of mappedTxs) {
+    if (!seenIds.has(tx.uniqueId)) {
+      uniqueTxs.push(tx);
+      seenIds.add(tx.uniqueId);
+    }
+  }
+
+  account.transactionMetadataByChain[chainId].transactions = uniqueTxs
+    .sort((a, b) => b.blockTime - a.blockTime);
 
   account.transactionMetadataByChain[chainId].paginationKey = txs.pageKey ? [txs.pageKey] : [];
 
