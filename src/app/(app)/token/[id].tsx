@@ -496,11 +496,15 @@ export default function Index() {
     Toast.show({ type: "success", text1: "Address copied to clipboard" });
   };
 
+  // Look up explorer from Redux state (includes both default and custom networks)
+  const allNetworks = useSelector((state: RootState) => state.ethereum.networks);
+
   const urlBuilder = (hash: string) => {
     if (isSolana) {
       return `https://explorer.solana.com/tx/${hash}`;
     }
-    const net = NETWORKS.find(n => n.chainId === activeChainId);
+    // First check Redux networks (includes custom chains), then fall back to hardcoded list
+    const net = allNetworks[activeChainId] || NETWORKS.find(n => n.chainId === activeChainId);
     const base = net?.explorerUrl || "https://etherscan.io";
     return `${base}/tx/${hash}`;
   };

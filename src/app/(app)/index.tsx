@@ -428,7 +428,9 @@ export default function Index() {
       : rawValue.toFixed(rawValue < 0.001 ? 6 : 4).replace(/\.?0+$/, "");
     const explorerBase = (() => {
       if (item.chainId === 101) return "https://explorer.solana.com";
-      const net = NETWORKS.find(n => n.chainId === item.chainId);
+      // Check Redux networks first (includes custom chains), then hardcoded list
+      const reduxNet = store.getState().ethereum.networks[item.chainId];
+      const net = reduxNet || NETWORKS.find(n => n.chainId === item.chainId);
       return net?.explorerUrl || "https://etherscan.io";
     })();
 
