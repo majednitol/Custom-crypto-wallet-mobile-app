@@ -48,3 +48,7 @@ Includes wallet setup/import, biometric unlock, auto-lock security, multi-accoun
 npx expo run:ios
 
 npx expo run:android --variant release
+
+
+
+ another erorr for securechain mainnet when i to use max then securechain mainnet thansaction is hanging not complete . gas fee maybe not remove from total and try to sent whole amount . plase ensure for all chain works perefctly not shows any possible kinds of error . 

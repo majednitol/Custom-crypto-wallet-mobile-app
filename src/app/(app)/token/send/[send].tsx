@@ -10,6 +10,7 @@ import { ThemeType } from "../../../../styles/theme";
 import { TICKERS } from "../../../../constants/tickers";
 import { ROUTES } from "../../../../constants/routes";
 import type { RootState } from "../../../../store";
+import { store } from "../../../../store";
 import { Chains } from "../../../../types";
 import { BlockchainIcon } from "../../../../components/BlockchainIcon/BlockchainIcon";
 import { getChainIconSymbol } from "../../../../utils/getChainIconSymbol";
@@ -451,15 +452,20 @@ export default function SendPage() {
           }
           return;
         }
-        const { totalCostMinusGas } = await service.calculateGasAndAmounts(
+        const globalAddresses = store.getState().ethereum.globalAddresses;
+        const fromAddress = importedEvmAddress || globalAddresses?.[activeEthIndex]?.address;
+
+        const { totalCost } = await service.calculateGasAndAmounts(
           toAddress,
-          amount.toString()
+          amount.toString(),
+          fromAddress
         );
         const balanceNumber =
           typeof tokenBalance === "string"
             ? parseFloat(tokenBalance)
             : tokenBalance;
-        if (parseFloat(totalCostMinusGas) > balanceNumber) {
+            
+        if (parseFloat(totalCost) > balanceNumber) {
           errors.amount = "Insufficient funds for amount plus gas costs";
         }
       } catch (error) {
@@ -496,11 +502,15 @@ export default function SendPage() {
       return;
     }
     try {
-      if (currentChainName === Chains.EVM) {
+      if (currentChainName === Chains.EVM && service) {
         if (!token) {
+          const globalAddresses = store.getState().ethereum.globalAddresses;
+          const fromAddress = importedEvmAddress || globalAddresses?.[activeEthIndex]?.address;
+
           const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-            address,
-            tokenBalance
+            address as string, // This is just for estimation, toAddress doesn't matter much for gas but amount does
+            tokenBalance,
+            fromAddress
           );
           setFieldValue("amount", totalCostMinusGas);
         } else {

@@ -390,8 +390,10 @@ console.log("ethPrivateKey",ethPrivateKey)
     const account = isImportedEvm && importedEvmAddress
       ? state.ethereum.globalAddresses?.find(a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase())
       : state.ethereum.globalAddresses?.[state.ethereum.activeIndex ?? 0];
-    console.log("chainId", chainId, account?.activeBalance ?? 0)
-    return account?.activeBalance ?? 0;
+    
+    const balance = account?.balanceByChain?.[chainId] ?? 0;
+    console.log("chainId", chainId, "balance", balance);
+    return balance;
   });
 
   console.log("solPrice",chainName)
@@ -437,8 +439,8 @@ console.log("ethPrivateKey",ethPrivateKey)
             }
           }
         } else {
-          const { gasEstimate, totalCost, totalCostMinusGas } =
-            await evmService.calculateGasAndAmounts(address, amount);
+          const { gasEstimate, totalCost } =
+            await evmService.calculateGasAndAmounts(address, amount, walletAddress);
 
           const gasEstimateUsd = formatDollar(
             parseFloat(gasEstimate) * chainPrice
@@ -451,8 +453,8 @@ console.log("ethPrivateKey",ethPrivateKey)
           setTransactionFeeEstimate(gasEstimateUsd);
           setTotalCost(totalCostPlusGasUsd);
 
-          if (totalCostMinusGas > amount) {
-            setError("Not enough funds to send transaction.");
+          if (parseFloat(totalCost) > Number(nativeEthBalance)) {
+            setError("Not enough funds to cover amount plus gas costs.");
             setBtnDisabled(true);
           } else {
             setError("");

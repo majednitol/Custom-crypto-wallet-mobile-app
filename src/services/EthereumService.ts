@@ -371,29 +371,56 @@ async calculateGasAndAmountsForERC20Transfer(privateKey: string, tokenAddress: s
 //     };
   //   }
   
-  async calculateGasAndAmounts(toAddress: string, amount: string) {
+  async calculateGasAndAmounts(toAddress: string, amount: string, fromAddress?: string) {
   // parseEther returns bigint in Ethers v6
   const amountInWei: bigint = parseEther(amount); 
-  const transaction = { to: toAddress, value: amountInWei };
-
-  // estimateGas returns bigint
-  const gasEstimate: bigint = await this.provider.estimateGas(transaction); 
-
-  // maxFeePerGas returns bigint | null, default to 0n if null
-  const feeData = await this.provider.getFeeData();
-  const maxFeePerGas: bigint = feeData.maxFeePerGas ?? 0n; 
-
-  // simple bigint arithmetic
-  const gasPrice: bigint = gasEstimate * maxFeePerGas;
-  const totalCost: bigint = amountInWei + gasPrice;
-  const totalCostMinusGas: bigint = amountInWei - gasPrice;
-
-  return {
-    gasEstimate: formatEther(gasPrice), // string
-    totalCost: formatEther(totalCost), // string
-    totalCostMinusGas: formatEther(totalCostMinusGas), // string
-    gasFee: maxFeePerGas, // bigint
+  const transaction = { 
+    to: toAddress, 
+    value: amountInWei,
+    from: fromAddress // Include from address for more accurate estimation and L2 compatibility
   };
+
+  try {
+    // estimateGas returns bigint
+    let gasEstimate: bigint = await this.provider.estimateGas(transaction); 
+    
+    // Add 10% buffer to gas estimate for safety, especially on L2s
+    gasEstimate = (gasEstimate * 110n) / 100n;
+
+    // getFeeData returns gas price info
+    const feeData = await this.provider.getFeeData();
+    
+    // Use maxFeePerGas for EIP-1559, fall back to gasPrice
+    const gasPricePerUnit: bigint = feeData.maxFeePerGas ?? feeData.gasPrice ?? 0n; 
+
+    // simple bigint arithmetic
+    const gasPriceTotal: bigint = gasEstimate * gasPricePerUnit;
+    const totalCost: bigint = amountInWei + gasPriceTotal;
+    
+    // For Max calculation: what remains if we subtract gas from the input amount (which would be the total balance)
+    const totalCostMinusGas: bigint = amountInWei > gasPriceTotal ? amountInWei - gasPriceTotal : 0n;
+
+    return {
+      gasEstimate: formatEther(gasPriceTotal), // string
+      totalCost: formatEther(totalCost), // string
+      totalCostMinusGas: formatEther(totalCostMinusGas), // string
+      gasFee: gasPricePerUnit, // bigint
+    };
+  } catch (error: any) {
+    console.error("[EVMService] calculateGasAndAmounts error:", error);
+    // Fallback if estimateGas fails (common on zkSync if funds are low or address is new)
+    const fallbackGas = 21000n; 
+    const feeData = await this.provider.getFeeData();
+    const gasPricePerUnit = feeData.maxFeePerGas ?? feeData.gasPrice ?? 0n;
+    const gasPriceTotal = fallbackGas * gasPricePerUnit;
+    
+    return {
+      gasEstimate: formatEther(gasPriceTotal),
+      totalCost: formatEther(amountInWei + gasPriceTotal),
+      totalCostMinusGas: amountInWei > gasPriceTotal ? formatEther(amountInWei - gasPriceTotal) : "0",
+      gasFee: gasPricePerUnit,
+    };
+  }
 }
   async confirmTransaction(txHash: string) {
     const receipt = await this.provider.waitForTransaction(txHash);
