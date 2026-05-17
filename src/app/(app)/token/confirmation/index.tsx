@@ -107,6 +107,9 @@ export default function Confirmation() {
   const ChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
   );
+  const networks = useSelector(
+    (state: RootState) => state.ethereum.networks
+  );
   const { txHash, blockchain, amount, symbol, recipientAddress } = useLocalSearchParams();
   console.log("txHash", txHash, blockchain, amount, symbol, recipientAddress);
   const chain = blockchain as string;
@@ -185,7 +188,7 @@ export default function Confirmation() {
   const getExplorerUrl = () => {
     if (!txHash) return null;
     if (chain === Chains.EVM) {
-      const network = NETWORKS.find((n) => n.chainId === ChainId);
+      const network = networks[ChainId] || NETWORKS.find((n) => n.chainId === ChainId);
       if (network?.explorerUrl) {
         return `${network.explorerUrl}/tx/${txHash}`;
       }

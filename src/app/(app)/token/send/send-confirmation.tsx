@@ -169,11 +169,14 @@ export default function SendConfirmationPage() {
   const activeChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
   );
+  const networks = useSelector(
+    (state: RootState) => state.ethereum.networks
+  );
   const ticker = (() => {
     if (tokenSymbol) return Array.isArray(tokenSymbol) ? tokenSymbol[0] : tokenSymbol;
     if (chainName === Chains.EVM) {
       const effectiveChainId = chainId ? Number(chainId) : activeChainId;
-      const network = NETWORKS.find((n) => n.chainId === effectiveChainId);
+      const network = networks[effectiveChainId] || NETWORKS.find((n) => n.chainId === effectiveChainId);
       return (nativeTokenSymbol as string) || network?.symbol || "ETH";
     }
     return "SOL";
@@ -581,7 +584,7 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
 
   const renderNetworkName = () => {
     if (chainName === Chains.EVM) {
-      const network = NETWORKS.find((n) => n.chainId === activeChainId);
+      const network = networks[activeChainId] || NETWORKS.find((n) => n.chainId === activeChainId);
       return network ? network.chainName : "Unknown Network";
     }
     const isDev = "development" === "development";

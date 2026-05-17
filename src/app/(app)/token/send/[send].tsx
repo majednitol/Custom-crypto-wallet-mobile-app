@@ -237,6 +237,9 @@ export default function SendPage() {
   const activeChainId = useSelector(
     (state: RootState) => state.ethereum.activeChainId
   );
+  const networks = useSelector(
+    (state: RootState) => state.ethereum.networks
+  );
 
   const chainName = send as string;
   let currentChainName = "";
@@ -254,7 +257,7 @@ export default function SendPage() {
   const isTokenSend = isNative === "false" || (!!detectedToken && !isNativeParam);
 
   const effectiveChainId = chainId ? Number(chainId) : activeChainId;
-  const evmNetwork = NETWORKS.find((n) => n.chainId === effectiveChainId);
+  const evmNetwork = networks[effectiveChainId] || NETWORKS.find((n) => n.chainId === effectiveChainId);
 
   let ticker = TICKERS[currentChainName];
   if (currentChainName === "solana") {
