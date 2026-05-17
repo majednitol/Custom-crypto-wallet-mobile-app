@@ -454,13 +454,16 @@ static deriveWalletByIndex(
 /* ---------------- GLOBAL REGISTRY ---------------- */
 export const evmServices: Partial<Record<number, EVMService | null>> = {};
 
-/**
- * Registers or initializes an EVMService for a network
- */
 export const registerEvmService = (network: CustomNetwork) => {
-  if (!evmServices[network.chainId]) {
+  const existing = evmServices[network.chainId];
+  if (
+    !existing ||
+    existing.network.rpcUrl !== network.rpcUrl ||
+    existing.network.chainName !== network.chainName ||
+    existing.network.symbol !== network.symbol
+  ) {
     evmServices[network.chainId] = new EVMService(network);
-    console.log(`[EVM] Service initialized for ${network.chainName}`);
+    console.log(`[EVM] Service initialized/updated for ${network.chainName} (${network.chainId})`);
   }
 };
 

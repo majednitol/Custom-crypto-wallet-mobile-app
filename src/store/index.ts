@@ -20,7 +20,7 @@ import solanaReducer from "./solanaSlice";
 import priceReducer from "./priceSlice";
 import biometricsReducer from "./biometricsSlice";
 import importedAccountReducer from "./importedAccountSlice";
-import { evmServices } from "../services/EthereumService";
+import { evmServices, registerEvmService } from "../services/EthereumService";
 
 import erc20Reducer from "./tokenSlice";
 // import nftReducer from "./nftSlice";
@@ -49,26 +49,24 @@ const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 /* ---------------- WebSocket Middleware ---------------- */
 
-const activeWsListeners: Record<number, boolean> = {};
+const activeProviderListeners = new WeakSet();
 
 export const evmWebSocketMiddleware: Middleware =
   (store) => (next) => (action) => {
     const result = next(action);
-    const state = store.getState();
+    const state = store.getState() as any;
 
-    const chainId = state.ethereum.activeChainId;
+    const chainId = state.ethereum?.activeChainId;
     if (!chainId) return result;
 
     const service = evmServices[chainId];
     if (!service?.provider) return result;
 
-    if (activeWsListeners[chainId]) return result;
-    activeWsListeners[chainId] = true;
+    if (activeProviderListeners.has(service.provider)) return result;
+    activeProviderListeners.add(service.provider);
 
     const index = state.ethereum.activeIndex ?? 0;
-    const address =
-  state.ethereum.globalAddresses?.[index]?.address;
-
+    const address = state.ethereum.globalAddresses?.[index]?.address;
 
     if (!address) return result;
 
@@ -86,9 +84,9 @@ export const evmWebSocketMiddleware: Middleware =
           }
         }
 
-        // FIX 2: Only dispatch if balance actually changed (prevents unnecessary re-renders)
+        // Only dispatch if balance actually changed (prevents unnecessary re-renders)
         const newBalance = Number(formatEther(balance));
-        const currentState = store.getState();
+        const currentState = store.getState() as any;
         const currentBalance = currentState.ethereum.globalAddresses?.[index]?.balanceByChain?.[chainId];
         if (currentBalance === newBalance) return; // Skip — no change
 
@@ -123,9 +121,31 @@ export const store = configureStore({
       .concat(evmWebSocketMiddleware),
 });
 
-/* ---------------- Persistor ---------------- */
-
 export const persistor = persistStore(store);
+
+// Automatically register EVM Services for any custom networks loaded via redux-persist or added/modified in real-time
+let lastNetworksFingerprint = "";
+store.subscribe(() => {
+  try {
+    const state = store.getState() as any;
+    const networks = state.ethereum?.networks;
+    if (!networks) return;
+
+    const fp = Object.values(networks)
+      .map((n: any) => `${n.chainId}:${n.rpcUrl}:${n.chainName}:${n.symbol}`)
+      .join(",");
+    if (fp === lastNetworksFingerprint) return;
+    lastNetworksFingerprint = fp;
+
+    Object.values(networks).forEach((net: any) => {
+      if (net?.rpcUrl) {
+        registerEvmService(net);
+      }
+    });
+  } catch (err) {
+    console.warn("[Store] Error auto-registering EVM Services:", err);
+  }
+});
 
 /* ---------------- Helpers ---------------- */
 
