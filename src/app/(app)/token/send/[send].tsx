@@ -234,6 +234,10 @@ export default function SendPage() {
     }
   }, [toAddress]);
 
+  const activeChainId = useSelector(
+    (state: RootState) => state.ethereum.activeChainId
+  );
+
   const chainName = send as string;
   let currentChainName = "";
   if (chainName === Chains.Solana) {
@@ -243,12 +247,25 @@ export default function SendPage() {
   }
 
   const toWalletAddress = toAddress as string;
-  let ticker = TICKERS[currentChainName];
   
   // Robust token detection
   const isNativeParam = isNative === "true";
   const detectedToken = tokenParam || mint || erc20tokenAddress;
   const isTokenSend = isNative === "false" || (!!detectedToken && !isNativeParam);
+
+  const effectiveChainId = chainId ? Number(chainId) : activeChainId;
+  const evmNetwork = NETWORKS.find((n) => n.chainId === effectiveChainId);
+
+  let ticker = TICKERS[currentChainName];
+  if (currentChainName === "solana") {
+    ticker = isTokenSend ? ((tokenSymbolParam as string) || "SPL") : "SOL";
+  } else if (currentChainName === "ethereum") {
+    if (isTokenSend) {
+      ticker = (tokenSymbolParam as string) || "TOKEN";
+    } else {
+      ticker = (tokenSymbolParam as string) || (nativeTokenSymbol as string) || evmNetwork?.symbol || "ETH";
+    }
+  }
 
   console.log("SendPage Params Debug:", { 
     send, 
@@ -257,20 +274,11 @@ export default function SendPage() {
     detectedToken, 
     isTokenSend, 
     isNative,
-    balance 
+    balance,
+    ticker
   });
 
-  if (currentChainName === "solana" && isTokenSend) {
-    ticker = (tokenSymbolParam as string) || "SPL";
-  } else if (currentChainName === "ethereum" && isTokenSend) {
-    ticker = (tokenSymbolParam as string) || "TOKEN";
-  }
-
   console.log("SendPage Params:", { send, token, balance, currentChainName, tokenParam });
-
-  const activeChainId = useSelector(
-    (state: RootState) => state.ethereum.activeChainId
-  );
 
   const importedEvmAddress = useSelector(
     (state: RootState) => state.importedAccounts?.activeEvmAddress
@@ -293,18 +301,27 @@ export default function SendPage() {
 
   const tokenBalance = useSelector((state: RootState) => {
     if (currentChainName == "ethereum") {
+      if (isTokenSend) {
+        // Fallback to balance from params if available for immediate UI response
+        const paramBalance = Array.isArray(balance) ? balance[0] : balance;
+        if (paramBalance !== undefined && paramBalance !== null && paramBalance !== "") {
+          return paramBalance;
+        }
+        if (detectedToken) {
+          const key = `${effectiveChainId}:${(detectedToken as string).toLowerCase()}`;
+          return state.erc20.balances[key]?.balance ?? 0;
+        }
+        return 0;
+      }
       // For imported wallets, find by address
       if (importedEvmAddress) {
         const account = state.ethereum.globalAddresses?.find(
           a => a.address?.toLowerCase() === importedEvmAddress.toLowerCase()
         );
-        return account?.balanceByChain?.[state.ethereum.activeChainId] ?? 0;
+        return account?.balanceByChain?.[effectiveChainId] ?? 0;
       }
-      const activeEthIndex =
-        state.ethereum.activeIndex ?? 0;
-      return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[
-        state.ethereum.activeChainId
-      ];
+      const activeEthIndex = state.ethereum.activeIndex ?? 0;
+      return state.ethereum.globalAddresses?.[activeEthIndex].balanceByChain[effectiveChainId] ?? 0;
     } else if (currentChainName === "solana") {
       if (isTokenSend) {
         // Fallback to balance from params if available for immediate UI response
@@ -339,7 +356,6 @@ export default function SendPage() {
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);
 
-  const evmNetwork = NETWORKS.find((n) => n.chainId === Number(chainId));
   const evmChainName = evmNetwork?.chainName || "Ethereum";
 
   const renderIcons = () => {
@@ -351,14 +367,14 @@ export default function SendPage() {
           ? (tokenSymbolParam as string)
           : getChainIconSymbol(
               evmChainName,
-              (nativeTokenSymbol as string) || "eth",
-              Number(chainId)
+              (nativeTokenSymbol as string) || evmNetwork?.symbol || "eth",
+              effectiveChainId
             );
         return (
           <BlockchainIcon
             symbol={iconSymbol}
             size={56}
-            chainId={chainId}
+            chainId={effectiveChainId}
             chainName={evmChainName}
           />
         );
@@ -666,10 +682,7 @@ export default function SendPage() {
                     />
                     <AmountDetailsView>
                       <TickerText>
-                        {tokenSymbolParam ||
-                          (currentChainName === Chains.Solana
-                            ? "SOL"
-                            : nativeTokenSymbol)}
+                        {ticker}
                       </TickerText>
                       <MaxButton
                         onPress={() =>

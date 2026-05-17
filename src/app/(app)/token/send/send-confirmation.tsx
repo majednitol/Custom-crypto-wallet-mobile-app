@@ -172,8 +172,9 @@ export default function SendConfirmationPage() {
   const ticker = (() => {
     if (tokenSymbol) return Array.isArray(tokenSymbol) ? tokenSymbol[0] : tokenSymbol;
     if (chainName === Chains.EVM) {
-      const network = NETWORKS.find((n) => n.chainId === activeChainId);
-      return network ? network.symbol : "ETH";
+      const effectiveChainId = chainId ? Number(chainId) : activeChainId;
+      const network = NETWORKS.find((n) => n.chainId === effectiveChainId);
+      return (nativeTokenSymbol as string) || network?.symbol || "ETH";
     }
     return "SOL";
   })();
