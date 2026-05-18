@@ -178,14 +178,17 @@ class SolanaService {
 
   async calculateTransactionFee(from: string, to: string, amount: number) {
     try {
+      if (!from || !to || isNaN(amount) || amount <= 0) {
+        return 5000;
+      }
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: new PublicKey(from),
           toPubkey: new PublicKey(to),
-          lamports: amount * LAMPORTS_PER_SOL,
+          lamports: Math.floor(amount * LAMPORTS_PER_SOL),
         })
       );
-      console.log("transactioneghterhtrh",transaction)
+      console.log("Estimating transaction fee for Solana:", transaction)
       let recentBlockhash = (
         await this.connection.getLatestBlockhash("finalized")
       ).blockhash;
@@ -196,11 +199,11 @@ class SolanaService {
         transaction.compileMessage(),
         "confirmed"
       );
-      return response.value;
+      return response.value ?? 5000;
       
     } catch (err) {
-      console.error("Error fetching Solana transaction fee:", err);
-      throw err;
+      console.warn("Error fetching Solana transaction fee, using fallback 5000 lamports:", err);
+      return 5000;
     }
   }
 

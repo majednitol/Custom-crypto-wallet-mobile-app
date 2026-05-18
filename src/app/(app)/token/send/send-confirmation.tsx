@@ -413,9 +413,14 @@ console.log("ethPrivateKey",ethPrivateKey)
           });
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send transaction:", error);
-      setError("Failed to send transaction. Please try again later.");
+      const errMsg = error?.message || "";
+      if (errMsg.includes("insufficient funds for rent")) {
+        setError("Transaction failed: Remaining SOL balance must be either 0 or at least 0.00204 SOL (rent exemption). Try adjusting your amount.");
+      } else {
+        setError(errMsg || "Failed to send transaction. Please try again later.");
+      }
     } finally {
       setLoading(false);
       setBtnDisabled(false);
@@ -523,44 +528,51 @@ console.log("ethPrivateKey",ethPrivateKey)
           );
         }
 
-        const tokenBalanceLamports = parseFloat(amount) * LAMPORTS_PER_SOL;
-        const maxAmountLamports = tokenBalanceLamports - transactionFeeLamports;
         const transactionFeeSol = transactionFeeLamports / LAMPORTS_PER_SOL;
-        const maxAmount = maxAmountLamports / LAMPORTS_PER_SOL;
+        const sendAmount = parseFloat(amount || "0");
+        let totalCostSol = sendAmount;
+        if (!mint) {
+          totalCostSol = sendAmount + transactionFeeSol;
+        }
 
         const txFeeFloat = transactionFeeSol * chainPrice;
         const txFeeEstimateUsd = formatDollar(txFeeFloat);
-        const totalCostPlusTxFeeUsd = formatDollar(maxAmount * chainPrice);
-console.log("totalCostPlusTxFeeUsd",totalCostPlusTxFeeUsd)
+        const totalCostPlusTxFeeUsd = formatDollar(totalCostSol * chainPrice);
+        console.log("totalCostPlusTxFeeUsd", totalCostPlusTxFeeUsd)
+
         if (txFeeFloat > 0 && txFeeFloat < 0.01) {
           setTransactionFeeEstimate(`< ${txFeeEstimateUsd}`);
-console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
-
         } else {
           setTransactionFeeEstimate(txFeeEstimateUsd);
-          setTransactionFeeEstimate
         }
 
         setTotalCost(totalCostPlusTxFeeUsd);
 
         if (mint) {
           const splBalance = Number(balance || 0);
-          const sendAmount = parseFloat(amount || "0");
+          const nativeSolBalanceLamports = Math.round(Number(nativeSolBalance) * LAMPORTS_PER_SOL);
+          const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
           
           if (sendAmount > splBalance) {
             setError(`Not enough ${ticker} to send.`);
             setBtnDisabled(true);
-          } else if (transactionFeeSol > Number(nativeSolBalance)) {
-            setError("Not enough SOL to cover transaction fees.");
+          } else if (remainingNativeLamports < 2039280) {
+            setError("Not enough SOL to cover transaction fees and maintain rent exemption (need at least 0.00204 SOL remaining).");
             setBtnDisabled(true);
           } else {
             setError("");
             setBtnDisabled(false);
           }
         } else {
-          const sendAmount = parseFloat(amount || "0");
-          if (sendAmount + transactionFeeSol > Number(nativeSolBalance)) {
+          const balanceLamports = Math.round(Number(nativeSolBalance) * LAMPORTS_PER_SOL);
+          const sendAmountLamports = Math.round(sendAmount * LAMPORTS_PER_SOL);
+          const remainingLamports = balanceLamports - sendAmountLamports - transactionFeeLamports;
+
+          if (sendAmountLamports + transactionFeeLamports > balanceLamports) {
             setError("Not enough SOL to cover amount plus fees.");
+            setBtnDisabled(true);
+          } else if (remainingLamports < 2039280) {
+            setError("Remaining SOL balance must be at least 0.00204 SOL to satisfy rent exemption.");
             setBtnDisabled(true);
           } else {
             setError("");
@@ -568,8 +580,10 @@ console.log("totalCostPlusTxFeeUsd",txFeeEstimateUsd)
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch transaction costs:", error);
+      setError(error?.message || "Failed to calculate transaction costs. Please check your balance or connection.");
+      setBtnDisabled(true);
     }
   };
   useEffect(() => {

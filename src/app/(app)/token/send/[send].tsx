@@ -524,13 +524,27 @@ export default function SendPage() {
         errors.amount = "Failed to validate transaction costs";
       }
     } else if (currentChainName === Chains.Solana) {
-      const transactionFeeLamports =
-        await solanaService.calculateTransactionFee(address, toAddress, amount);
-      const tokenBalanceLamports = amount * LAMPORTS_PER_SOL;
-      const maxAmountLamports = tokenBalanceLamports - transactionFeeLamports;
-      const maxAmount = maxAmountLamports / LAMPORTS_PER_SOL;
-      if (maxAmount > amount) {
-        errors.amount = "Insufficient funds for amount plus transaction fees";
+      if (token) {
+        const transactionFeeLamports =
+          await solanaService.calculateTransactionFee(address, toAddress, amount);
+        const nativeSolBalanceLamports = Math.round(Number(store.getState().solana.addresses[activeSolIndex]?.balance ?? 0) * LAMPORTS_PER_SOL);
+        const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
+
+        if (remainingNativeLamports < 2039280) {
+          errors.amount = "Insufficient native SOL to cover transaction fee and maintain rent exemption (need at least 0.00204 SOL remaining)";
+        }
+      } else {
+        const transactionFeeLamports =
+          await solanaService.calculateTransactionFee(address, toAddress, amount);
+        const balanceLamports = Math.round(Number(tokenBalance) * LAMPORTS_PER_SOL);
+        const amountLamports = Math.round(amount * LAMPORTS_PER_SOL);
+        const remainingLamports = balanceLamports - amountLamports - transactionFeeLamports;
+
+        if (amountLamports + transactionFeeLamports > balanceLamports) {
+          errors.amount = "Insufficient funds for amount plus transaction fees";
+        } else if (remainingLamports < 2039280) {
+          errors.amount = "Remaining SOL balance must be at least 0.00204 SOL for rent exemption";
+        }
       }
     }
   };
@@ -576,9 +590,9 @@ export default function SendPage() {
         const feeLamports = await solanaService.calculateTransactionFee(
           address,
           toAddress,
-          balanceLamports
+          Number(tokenBalance) // Pass SOL instead of pre-multiplied balanceLamports!
         );
-        const maxLamports = balanceLamports - feeLamports;
+        const maxLamports = balanceLamports - feeLamports - 2039280;
         setFieldValue(
           "amount",
           Math.max(maxLamports / LAMPORTS_PER_SOL, 0).toString()
