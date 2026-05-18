@@ -528,22 +528,32 @@ export default function SendPage() {
         const transactionFeeLamports =
           await solanaService.calculateTransactionFee(address, toAddress, amount);
         const nativeSolBalanceLamports = Math.round(Number(store.getState().solana.addresses[activeSolIndex]?.balance ?? 0) * LAMPORTS_PER_SOL);
-        const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
+        const limits = await solanaService.getSolanaSendLimits(address, transactionFeeLamports, nativeSolBalanceLamports);
 
-        if (remainingNativeLamports < 2039280) {
-          errors.amount = "Insufficient native SOL to cover transaction fee and maintain rent exemption (need at least 0.00204 SOL remaining)";
+        if (limits.isRentLocked) {
+          errors.amount = `This account's entire SOL balance is reserved for rent (Nonce Account). Add more SOL to cover fees, or close the account from another wallet.`;
+        } else {
+          const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
+          if (remainingNativeLamports > 0 && remainingNativeLamports < limits.rentExemptMinimum) {
+            errors.amount = `Insufficient native SOL to cover transaction fee and maintain rent exemption.`;
+          }
         }
       } else {
         const transactionFeeLamports =
           await solanaService.calculateTransactionFee(address, toAddress, amount);
         const balanceLamports = Math.round(Number(tokenBalance) * LAMPORTS_PER_SOL);
         const amountLamports = Math.round(amount * LAMPORTS_PER_SOL);
-        const remainingLamports = balanceLamports - amountLamports - transactionFeeLamports;
+        const limits = await solanaService.getSolanaSendLimits(address, transactionFeeLamports, balanceLamports);
 
-        if (amountLamports + transactionFeeLamports > balanceLamports) {
-          errors.amount = "Insufficient funds for amount plus transaction fees";
-        } else if (remainingLamports < 2039280) {
-          errors.amount = "Remaining SOL balance must be at least 0.00204 SOL for rent exemption";
+        if (limits.isRentLocked) {
+          errors.amount = `This account's entire balance (${(balanceLamports / LAMPORTS_PER_SOL).toFixed(8)} SOL) is reserved for rent. No SOL can be sent. Add more SOL or close this Nonce Account from another wallet.`;
+        } else {
+          const remainingLamports = balanceLamports - amountLamports - transactionFeeLamports;
+          if (amountLamports + transactionFeeLamports > balanceLamports) {
+            errors.amount = "Insufficient funds for amount plus transaction fees";
+          } else if (remainingLamports > 0 && remainingLamports < limits.rentExemptMinimum) {
+            errors.amount = `Amount would leave ${(remainingLamports / LAMPORTS_PER_SOL).toFixed(8)} SOL which is below rent exemption. Send less or press Max to send all.`;
+          }
         }
       }
     }
@@ -552,7 +562,7 @@ export default function SendPage() {
   const calculateMaxAmount = async (
     setFieldValue: (field: string, value: any) => void,
     tokenBalance: string,
-    address: string
+    recipientAddress: string  // The TO address (values.address from the form)
   ) => {
     const toAddress = formRef.current?.values?.address || "";
     const isAddressValid =
@@ -573,7 +583,7 @@ export default function SendPage() {
           const fromAddress = importedEvmAddress || globalAddresses?.[activeEthIndex]?.address;
 
           const { totalCostMinusGas } = await service.calculateGasAndAmounts(
-            address as string, // This is just for estimation, toAddress doesn't matter much for gas but amount does
+            recipientAddress as string, // This is just for estimation, toAddress doesn't matter much for gas but amount does
             tokenBalance,
             fromAddress
           );
@@ -586,16 +596,21 @@ export default function SendPage() {
           setFieldValue("amount", tokenBalance);
           return;
         }
+        // IMPORTANT: Use outer-scope `address` (the SENDER from Redux store),
+        // NOT `recipientAddress` (the TO address from the form).
+        // The old code was shadowing the outer `address` with the parameter,
+        // causing getSolanaSendLimits to query the DESTINATION account instead of the SENDER.
+        const fromAddress = address; // Redux sender address: e.g. B9hBF4...
         const balanceLamports = Number(tokenBalance) * LAMPORTS_PER_SOL;
         const feeLamports = await solanaService.calculateTransactionFee(
-          address,
-          toAddress,
-          Number(tokenBalance) // Pass SOL instead of pre-multiplied balanceLamports!
+          fromAddress,   // FROM: sender
+          toAddress,     // TO: recipient
+          Number(tokenBalance)
         );
-        const maxLamports = balanceLamports - feeLamports - 2039280;
+        const limits = await solanaService.getSolanaSendLimits(fromAddress, feeLamports, balanceLamports);
         setFieldValue(
           "amount",
-          Math.max(maxLamports / LAMPORTS_PER_SOL, 0).toString()
+          Math.max(limits.maxSendable / LAMPORTS_PER_SOL, 0).toString()
         );
       }
     } catch (error) {

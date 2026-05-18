@@ -279,7 +279,7 @@ export const solanaSlice = createSlice({
       })
       .addCase(fetchSolanaBalance.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
-        const bal = parseFloat(truncateBalance(action.payload));
+        const bal = parseFloat(truncateBalance(action.payload, 9));
         state.addresses[idx].balance = bal;
         const currentNetwork = state.selectedNetwork ?? "devnet";
         if (!state.addresses[idx].balanceByNetwork) {
@@ -295,7 +295,7 @@ export const solanaSlice = createSlice({
       })
       .addCase(fetchSolanaBalanceInterval.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
-        const bal = parseFloat(truncateBalance(action.payload));
+        const bal = parseFloat(truncateBalance(action.payload, 9));
         state.addresses[idx].balance = bal;
         const currentNetwork = state.selectedNetwork ?? "devnet";
         if (!state.addresses[idx].balanceByNetwork) {

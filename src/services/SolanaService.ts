@@ -7,6 +7,7 @@ import {
   sendAndConfirmTransaction,
   Keypair,
   TransactionConfirmationStrategy,
+  ComputeBudgetProgram,
 } from "@solana/web3.js";
 import uuid from "react-native-uuid";
 import { validateMnemonic, mnemonicToSeedSync } from "bip39";
@@ -194,11 +195,18 @@ class SolanaService {
       if (!from || !to || isNaN(amount) || amount <= 0) {
         return 5000;
       }
-      const transaction = new Transaction().add(
+      const transaction = new Transaction();
+      if (this.rpcUrl.includes("mainnet")) {
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 150000 }),
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 500000 })
+        );
+      }
+      transaction.add(
         SystemProgram.transfer({
           fromPubkey: new PublicKey(from),
           toPubkey: new PublicKey(to),
-          lamports: Math.floor(amount * LAMPORTS_PER_SOL),
+          lamports: Math.round(amount * LAMPORTS_PER_SOL),
         })
       );
       console.log("Estimating transaction fee for Solana:", transaction)
@@ -223,26 +231,59 @@ class SolanaService {
   async sendTransaction(secretKey: Uint8Array, to: string, amount: number) {
     try {
       const keyPair = Keypair.fromSecretKey(secretKey);
-      const balance = await this.connection.getBalance(
-        new PublicKey(keyPair.publicKey)
-      );
+      const senderPubkey = keyPair.publicKey;
+      const balance = await this.connection.getBalance(senderPubkey);
+      const lamportsToSend = Math.round(amount * LAMPORTS_PER_SOL);
 
-      if (balance < amount * LAMPORTS_PER_SOL) {
+      if (balance < lamportsToSend) {
         throw new Error("Insufficient funds for the transaction");
       }
 
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: new PublicKey(keyPair.publicKey.toString()),
-          toPubkey: new PublicKey(to),
-          lamports: amount * LAMPORTS_PER_SOL,
-        })
-      );
-      let recentBlockhash = (
+      // Check if sender is a data-bearing account (e.g. Nonce Account)
+      const accountInfo = await this.connection.getAccountInfo(senderPubkey);
+      const space = accountInfo ? accountInfo.data.length : 0;
+      const rentExemptMin = (space + 128) * 6960;
+      const isNonceAccount = space === 80
+        && accountInfo?.owner.equals(SystemProgram.programId);
+
+      // If it's a Nonce Account and balance <= rentExemptMin, regular transfer
+      // will fail because fee deduction puts it below rent. Use NonceWithdraw.
+      const useNonceWithdraw = isNonceAccount && balance <= rentExemptMin;
+
+      const transaction = new Transaction();
+      if (this.rpcUrl.includes("mainnet")) {
+        transaction.add(
+          ComputeBudgetProgram.setComputeUnitLimit({ units: 150000 }),
+          ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 500000 })
+        );
+      }
+
+      if (useNonceWithdraw) {
+        // NonceWithdraw closes the account atomically, bypassing the
+        // rent-exemption check that blocks regular transfers.
+        transaction.add(
+          SystemProgram.nonceWithdraw({
+            noncePubkey: senderPubkey,
+            authorizedPubkey: senderPubkey,
+            toPubkey: new PublicKey(to),
+            lamports: lamportsToSend,
+          })
+        );
+      } else {
+        transaction.add(
+          SystemProgram.transfer({
+            fromPubkey: senderPubkey,
+            toPubkey: new PublicKey(to),
+            lamports: lamportsToSend,
+          })
+        );
+      }
+
+      const recentBlockhash = (
         await this.connection.getLatestBlockhash("finalized")
       ).blockhash;
       transaction.recentBlockhash = recentBlockhash;
-      transaction.feePayer = new PublicKey(keyPair.publicKey.toString());
+      transaction.feePayer = senderPubkey;
 
       const signature = await sendAndConfirmTransaction(
         this.connection,
@@ -385,6 +426,48 @@ class SolanaService {
     } catch (error) {
       console.error("Error confirming Solana transaction:", error);
       return false;
+    }
+  }
+
+  async getSolanaSendLimits(fromAddress: string, feeLamports: number, totalBalanceLamports: number) {
+    try {
+      const pubkey = new PublicKey(fromAddress);
+      const info = await this.connection.getAccountInfo(pubkey);
+      const space = info ? info.data.length : 0;
+      const rentExemptMinimum = (space + 128) * 6960;
+
+      // For data-bearing accounts (space > 0): the fee payer must remain
+      // rent-exempt after fee deduction, OR be exactly 0.
+      // If balance <= rentExemptMinimum, even the base fee (5000 lamports)
+      // would put the account below rent but above 0 → "InsufficientFundsForFee".
+      // This account is rent-locked: NO transaction can be sent from it.
+      const isRentLocked = space > 0 && totalBalanceLamports <= rentExemptMinimum;
+
+      let maxSendable = 0;
+      if (isRentLocked) {
+        maxSendable = 0;
+      } else if (space > 0) {
+        // Data account with balance above rent: can send down to rent minimum
+        maxSendable = totalBalanceLamports - feeLamports - rentExemptMinimum;
+      } else {
+        // Normal account (no data): can empty to 0
+        maxSendable = totalBalanceLamports - feeLamports;
+      }
+
+      return {
+        rentExemptMinimum,
+        maxSendable: Math.max(maxSendable, 0),
+        isRentLocked,
+        space,
+      };
+    } catch (err) {
+      console.error("Error fetching Solana send limits:", err);
+      return {
+        rentExemptMinimum: 890880,
+        maxSendable: Math.max(totalBalanceLamports - feeLamports, 0),
+        isRentLocked: false,
+        space: 0,
+      };
     }
   }
 

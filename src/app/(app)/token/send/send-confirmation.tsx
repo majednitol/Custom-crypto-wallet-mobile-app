@@ -210,6 +210,10 @@ export default function SendConfirmationPage() {
       state.solana.addresses[activeSolIndex]?.derivationPath
   );
 
+  const selectedNetwork = useSelector(
+    (state: RootState) => state.solana.selectedNetwork
+  );
+
   const nativeSolBalance = useSelector((state: RootState) => {
     if (isImportedSol && importedSolAddress) {
       const account = state.solana.addresses?.find(a => a.address === importedSolAddress);
@@ -551,32 +555,44 @@ console.log("ethPrivateKey",ethPrivateKey)
         if (mint) {
           const splBalance = Number(balance || 0);
           const nativeSolBalanceLamports = Math.round(Number(nativeSolBalance) * LAMPORTS_PER_SOL);
-          const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
-          
-          if (sendAmount > splBalance) {
+          const limits = await solanaService.getSolanaSendLimits(csolAddess as string, transactionFeeLamports, nativeSolBalanceLamports);
+
+          if (limits.isRentLocked) {
+            setError("This account's entire SOL balance is reserved for rent (Nonce Account). Add more SOL to cover fees, or close the account from another wallet.");
+            setBtnDisabled(true);
+          } else if (sendAmount > splBalance) {
             setError(`Not enough ${ticker} to send.`);
             setBtnDisabled(true);
-          } else if (remainingNativeLamports < 2039280) {
-            setError("Not enough SOL to cover transaction fees and maintain rent exemption (need at least 0.00204 SOL remaining).");
-            setBtnDisabled(true);
           } else {
-            setError("");
-            setBtnDisabled(false);
+            const remainingNativeLamports = nativeSolBalanceLamports - transactionFeeLamports;
+            if (remainingNativeLamports > 0 && remainingNativeLamports < limits.rentExemptMinimum) {
+              setError(`Not enough SOL to cover fees and maintain rent exemption.`);
+              setBtnDisabled(true);
+            } else {
+              setError("");
+              setBtnDisabled(false);
+            }
           }
         } else {
           const balanceLamports = Math.round(Number(nativeSolBalance) * LAMPORTS_PER_SOL);
           const sendAmountLamports = Math.round(sendAmount * LAMPORTS_PER_SOL);
-          const remainingLamports = balanceLamports - sendAmountLamports - transactionFeeLamports;
+          const limits = await solanaService.getSolanaSendLimits(csolAddess as string, transactionFeeLamports, balanceLamports);
 
-          if (sendAmountLamports + transactionFeeLamports > balanceLamports) {
+          if (limits.isRentLocked) {
+            setError(`This account's entire balance (${(balanceLamports / LAMPORTS_PER_SOL).toFixed(8)} SOL) is reserved for rent. No SOL can be sent. Add more SOL or close this Nonce Account from another wallet.`);
+            setBtnDisabled(true);
+          } else if (sendAmountLamports + transactionFeeLamports > balanceLamports) {
             setError("Not enough SOL to cover amount plus fees.");
             setBtnDisabled(true);
-          } else if (remainingLamports < 2039280) {
-            setError("Remaining SOL balance must be at least 0.00204 SOL to satisfy rent exemption.");
-            setBtnDisabled(true);
           } else {
-            setError("");
-            setBtnDisabled(false);
+            const remainingLamports = balanceLamports - sendAmountLamports - transactionFeeLamports;
+            if (remainingLamports > 0 && remainingLamports < limits.rentExemptMinimum) {
+              setError(`Amount would leave ${(remainingLamports / LAMPORTS_PER_SOL).toFixed(8)} SOL below rent exemption. Press Max to send all.`);
+              setBtnDisabled(true);
+            } else {
+              setError("");
+              setBtnDisabled(false);
+            }
           }
         }
       }
@@ -601,8 +617,7 @@ console.log("ethPrivateKey",ethPrivateKey)
       const network = networks[activeChainId] || NETWORKS.find((n) => n.chainId === activeChainId);
       return network ? network.chainName : "Unknown Network";
     }
-    const isDev = "development" === "development";
-    return isDev ? "Solana Devnet" : "Solana Mainnet";
+    return selectedNetwork === "mainnet" ? "Solana Mainnet" : "Solana Devnet";
   };
 
   return (
