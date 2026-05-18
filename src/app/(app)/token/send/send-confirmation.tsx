@@ -218,8 +218,8 @@ export default function SendConfirmationPage() {
     return state.solana.addresses[activeSolIndex]?.balance ?? 0;
   });
 
-  const solPrice = prices[101]?.usd;
-  const ethPrice = prices[activeChainId].usd;
+  const solPrice = prices[101]?.usd ?? 0;
+  const ethPrice = prices[activeChainId]?.usd ?? 0;
 
   const [transactionFeeEstimate, setTransactionFeeEstimate] = useState("0.00");
   const [totalCost, setTotalCost] = useState("0.00");

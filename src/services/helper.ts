@@ -242,6 +242,64 @@ export async function fetchTransfers(chainId: number, wallet: string, explorerUr
         })),
       ];
 
+      // If we got zero transactions from the API but explorerUrl is available, we try HTML scraping as a highly robust fallback
+      if (allTxs.length === 0 && effectiveExplorerUrl) {
+        try {
+          console.log(`ℹ️ API returned no transactions. Attempting HTML scraping from explorer: ${effectiveExplorerUrl}/address/${wallet}`);
+          const headers = {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8'
+          };
+          const response = await axios.get(`${effectiveExplorerUrl}/address/${wallet}`, { headers, timeout: 15000 });
+          const html = response.data;
+          const rows = html.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+          
+          for (const row of rows) {
+            const txHashMatch = row.match(/href='\/tx\/(0x[a-fA-F0-9]{64})'/);
+            if (!txHashMatch) continue;
+
+            const hash = txHashMatch[1];
+            
+            // Block number
+            const blockMatch = row.match(/href='\/block\/(\d+)'/);
+            const blockNumber = blockMatch ? parseInt(blockMatch[1]) : 0;
+
+            // Extract full addresses from clipboard attributes
+            const addressMatches = [...row.matchAll(/data-clipboard-text='(0x[a-fA-F0-9]{40})'/ig)].map(m => m[1]);
+            const from = addressMatches[0] || wallet;
+            const to = addressMatches[1] || wallet;
+
+            // Direction
+            const direction = from.toLowerCase() === wallet.toLowerCase() ? "sent" : "received";
+
+            // Value & Td Texts
+            const tdMatches = [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map(m => m[1].replace(/<[^>]*>/g, '').trim());
+            
+            // Find value by checking for currencies or numbers
+            let value = "0";
+            for (const tdText of tdMatches) {
+              if (tdText.includes("BNB") || tdText.includes("ETH") || tdText.includes("SCAI") || tdText.includes("SCAIP")) {
+                value = tdText.replace(/(BNB|ETH|SCAIP|SCAI)/g, "").trim();
+                break;
+              }
+            }
+
+            allTxs.push({
+              hash,
+              from,
+              to,
+              value,
+              category: "NORMAL",
+              direction: direction as "received" | "sent",
+              type: "NORMAL",
+              blockNumber
+            });
+          }
+        } catch (scrapeErr: any) {
+          console.warn(`[ChainId ${chainId}] HTML scraping fallback failed:`, scrapeErr?.message || scrapeErr);
+        }
+      }
+
       return allTxs.sort((a, b) => b.blockNumber - a.blockNumber);
     } catch (err: any) {
       console.warn(`[ChainId ${chainId}] Explorer fetch error at ${apiEndpoint}:`, err?.message || err);

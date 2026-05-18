@@ -353,8 +353,8 @@ export default function SendPage() {
     return state["solana"]?.addresses[activeSolIndex]?.address;
   });
   const prices = useSelector((state: RootState) => state.price.data);
-  const solPrice = prices[101]?.usd;
-  const ethPrice = prices[activeChainId].usd;
+  const solPrice = prices[101]?.usd ?? 0;
+  const ethPrice = prices[activeChainId]?.usd ?? 0;
 
   const [isAddressInputFocused, setIsAddressInputFocused] = useState(false);
   const [isAmountInputFocused, setIsAmountInputFocused] = useState(false);

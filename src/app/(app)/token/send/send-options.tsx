@@ -111,8 +111,8 @@ const ethBalance = activeEthAccount?.activeBalance ?? 0;
     return state.solana.addresses[activeSolIndex]?.balance ?? 0;
   });
   const price = useSelector((state: RootState) => state.price.data);
-  const solPrice = price[101].usd;
-  const ethPrice = price[activeChainId].usd;
+  const solPrice = price[101]?.usd ?? 0;
+  const ethPrice = price[activeChainId]?.usd ?? 0;
 
   const [solUsd, setSolUsd] = useState(0);
   const [ethUsd, setEthUsd] = useState(0);
