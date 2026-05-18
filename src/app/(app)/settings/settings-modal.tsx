@@ -6,6 +6,7 @@ import { ROUTES } from "../../../constants/routes";
 import { ThemeType } from "../../../styles/theme";
 import { SafeAreaContainer } from "../../../components/Styles/Layout.styles";
 import { EvmWallet } from "../../../components/EvmWallet";
+import { SolanaWallet } from "../../../components/SolanaWallet";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { authenticateBiometric, saveBiometricPreference } from "../../../store/biometricsSlice";
@@ -200,6 +201,7 @@ const SettingsIndex = () => {
             <SettingsGroup>
               <GroupTitle>Networks</GroupTitle>
               <EvmWallet />
+              <SolanaWallet />
             </SettingsGroup>
 
             <SettingsGroup>

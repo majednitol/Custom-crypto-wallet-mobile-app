@@ -58,6 +58,7 @@ import { useDashboardData } from "../../hooks/useDashboardData";
 
 export default function Index() {
   const dispatch = useDispatch<AppDispatch>();
+  const selectedSolanaNetwork = useSelector((state: RootState) => state.solana.selectedNetwork ?? "devnet");
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
   const theme = useTheme() as ThemeType;
@@ -431,7 +432,11 @@ export default function Index() {
     // Check Redux networks first (includes custom chains), then hardcoded list
     const net = (() => {
       if (item.chainId === 101) {
-        return { chainName: "Solana", symbol: "SOL", explorerUrl: "https://explorer.solana.com" };
+        return {
+          chainName: selectedSolanaNetwork === "mainnet" ? "Solana Mainnet" : "Solana devnet",
+          symbol: "SOL",
+          explorerUrl: "https://explorer.solana.com"
+        };
       }
       const reduxNet = store.getState().ethereum.networks[item.chainId ?? 0];
       return reduxNet || NETWORKS.find(n => n.chainId === item.chainId);
@@ -455,10 +460,16 @@ export default function Index() {
         title={capitalizeFirstLetter(item.direction)}
         caption={item.direction === "received" ? `From ${truncateWalletAddress(item.from)}` : `To ${truncateWalletAddress(item.to)}`}
         details={`${sign}${formattedValue}`}
-        onPress={() => WebBrowser.openBrowserAsync(`${explorerBase}/tx/${item.hash}`)}
+        onPress={() => {
+          const solNetwork = item.solanaNetwork || selectedSolanaNetwork;
+          const url = item.chainId === 101 && solNetwork === "devnet"
+            ? `https://explorer.solana.com/tx/${item.hash}?cluster=devnet`
+            : `${explorerBase}/tx/${item.hash}`;
+          WebBrowser.openBrowserAsync(url);
+        }}
       />
     );
-  }, []);
+  }, [selectedSolanaNetwork]);
 
   const renderAsset = useCallback(({ item: asset }: any) => (
     <View style={styles.cardView}>
@@ -535,7 +546,7 @@ export default function Index() {
       <View style={styles.cardView}>
         <CryptoInfoCard
           onPress={handleSolPress}
-          title="Solana"
+          title={selectedSolanaNetwork === "mainnet" ? "Solana Mainnet" : "Solana devnet"}
           caption={`${solBalance} SOL`}
           details={formatDollar(solUsd)}
           icon={<BlockchainIcon symbol="SOL" size={25} />}
@@ -543,7 +554,7 @@ export default function Index() {
         />
       </View>
     ) : null
-  ), [showSolAssets, solBalance, solUsd, handleSolPress, styles.cardView]);
+  ), [showSolAssets, solBalance, solUsd, handleSolPress, styles.cardView, selectedSolanaNetwork]);
 
   return (
     <SafeAreaContainer>

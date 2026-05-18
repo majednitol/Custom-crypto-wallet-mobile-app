@@ -18,6 +18,7 @@ import {
 const CONFIRMATION_TIMEOUT = 60000;
 const initialState: SolanaWalletState = {
   activeIndex: 0,
+  selectedNetwork: "devnet",
   addresses: [
     {
       accountName: "",
@@ -32,6 +33,14 @@ const initialState: SolanaWalletState = {
         paginationKey: undefined,
         transactions: [],
       },
+      balanceByNetwork: {
+        mainnet: 0,
+        devnet: 0,
+      },
+      transactionsByNetwork: {
+        mainnet: [],
+        devnet: [],
+      },
     },
   ],
 };
@@ -43,8 +52,10 @@ export interface FetchTransactionsArg {
 
 export const fetchSolanaTransactions = createAsyncThunk(
   "wallet/fetchSolanaTransactions",
-  async (address: string, { rejectWithValue }): Promise<any> => {
+  async (address: string, { rejectWithValue, getState }): Promise<any> => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const transactions = await withRetry(
         () => solanaService.getTransactionsByWallet(address),
         2,
@@ -61,11 +72,13 @@ export const fetchSolanaTransactions = createAsyncThunk(
 
 export const fetchSolanaTransactionsInterval = createAsyncThunk(
   "wallet/fetchSolanaTransactionsInterval",
-  async (address: string, { rejectWithValue }): Promise<any> => {
+  async (address: string, { rejectWithValue, getState }): Promise<any> => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const transactions = await solanaService.getTransactionsByWallet(address);
       return transactions;
-    } catch (error) {
+    } catch (error: any) {
       console.error("error", error);
       return rejectWithValue(error.message);
     }
@@ -74,8 +87,10 @@ export const fetchSolanaTransactionsInterval = createAsyncThunk(
 
 export const fetchSolanaBalance = createAsyncThunk(
   "wallet/fetchSolanaBalance",
-  async (tokenAddress: string, { rejectWithValue }): Promise<any> => {
+  async (tokenAddress: string, { rejectWithValue, getState }): Promise<any> => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const currentSolBalance = await withRetry(
         () => solanaService.getBalance(tokenAddress),
         3,
@@ -92,11 +107,13 @@ export const fetchSolanaBalance = createAsyncThunk(
 
 export const fetchSolanaBalanceInterval = createAsyncThunk(
   "wallet/fetchSolanaBalanceInterval",
-  async (tokenAddress: string, { rejectWithValue }): Promise<any> => {
+  async (tokenAddress: string, { rejectWithValue, getState }): Promise<any> => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const currentSolBalance = await solanaService.getBalance(tokenAddress);
       return currentSolBalance;
-    } catch (error) {
+    } catch (error: any) {
       console.error("error", error);
       return rejectWithValue(error.message);
     }
@@ -114,16 +131,18 @@ export const sendSolanaTransaction = createAsyncThunk(
   "solana/sendSolanaTransaction",
   async (
     { privateKey, address, amount, fromAddress }: SolTransactionArgs,
-    { rejectWithValue }
+    { rejectWithValue, getState }
   ) => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const response = await solanaService.sendTransaction(
         privateKey,
         address,
         parseFloat(amount)
       );
       return { txHash: response, fromAddress };
-    } catch (error) {
+    } catch (error: any) {
       return rejectWithValue(error.message);
     }
   }
@@ -131,8 +150,10 @@ export const sendSolanaTransaction = createAsyncThunk(
 
 export const confirmSolanaTransaction = createAsyncThunk(
   "wallet/confirmSolanaTransaction",
-  async ({ txHash, fromAddress }: { txHash: string; fromAddress: string }, { rejectWithValue }) => {
+  async ({ txHash, fromAddress }: { txHash: string; fromAddress: string }, { rejectWithValue, getState }) => {
     try {
+      const state = getState() as any;
+      solanaService.selectNetwork(state.solana.selectedNetwork ?? "devnet");
       const confirmationPromise = solanaService.confirmTransaction(txHash);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
@@ -146,7 +167,7 @@ export const confirmSolanaTransaction = createAsyncThunk(
         timeoutPromise,
       ]);
       return { txHash, confirmation, fromAddress };
-    } catch (error) {
+    } catch (error: any) {
       return rejectWithValue({ txHash, error: error.message, fromAddress });
     }
   }
@@ -156,35 +177,70 @@ export const solanaSlice = createSlice({
   name: "solana",
   initialState,
   reducers: {
+    setSelectedNetwork: (state, action: PayloadAction<"mainnet" | "devnet">) => {
+      state.selectedNetwork = action.payload;
+      solanaService.selectNetwork(action.payload);
+      state.addresses.forEach((addr) => {
+        if (!addr.balanceByNetwork) {
+          addr.balanceByNetwork = { mainnet: 0, devnet: 0 };
+        }
+        if (!addr.transactionsByNetwork) {
+          addr.transactionsByNetwork = { mainnet: [], devnet: [] };
+        }
+        addr.balance = addr.balanceByNetwork[action.payload] ?? 0;
+        addr.transactionMetadata.transactions = addr.transactionsByNetwork[action.payload] ?? [];
+      });
+    },
     saveSolanaAddresses: (state, action: PayloadAction<SAddressState[]>) => {
-      state.addresses = [...action.payload];
+      state.addresses = action.payload.map((addr) => ({
+        ...addr,
+        balanceByNetwork: addr.balanceByNetwork || { mainnet: 0, devnet: 0 },
+        transactionsByNetwork: addr.transactionsByNetwork || { mainnet: [], devnet: [] },
+      }));
       state.activeIndex = 0;
     },
     depositSolana: (state, action: PayloadAction<number>) => {
-      state.addresses[state.activeIndex].balance += action.payload;
+      const activeNetwork = state.selectedNetwork ?? "devnet";
+      const addr = state.addresses[state.activeIndex];
+      addr.balance += action.payload;
+      if (!addr.balanceByNetwork) addr.balanceByNetwork = { mainnet: 0, devnet: 0 };
+      addr.balanceByNetwork[activeNetwork] = addr.balance;
     },
     withdrawSolana: (state, action: PayloadAction<number>) => {
-      if (state.addresses[state.activeIndex].balance >= action.payload) {
-        state.addresses[state.activeIndex].balance -= action.payload;
+      const activeNetwork = state.selectedNetwork ?? "devnet";
+      const addr = state.addresses[state.activeIndex];
+      if (addr.balance >= action.payload) {
+        addr.balance -= action.payload;
+        if (!addr.balanceByNetwork) addr.balanceByNetwork = { mainnet: 0, devnet: 0 };
+        addr.balanceByNetwork[activeNetwork] = addr.balance;
       } else {
         console.warn("Not enough Solana balance");
       }
     },
     addSolanaTransaction: (state, action: PayloadAction<Transaction>) => {
-      state.addresses[state.activeIndex].transactionMetadata.transactions.push(
-        action.payload
-      );
+      const activeNetwork = state.selectedNetwork ?? "devnet";
+      const addr = state.addresses[state.activeIndex];
+      addr.transactionMetadata.transactions.push(action.payload);
+      if (!addr.transactionsByNetwork) addr.transactionsByNetwork = { mainnet: [], devnet: [] };
+      addr.transactionsByNetwork[activeNetwork] = addr.transactionMetadata.transactions;
     },
     updateSolanaBalance: (state, action: PayloadAction<number>) => {
-      state.addresses[state.activeIndex].balance = action.payload;
+      const activeNetwork = state.selectedNetwork ?? "devnet";
+      const addr = state.addresses[state.activeIndex];
+      addr.balance = action.payload;
+      if (!addr.balanceByNetwork) addr.balanceByNetwork = { mainnet: 0, devnet: 0 };
+      addr.balanceByNetwork[activeNetwork] = addr.balance;
     },
     updateSolanaAddresses: (state, action: PayloadAction<SAddressState>) => {
-      const exists = state.addresses.some(a => a.address === action.payload.address);
+      const exists = state.addresses.some((a) => a.address === action.payload.address);
       if (!exists) {
-        state.addresses.push(action.payload);
+        state.addresses.push({
+          ...action.payload,
+          balanceByNetwork: action.payload.balanceByNetwork || { mainnet: 0, devnet: 0 },
+          transactionsByNetwork: action.payload.transactionsByNetwork || { mainnet: [], devnet: [] },
+        });
       }
     },
-    // TODO: Refactor. This is an tech debt from redux refactor
     updateSolanaAccountName: (
       state,
       action: PayloadAction<{
@@ -196,11 +252,9 @@ export const solanaSlice = createSlice({
         (item) => item.address === action.payload.solAddress
       );
       if (solAddressIndex !== -1) {
-        state.addresses[solAddressIndex].accountName =
-          action.payload.accountName;
+        state.addresses[solAddressIndex].accountName = action.payload.accountName;
       }
     },
-    // TODO: Refactor. This is an tech debt from redux refactor
     setActiveSolanaAccount: (state, action: PayloadAction<number>) => {
       state.activeIndex = action.payload;
     },
@@ -225,9 +279,13 @@ export const solanaSlice = createSlice({
       })
       .addCase(fetchSolanaBalance.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
-        state.addresses[idx].balance = parseFloat(
-          truncateBalance(action.payload)
-        );
+        const bal = parseFloat(truncateBalance(action.payload));
+        state.addresses[idx].balance = bal;
+        const currentNetwork = state.selectedNetwork ?? "devnet";
+        if (!state.addresses[idx].balanceByNetwork) {
+          state.addresses[idx].balanceByNetwork = { mainnet: 0, devnet: 0 };
+        }
+        state.addresses[idx].balanceByNetwork[currentNetwork] = bal;
         state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaBalance.rejected, (state, action) => {
@@ -237,9 +295,13 @@ export const solanaSlice = createSlice({
       })
       .addCase(fetchSolanaBalanceInterval.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
-        state.addresses[idx].balance = parseFloat(
-          truncateBalance(action.payload)
-        );
+        const bal = parseFloat(truncateBalance(action.payload));
+        state.addresses[idx].balance = bal;
+        const currentNetwork = state.selectedNetwork ?? "devnet";
+        if (!state.addresses[idx].balanceByNetwork) {
+          state.addresses[idx].balanceByNetwork = { mainnet: 0, devnet: 0 };
+        }
+        state.addresses[idx].balanceByNetwork[currentNetwork] = bal;
         state.addresses[idx].status = GeneralStatus.Idle;
       })
       .addCase(fetchSolanaBalanceInterval.rejected, (state, action) => {
@@ -254,9 +316,17 @@ export const solanaSlice = createSlice({
       .addCase(fetchSolanaTransactions.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
         if (action.payload) {
+          const currentNetwork = state.selectedNetwork ?? "devnet";
+          const mappedTxs = action.payload.map((tx: any) => ({
+            ...tx,
+            solanaNetwork: currentNetwork
+          }));
           state.addresses[idx].failedNetworkRequest = false;
-          state.addresses[idx].transactionMetadata.transactions =
-            action.payload;
+          state.addresses[idx].transactionMetadata.transactions = mappedTxs;
+          if (!state.addresses[idx].transactionsByNetwork) {
+            state.addresses[idx].transactionsByNetwork = { mainnet: [], devnet: [] };
+          }
+          state.addresses[idx].transactionsByNetwork[currentNetwork] = mappedTxs;
         } else {
           state.addresses[idx].failedNetworkRequest = true;
         }
@@ -270,9 +340,17 @@ export const solanaSlice = createSlice({
       .addCase(fetchSolanaTransactionsInterval.fulfilled, (state, action) => {
         const idx = findIdx(state, action.meta.arg);
         if (action.payload) {
+          const currentNetwork = state.selectedNetwork ?? "devnet";
+          const mappedTxs = action.payload.map((tx: any) => ({
+            ...tx,
+            solanaNetwork: currentNetwork
+          }));
           state.addresses[idx].failedNetworkRequest = false;
-          state.addresses[idx].transactionMetadata.transactions =
-            action.payload;
+          state.addresses[idx].transactionMetadata.transactions = mappedTxs;
+          if (!state.addresses[idx].transactionsByNetwork) {
+            state.addresses[idx].transactionsByNetwork = { mainnet: [], devnet: [] };
+          }
+          state.addresses[idx].transactionsByNetwork[currentNetwork] = mappedTxs;
         } else {
           state.addresses[idx].failedNetworkRequest = true;
         }
@@ -348,6 +426,7 @@ export const {
   setActiveSolanaAccount,
   updateSolanaAddresses,
   updateSolanaAccountName,
+  setSelectedNetwork,
 } = solanaSlice.actions;
 
 export default solanaSlice.reducer;

@@ -110,6 +110,7 @@ export default function Confirmation() {
   const networks = useSelector(
     (state: RootState) => state.ethereum.networks
   );
+  const selectedSolanaNetwork = useSelector((state: RootState) => state.solana.selectedNetwork ?? "devnet");
   const { txHash, blockchain, amount, symbol, recipientAddress } = useLocalSearchParams();
   console.log("txHash", txHash, blockchain, amount, symbol, recipientAddress);
   const chain = blockchain as string;
@@ -193,7 +194,9 @@ export default function Confirmation() {
         return `${network.explorerUrl}/tx/${txHash}`;
       }
     } else if (chain === Chains.Solana) {
-      return `https://explorer.solana.com/tx/${txHash}?cluster=devnet`;
+      return selectedSolanaNetwork === "devnet"
+        ? `https://explorer.solana.com/tx/${txHash}?cluster=devnet`
+        : `https://explorer.solana.com/tx/${txHash}`;
     }
     return null;
   };

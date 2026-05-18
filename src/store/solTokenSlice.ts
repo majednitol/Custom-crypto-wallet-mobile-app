@@ -7,6 +7,7 @@ import {
   getWalletNFTs,
   sendSplToken,
   SplTokenAccount,
+  setSolTokenNetwork,
 } from "../services/solTokenService";
 import { Keypair } from "@solana/web3.js";
 
@@ -83,7 +84,9 @@ export const loadSolTokens = createAsyncThunk<TrackedSolToken[]>(
 /* SOL balance */
 export const fetchSolBalance = createAsyncThunk(
   "sol/fetchSolBalance",
-  async ({ wallet }: { wallet: string }) => {
+  async ({ wallet }: { wallet: string }, thunkAPI) => {
+    const state = thunkAPI.getState() as any;
+    setSolTokenNetwork(state.solana?.selectedNetwork ?? "devnet");
     return await getSolBalance(wallet);
   }
 );
@@ -92,7 +95,9 @@ export const fetchSolBalance = createAsyncThunk(
 export const fetchSplTokenBalance = createAsyncThunk<
   SolTokenBalance,
   { mint: string; wallet: string }
->("sol/fetchSplBalance", async ({ mint, wallet }) => {
+>("sol/fetchSplBalance", async ({ mint, wallet }, thunkAPI) => {
+  const state = thunkAPI.getState() as any;
+  setSolTokenNetwork(state.solana?.selectedNetwork ?? "devnet");
   const data = await getSplTokenBalance(wallet, mint);
   console.log("getSplTokenBalance",wallet,mint,data)
   if (!data) throw new Error("Token not found");
@@ -103,7 +108,9 @@ export const fetchSplTokenBalance = createAsyncThunk<
 export const fetchAllSplTokens = createAsyncThunk<
   SplTokenAccount[],
   { wallet: string }
->("sol/fetchAllSplTokens", async ({ wallet }) => {
+>("sol/fetchAllSplTokens", async ({ wallet }, thunkAPI) => {
+  const state = thunkAPI.getState() as any;
+  setSolTokenNetwork(state.solana?.selectedNetwork ?? "devnet");
   return await getAllSplTokens(wallet);
 });
 
@@ -112,8 +119,10 @@ export const fetchAllSplTokens = createAsyncThunk<
 export const fetchSolNfts = createAsyncThunk<
   SolNFT[],
   { wallet: string }
-  >("sol/fetchNfts", async ({ wallet }) => {
+  >("sol/fetchNfts", async ({ wallet }, thunkAPI) => {
     console.log("wallet10000000000000000000", wallet)
+    const state = thunkAPI.getState() as any;
+    setSolTokenNetwork(state.solana?.selectedNetwork ?? "devnet");
     const nfts = await getWalletNFTs(wallet);
     console.log("nfts",nfts)
     return nfts;
@@ -129,7 +138,9 @@ export const sendSolToken = createAsyncThunk<
     decimals: number;
     secretKey: Uint8Array;
   }
->("sol/sendToken", async ({ mint, to, amount, decimals, secretKey }) => {
+>("sol/sendToken", async ({ mint, to, amount, decimals, secretKey }, thunkAPI) => {
+  const state = thunkAPI.getState() as any;
+  setSolTokenNetwork(state.solana?.selectedNetwork ?? "devnet");
   const keypair = Keypair.fromSecretKey(secretKey);
 
   return await sendSplToken({

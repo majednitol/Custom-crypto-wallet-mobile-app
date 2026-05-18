@@ -139,6 +139,11 @@ export default function ReceiveOptionsPage() {
       state.solana.addresses?.[activeSolIndex]?.address
   );
 
+  const selectedSolanaNetwork = useSelector(
+    (state: RootState) => state.solana.selectedNetwork ?? "devnet"
+  );
+  const solChainName = selectedSolanaNetwork === "mainnet" ? "Solana Mainnet" : "Solana devnet";
+
   return (
     <SafeAreaContainer>
       <ScrollContainer showsVerticalScrollIndicator={false}>
@@ -170,10 +175,10 @@ export default function ReceiveOptionsPage() {
             );
           })}
 
-          {/* 🔹 Solana (unchanged) */}
+          {/* 🔹 Solana */}
           {solAddress && (
             <ReceiveCard
-              chainName="Solana"
+              chainName={solChainName}
               address={solAddress}
               icon={<BlockchainIcon symbol="sol" size={25} />}
             />

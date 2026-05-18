@@ -28,6 +28,7 @@ export interface Transaction {
   asset: string;
   direction: string;
   chainId?: number;
+  solanaNetwork?: "mainnet" | "devnet";
 }
 
 export interface TransactionConfirmation {
@@ -50,6 +51,8 @@ export interface SAddressState {
     transactions: Transaction[];
   };
   transactionConfirmations: TransactionConfirmation[];
+  balanceByNetwork?: Record<"mainnet" | "devnet", number>;
+  transactionsByNetwork?: Record<"mainnet" | "devnet", Transaction[]>;
 }
 export interface AddressState {
   accountName: string;
@@ -116,4 +119,5 @@ export interface EvmWalletState {
 export interface SolanaWalletState {
   activeIndex: number;
   addresses: SAddressState[];
+  selectedNetwork?: "mainnet" | "devnet";
 }

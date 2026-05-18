@@ -496,12 +496,15 @@ export default function Index() {
     Toast.show({ type: "success", text1: "Address copied to clipboard" });
   };
 
-  // Look up explorer from Redux state (includes both default and custom networks)
+  const selectedSolanaNetwork = useSelector((state: RootState) => state.solana.selectedNetwork ?? "devnet");
   const allNetworks = useSelector((state: RootState) => state.ethereum.networks);
 
-  const urlBuilder = (hash: string) => {
+  const urlBuilder = (hash: string, solanaNetwork?: "mainnet" | "devnet") => {
     if (isSolana) {
-      return `https://explorer.solana.com/tx/${hash}`;
+      const solNetwork = solanaNetwork || selectedSolanaNetwork;
+      return solNetwork === "devnet"
+        ? `https://explorer.solana.com/tx/${hash}?cluster=devnet`
+        : `https://explorer.solana.com/tx/${hash}`;
     }
     // First check Redux networks (includes custom chains), then fall back to hardcoded list
     const net = allNetworks[activeChainId] || NETWORKS.find(n => n.chainId === activeChainId);
@@ -699,7 +702,7 @@ export default function Index() {
     const sign = item.direction === "received" ? "+" : "-";
     return (
       <CryptoInfoCard
-        onPress={() => _handlePressButtonAsync(urlBuilder(item.hash))}
+        onPress={() => _handlePressButtonAsync(urlBuilder(item.hash, item.solanaNetwork))}
         title={capitalizeFirstLetter(item.direction)}
         caption={`To ${truncateWalletAddress(item.to)}`}
         details={`${sign} ${item.value} ${item.asset}`}

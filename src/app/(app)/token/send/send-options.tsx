@@ -128,6 +128,11 @@ const ethBalance = activeEthAccount?.activeBalance ?? 0;
     fetchPrices();
   }, [ethBalance, solBalance]);
 
+  const selectedSolanaNetwork = useSelector(
+    (state: RootState) => state.solana.selectedNetwork ?? "devnet"
+  );
+  const solChainName = selectedSolanaNetwork === "mainnet" ? "Solana Mainnet" : "Solana devnet";
+
   return (
     <SafeAreaContainer>
       <ContentContainer>
@@ -171,7 +176,7 @@ const ethBalance = activeEthAccount?.activeBalance ?? 0;
         <CardView>
           <CryptoInfoCard
             onPress={() => router.push("/token/send/solana")}
-            title="Solana"
+            title={solChainName}
             caption={`${solBalance} SOL`}
             details={formatDollar(solUsd)}
             icon={<BlockchainIcon symbol="sol" size={25} />}

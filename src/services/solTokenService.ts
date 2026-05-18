@@ -20,9 +20,20 @@ import {
 
 /* ---------------- CONFIG ---------------- */
 
-const HELIUS_RPC = "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
+export let heliusRpc = "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
 
-export const connection = new Connection(HELIUS_RPC, "confirmed");
+export let connection = new Connection(heliusRpc, "confirmed");
+
+export function setSolTokenNetwork(network: "mainnet" | "devnet") {
+  const newRpc = network === "mainnet"
+    ? "https://mainnet.helius-rpc.com/?api-key=4ea6a1a7-e963-4e68-8b02-5e072f7e77a8"
+    : "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
+  
+  if (heliusRpc !== newRpc) {
+    heliusRpc = newRpc;
+    connection = new Connection(newRpc, "confirmed");
+  }
+}
 
 /* ---------------- TYPES ---------------- */
 
@@ -229,7 +240,7 @@ export async function getAllSplTokens(
 export async function getWalletNFTs(
   wallet: string
 ): Promise<WalletNFT[]> {
-  const res = await fetch(HELIUS_RPC, {
+  const res = await fetch(heliusRpc, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

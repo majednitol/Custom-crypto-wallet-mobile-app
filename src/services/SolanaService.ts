@@ -19,6 +19,19 @@ class SolanaService {
     this.connection = new Connection(rpcUrl, "confirmed");
   }
 
+  selectNetwork(network: "mainnet" | "devnet") {
+    const rpcUrl = network === "mainnet"
+      ? "https://mainnet.helius-rpc.com/?api-key=4ea6a1a7-e963-4e68-8b02-5e072f7e77a8"
+      : "https://devnet.helius-rpc.com/?api-key=800c9b64-37ba-4cd3-a7e9-807406f383a9";
+    this.rpcUrl = rpcUrl;
+    this.connection = new Connection(rpcUrl, "confirmed");
+  }
+
+  updateRpcUrl(newRpcUrl: string) {
+    this.rpcUrl = newRpcUrl;
+    this.connection = new Connection(newRpcUrl, "confirmed");
+  }
+
   restoreWalletFromPhrase(mnemonicPhrase: string): Promise<Keypair> {
     return new Promise((resolve, reject) => {
       try {
@@ -111,7 +124,7 @@ class SolanaService {
       direction = "received";
     }
 
-    const hash = transactionObject.transaction.message.recentBlockhash;
+    const hash = transactionObject.transaction.signatures[0];
     const uniqueId = uuid.v4();
     const from = info.source;
     const to = info.destination;
