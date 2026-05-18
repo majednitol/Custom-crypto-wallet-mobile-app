@@ -37,6 +37,7 @@ import ReceiveIcon from "../../assets/svg/receive.svg";
 import CryptoInfoCard from "../../components/CryptoInfoCard/CryptoInfoCard";
 import AssetCard from "../../components/AssetCard/AssetCard";
 import { BlockchainIcon } from "../../components/BlockchainIcon/BlockchainIcon";
+import { getChainIconSymbol } from "../../utils/getChainIconSymbol";
 import { FETCH_PRICES_INTERVAL } from "../../constants/price";
 import { SafeAreaContainer } from "../../components/Styles/Layout.styles";
 import InfoBanner from "../../components/InfoBanner/InfoBanner";
@@ -426,17 +427,31 @@ export default function Index() {
     const formattedValue = rawValue === 0
       ? "0"
       : rawValue.toFixed(rawValue < 0.001 ? 6 : 4).replace(/\.?0+$/, "");
+
+    // Check Redux networks first (includes custom chains), then hardcoded list
+    const net = (() => {
+      if (item.chainId === 101) {
+        return { chainName: "Solana", symbol: "SOL", explorerUrl: "https://explorer.solana.com" };
+      }
+      const reduxNet = store.getState().ethereum.networks[item.chainId ?? 0];
+      return reduxNet || NETWORKS.find(n => n.chainId === item.chainId);
+    })();
+
     const explorerBase = (() => {
       if (item.chainId === 101) return "https://explorer.solana.com";
-      // Check Redux networks first (includes custom chains), then hardcoded list
-      const reduxNet = store.getState().ethereum.networks[item.chainId];
-      const net = reduxNet || NETWORKS.find(n => n.chainId === item.chainId);
       return net?.explorerUrl || "https://etherscan.io";
     })();
 
     return (
       <CryptoInfoCard
-        icon=""
+        icon={
+          <BlockchainIcon
+            symbol={getChainIconSymbol(net?.chainName || "", net?.symbol || item.asset || "ETH", item.chainId)}
+            chainId={item.chainId}
+            chainName={net?.chainName || ""}
+            size={35}
+          />
+        }
         title={capitalizeFirstLetter(item.direction)}
         caption={item.direction === "received" ? `From ${truncateWalletAddress(item.from)}` : `To ${truncateWalletAddress(item.to)}`}
         details={`${sign}${formattedValue}`}

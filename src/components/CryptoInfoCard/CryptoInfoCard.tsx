@@ -107,7 +107,7 @@ interface ButtonProps {
   caption: string;
   details: string;
   backgroundColor?: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   iconBackgroundColor?: string;
   onPress: () => void;
   hideBackground?: boolean;
@@ -133,7 +133,7 @@ const CryptoInfoCard: React.FC<ButtonProps> = ({
       activeOpacity={0.7}
     >
       <ChainContainer>
-        <Circle iconBackgroundColor={iconBackgroundColor}>{icon}</Circle>
+        {icon ? <Circle iconBackgroundColor={iconBackgroundColor}>{icon}</Circle> : null}
         <PrimaryTextContainer>
           <CryptoInfoCardText 
             numberOfLines={1} 

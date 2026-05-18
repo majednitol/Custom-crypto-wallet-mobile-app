@@ -703,7 +703,6 @@ export default function Index() {
         title={capitalizeFirstLetter(item.direction)}
         caption={`To ${truncateWalletAddress(item.to)}`}
         details={`${sign} ${item.value} ${item.asset}`}
-        icon={<BlockchainIcon symbol={isSolana ? "sol" : item.asset} size={35} />}
       />
     );
   };
