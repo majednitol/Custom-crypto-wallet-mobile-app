@@ -301,7 +301,7 @@ console.log("ethPrivateKey",ethPrivateKey)
               from: walletAddress,
               privateKey: ethPrivateKey,
               to: address,
-              amount: parseFloat(amount),
+              amount: amount,
             })
           ).unwrap();
         }

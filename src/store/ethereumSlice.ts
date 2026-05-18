@@ -183,7 +183,7 @@ export interface SendTransactionArgs {
   from: string; // ethers.AddressLike
   to: string;   // ethers.AddressLike
   privateKey: string;
-  amount: number; // ETH amount as number
+  amount: string; // ETH amount as precise string
 }
 
 

@@ -120,9 +120,9 @@ export class EVMService {
   if (privateKey) signer = new Wallet(privateKey, this.provider);
   return new ethers.Contract(contractAddress, ERC20_ABI, signer ?? this.provider);
 }
-  async sendTransaction(from : AddressLike, to: AddressLike, privateKey: string, value: number) {
+  async sendTransaction(from : AddressLike, to: AddressLike, privateKey: string, value: string) {
     const wallet = new Wallet(privateKey, this.provider);
-    return wallet.sendTransaction({from, to, value: parseEther(value.toString()) });
+    return wallet.sendTransaction({from, to, value: parseEther(value) });
   }
   async createWalletByIndex(phrase: string, index: number = 0): Promise<any> {
     const path = `m/44'/60'/0'/0/${index}`;
@@ -263,8 +263,8 @@ async calculateGasAndAmountsForERC20Transfer(privateKey: string, tokenAddress: s
         gasEstimate: gasEstimate.toString(),
         gasCostEth: gasCostEth.toString()
       };
-    } catch (err) {
-      console.error("❌ Error during ERC-20 gas calculation:", err);
+    } catch (err: any) {
+      console.warn("❌ Error during ERC-20 gas calculation:", err?.message || err);
     }
   }
 
@@ -382,7 +382,27 @@ async calculateGasAndAmountsForERC20Transfer(privateKey: string, tokenAddress: s
 
   try {
     // estimateGas returns bigint
-    let gasEstimate: bigint = await this.provider.estimateGas(transaction); 
+    let gasEstimate: bigint;
+    try {
+      gasEstimate = await this.provider.estimateGas(transaction); 
+    } catch (estError: any) {
+      // If it failed due to insufficient funds, retry with value = 0 (highly standard for max balance calculation)
+      const isInsufficientFunds = 
+        estError?.code === "INSUFFICIENT_FUNDS" || 
+        estError?.message?.toLowerCase().includes("insufficient funds") ||
+        estError?.info?.error?.message?.toLowerCase().includes("insufficient funds") ||
+        estError?.data?.message?.toLowerCase().includes("insufficient funds");
+      
+      if (isInsufficientFunds) {
+        console.log("[EVMService] estimateGas failed due to insufficient funds, retrying with 0 value for gas estimation.");
+        gasEstimate = await this.provider.estimateGas({
+          ...transaction,
+          value: 0n
+        });
+      } else {
+        throw estError;
+      }
+    }
     
     // Add 10% buffer to gas estimate for safety, especially on L2s
     gasEstimate = (gasEstimate * 110n) / 100n;
@@ -407,7 +427,7 @@ async calculateGasAndAmountsForERC20Transfer(privateKey: string, tokenAddress: s
       gasFee: gasPricePerUnit, // bigint
     };
   } catch (error: any) {
-    console.error("[EVMService] calculateGasAndAmounts error:", error);
+    console.warn("[EVMService] calculateGasAndAmounts fallback used:", error?.message || error);
     // Fallback if estimateGas fails (common on zkSync if funds are low or address is new)
     const fallbackGas = 21000n; 
     const feeData = await this.provider.getFeeData();
