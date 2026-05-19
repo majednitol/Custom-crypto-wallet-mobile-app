@@ -132,7 +132,8 @@ async function scanEvmAccounts(phrase) {
             return true;
           }
           return false;
-        } catch {
+        } catch (e) {
+          console.log(`Error on ${name} for ${address}:`, e.message);
           return false;
         }
       })

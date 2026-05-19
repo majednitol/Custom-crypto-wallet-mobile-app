@@ -134,7 +134,7 @@ export default function Page() {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(seedPhraseParams.join(" "));
+    await Clipboard.setStringAsync(seedPhrase.join(" "));
     setCopied(true);
     setTimeout(() => {
       setCopied(false);
