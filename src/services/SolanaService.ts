@@ -170,8 +170,10 @@ class SolanaService {
         );
 
         const transactions = rawTransactions
+          .filter((tx: any) => tx != null)
           .map((tx: any) => this.#extractTransactionDetails(tx, walletAddress))
-          .sort((a, b) => b.blockTime - a.blockTime);
+          .filter(Boolean)
+          .sort((a: any, b: any) => b.blockTime - a.blockTime);
         return transactions;
       } catch (error) {
         console.error("Failed to process transactions:", error);
