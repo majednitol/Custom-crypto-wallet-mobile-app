@@ -45,7 +45,7 @@ const PrimaryButtonText = styled.Text<ButtonTextProps & { variant?: string }>`
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
   color: ${({ theme, variant }) =>
-    variant === "primary" ? theme.colors.dark : theme.colors.white};
+    variant === "primary" ? theme.colors.darkText : theme.colors.white};
   letter-spacing: 0.5px;
   text-align: center;
   flex: 1;

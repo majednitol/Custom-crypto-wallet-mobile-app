@@ -180,23 +180,36 @@ export async function fetchTransfers(chainId: number, wallet: string, explorerUr
     }
 
     try {
-      // Helper to try a request and return results
+      // Helper to try a request and return results with 429 retry support
       const tryFetch = async (endpoint: string) => {
-        try {
-          const [normal, token] = await Promise.all([
-            axios.get(`${endpoint}?module=account&action=txlist&address=${wallet}&sort=desc`, { timeout: 8000 }),
-            axios.get(`${endpoint}?module=account&action=tokentx&address=${wallet}&sort=desc`, { timeout: 8000 })
-          ]);
-          
-          // Detect V1 deprecation (Monadscan etc)
-          if (typeof normal.data.result === "string" && normal.data.result.includes("deprecated V1")) {
-            return null;
-          }
+        let retries = 3;
+        let delayMs = 500;
+        while (retries > 0) {
+          try {
+            const [normal, token] = await Promise.all([
+              axios.get(`${endpoint}?module=account&action=txlist&address=${wallet}&sort=desc`, { timeout: 8000 }),
+              axios.get(`${endpoint}?module=account&action=tokentx&address=${wallet}&sort=desc`, { timeout: 8000 })
+            ]);
+            
+            // Detect V1 deprecation (Monadscan etc)
+            if (typeof normal.data.result === "string" && normal.data.result.includes("deprecated V1")) {
+              return null;
+            }
 
-          return { normal: normal.data.result, token: token.data.result };
-        } catch (e) {
-          return null;
+            return { normal: normal.data.result, token: token.data.result };
+          } catch (e: any) {
+            const status = e.response?.status;
+            if (status === 429) {
+              console.warn(`[tryFetch] Rate limit (429) on ${endpoint}. Retrying after ${delayMs}ms...`);
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              delayMs *= 2;
+              retries--;
+            } else {
+              return null;
+            }
+          }
         }
+        return null;
       };
 
       let res = await tryFetch(apiEndpoint);

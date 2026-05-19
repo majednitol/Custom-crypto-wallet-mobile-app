@@ -152,6 +152,8 @@ export class EVMService {
     }
 
     currentIndex++;
+    // Pace requests to prevent hitting rate limits
+    await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
   return lastUsedIndex >= 0 ? lastUsedIndex + 2 : 0;

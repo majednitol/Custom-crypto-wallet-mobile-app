@@ -25,13 +25,14 @@ import { evmServices, registerEvmService } from "../services/EthereumService";
 import erc20Reducer from "./tokenSlice";
 // import nftReducer from "./nftSlice";
 import solTokenReducer from "./solTokenSlice";
+import settingsReducer from "./settingsSlice";
 
 /* ---------------- Persist ---------------- */
 
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["ethereum", "solana", "biometrics", "erc20", "nft", "importedAccounts"],
+  whitelist: ["ethereum", "solana", "biometrics", "erc20", "nft", "importedAccounts", "settings"],
 };
 
 const rootReducer = combineReducers({
@@ -42,6 +43,7 @@ const rootReducer = combineReducers({
   erc20: erc20Reducer,
   solToken: solTokenReducer,
   importedAccounts: importedAccountReducer,
+  settings: settingsReducer,
 });
 
 

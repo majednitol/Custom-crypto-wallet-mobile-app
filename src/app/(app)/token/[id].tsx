@@ -113,7 +113,7 @@ const TimeButtonText = styled.Text<{ active: boolean; theme: ThemeType }>`
   font-family: ${({ theme }) => theme.fonts.families.openBold};
   font-size: 12px;
   color: ${({ active, theme }) =>
-    active ? theme.colors.dark : theme.colors.grey};
+    active ? theme.colors.darkText : theme.colors.grey};
 `;
 
 const SectionTitle = styled.Text<{ theme: ThemeType }>`
@@ -130,7 +130,7 @@ const StatRow = styled.View`
   align-items: center;
   padding-vertical: 12px;
   border-bottom-width: 1px;
-  border-bottom-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: ${(props) => props.theme.colors.border};
 `;
 
 const StatLabel = styled.Text<{ theme: ThemeType }>`
@@ -151,7 +151,7 @@ const AddressRow = styled.View`
   align-items: center;
   padding-vertical: 16px;
   border-top-width: 1px;
-  border-top-color: rgba(255, 255, 255, 0.06);
+  border-top-color: ${(props) => props.theme.colors.border};
   margin-top: 8px;
 `;
 
@@ -252,22 +252,27 @@ enum FilterTypes {
 // CHART CONFIG
 // ═══════════════════════════════════════════════════════════
 
-const CHART_CONFIG = {
-  backgroundColor: "transparent",
-  backgroundGradientFrom: "transparent",
-  backgroundGradientTo: "transparent",
-  decimalPlaces: 4,
-  color: () => "#ef4444",
-  labelColor: () => "#8b8b8b",
-  style: {
-    borderRadius: 16,
-  },
-  propsForDots: {
-    r: "0",
-  },
-  propsForBackgroundLines: {
-    stroke: "rgba(255,255,255,0.06)",
-  },
+const getChartConfig = (theme: ThemeType, isPositive: boolean) => {
+  const chartColor = isPositive ? "0, 192, 135" : "255, 77, 79"; // success (green) vs error (red) RGB
+  return {
+    backgroundColor: theme.colors.background,
+    backgroundGradientFrom: theme.colors.background,
+    backgroundGradientTo: theme.colors.background,
+    decimalPlaces: 2,
+    color: (opacity = 1) => `rgba(${chartColor}, ${opacity})`,
+    labelColor: () => theme.colors.lightGrey,
+    style: {
+      borderRadius: 16,
+    },
+    propsForDots: {
+      r: "0",
+    },
+    propsForBackgroundLines: {
+      stroke: theme.colors.border,
+      strokeDasharray: "4",
+      strokeWidth: 0.5,
+    },
+  };
 };
 
 const TIME_PERIODS = [
@@ -304,7 +309,7 @@ const FloatingButtonContainer = styled.View`
   padding-horizontal: 16px;
   padding-vertical: 16px;
   border-top-width: 1px;
-  border-top-color: rgba(255, 255, 255, 0.06);
+  border-top-color: ${({ theme }) => theme.colors.border};
 `;
 
 
@@ -327,7 +332,7 @@ const FloatingButtonText = styled.Text<{ variant?: "send" | "receive"; theme: Th
   font-family: ${({ theme }) => theme.fonts.families.openBold};
   font-size: 16px;
   color: ${({ variant, theme }) =>
-    variant === "send" ? theme.colors.dark : theme.colors.white};
+    variant === "send" ? theme.colors.darkText : theme.colors.white};
 `;
 
 export default function Index() {
@@ -583,7 +588,7 @@ export default function Index() {
                 data={chartDataset}
                 width={SCREEN_WIDTH - 32}
                 height={200}
-                chartConfig={CHART_CONFIG}
+                chartConfig={getChartConfig(theme as ThemeType, isPositive)}
                 bezier
                 withInnerLines={true}
                 withOuterLines={false}

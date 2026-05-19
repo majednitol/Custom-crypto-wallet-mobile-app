@@ -136,7 +136,7 @@ const Header: React.FC = () => {
 
   return (
     <GradientHeader
-      colors={["rgba(11,14,20,0.95)", "rgba(11,14,20,0)"]}
+      colors={theme.colors.headerGradient}
       locations={[0, 1]}
       style={{ paddingTop: insets.top }}
     >

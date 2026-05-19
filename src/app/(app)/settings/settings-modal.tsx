@@ -12,6 +12,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { authenticateBiometric, saveBiometricPreference } from "../../../store/biometricsSlice";
 import { Switch, Alert, View } from "react-native";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import Svg, { Path, Circle, Rect, Line } from "react-native-svg";
+import { setThemeMode, ThemeMode } from "../../../store/settingsSlice";
 
 
 const ScrollContainer = styled.ScrollView`
@@ -84,6 +86,54 @@ const OptionSubtext = styled.Text<{ theme: ThemeType }>`
   margin-top: 2px;
 `;
 
+const ThemeSelectorContainer = styled.View<{ theme: ThemeType }>`
+  flex-direction: row;
+  background-color: ${(props) => props.theme.colors.cardBackground};
+  border-radius: 14px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+`;
+
+const ThemeOptionButton = styled.TouchableOpacity<{ theme: ThemeType; active: boolean }>`
+  flex: 1;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  border-radius: 10px;
+  background-color: ${({ theme, active }) =>
+    active ? theme.colors.primary : "transparent"};
+`;
+
+const ThemeOptionText = styled.Text<{ theme: ThemeType; active: boolean }>`
+  font-family: ${(props) => props.theme.fonts.families.openBold};
+  font-size: ${(props) => props.theme.fonts.sizes.normal};
+  color: ${({ theme, active }) =>
+    active ? theme.colors.darkText : theme.colors.white};
+  margin-left: 8px;
+`;
+
+const SunIcon = ({ color }: { color: string }) => (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Circle cx="12" cy="12" r="5" />
+    <Path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+  </Svg>
+);
+
+const MoonIcon = ({ color }: { color: string }) => (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <Path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+  </Svg>
+);
+
+const SystemIcon = ({ color }: { color: string }) => (
+  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2A10 10 0 1 0 12 22A10 10 0 1 0 12 2Z" stroke={color} strokeWidth={2} />
+    <Path d="M12 2A10 10 0 0 1 12 22Z" fill={color} />
+  </Svg>
+);
+
 const SettingsIndex = () => {
   const theme = useTheme();
   const dispatch = useDispatch<AppDispatch>();
@@ -92,6 +142,11 @@ const SettingsIndex = () => {
   );
 
   const [bioEnabled, setBioEnabled] = useState(biometricPreference);
+  const themeMode = useSelector((state: RootState) => state.settings?.themeMode ?? "system");
+
+  const handleSelectTheme = (mode: ThemeMode) => {
+    dispatch(setThemeMode(mode));
+  };
 
   const handleToggleBiometrics = async (val: boolean) => {
     if (val) {
@@ -160,6 +215,35 @@ const SettingsIndex = () => {
                   trackColor={{ false: theme.colors.grey, true: theme.colors.primaryLight }}
                 />
               </OptionCard>
+            </SettingsGroup>
+
+            <SettingsGroup>
+              <GroupTitle>Appearance</GroupTitle>
+              <ThemeSelectorContainer>
+                <ThemeOptionButton
+                  active={themeMode === "light"}
+                  onPress={() => handleSelectTheme("light")}
+                >
+                  <SunIcon color={themeMode === "light" ? theme.colors.darkText : theme.colors.white} />
+                  <ThemeOptionText active={themeMode === "light"}>Light</ThemeOptionText>
+                </ThemeOptionButton>
+
+                <ThemeOptionButton
+                  active={themeMode === "dark"}
+                  onPress={() => handleSelectTheme("dark")}
+                >
+                  <MoonIcon color={themeMode === "dark" ? theme.colors.darkText : theme.colors.white} />
+                  <ThemeOptionText active={themeMode === "dark"}>Dark</ThemeOptionText>
+                </ThemeOptionButton>
+
+                <ThemeOptionButton
+                  active={themeMode === "system"}
+                  onPress={() => handleSelectTheme("system")}
+                >
+                  <SystemIcon color={themeMode === "system" ? theme.colors.darkText : theme.colors.white} />
+                  <ThemeOptionText active={themeMode === "system"}>System</ThemeOptionText>
+                </ThemeOptionButton>
+              </ThemeSelectorContainer>
             </SettingsGroup>
 
             <SettingsGroup>

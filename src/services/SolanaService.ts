@@ -85,17 +85,30 @@ class SolanaService {
     const transactions = [];
 
     for (const signature of signatures) {
-      try {
-        const transaction = await this.connection.getParsedTransaction(
-          signature.signature,
-          { maxSupportedTransactionVersion: 0 }
-        );
-        transactions.push(transaction);
-      } catch (error:any) {
-        if (error.message.includes("429")) {
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        } else {
-          console.error("Failed to fetch transaction:", error);
+      let retries = 5;
+      let delayMs = 300;
+      let success = false;
+      while (retries > 0 && !success) {
+        try {
+          const transaction = await this.connection.getParsedTransaction(
+            signature.signature,
+            { maxSupportedTransactionVersion: 0 }
+          );
+          if (transaction) {
+            transactions.push(transaction);
+          }
+          success = true;
+        } catch (error: any) {
+          const errorMsg = error?.message || "";
+          if (errorMsg.includes("429") || errorMsg.includes("rate limit") || errorMsg.includes("Too Many Requests")) {
+            console.warn(`[Solana] ParsedTransaction rate limited, retrying in ${delayMs}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            delayMs *= 2;
+            retries--;
+          } else {
+            console.error("Failed to fetch transaction:", error);
+            break;
+          }
         }
       }
     }
@@ -382,6 +395,8 @@ class SolanaService {
       }
 
       currentIndex++;
+      // Pace requests to prevent hitting rate limits
+      await new Promise((resolve) => setTimeout(resolve, 150));
     }
 
     // Return: lastUsedIndex + 2 to include the last used index in collection

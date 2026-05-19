@@ -57,13 +57,16 @@ const BulbIcon = styled.Text`
 const ethFaucet = "https://www.infura.io/faucet/sepolia";
 const solFaucet = "https://faucet.solana.com/";
 
+import { useTheme } from "styled-components/native";
+
 const InfoBanner: FC = () => {
+  const theme = useTheme();
   const handlePressButtonAsync = async (url: string) => {
     await WebBrowser.openBrowserAsync(url);
   };
   return (
     <InfoContainer
-      colors={["rgba(26, 31, 46, 0.8)", "rgba(21, 25, 32, 0.6)"]}
+      colors={theme.colors.cardGradient}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >

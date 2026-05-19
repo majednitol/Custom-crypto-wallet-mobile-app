@@ -257,17 +257,15 @@ import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Provider, useSelector } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-import { AppState, AppStateStatus, View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { lockWallet, UNLOCK_TIMEOUT, loadBiometricPreference, checkBiometricAvailability } from "../store/biometricsSlice";
-
-
 import { store, persistor, RootState } from "../store";
-import Theme from "../styles/theme";
+import { DarkTheme, LightTheme } from "../styles/theme";
 import FloatingBackButton from "./FloatingBackButton";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import { ThemeProvider } from "styled-components/native";
+import { AppState, AppStateStatus, View, useColorScheme } from "react-native";
 
 // Prevent auto hide for splash
 SplashScreen.preventAutoHideAsync();
@@ -338,23 +336,30 @@ function InnerApp() {
     };
   }, [unlockedAt]);
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <FloatingBackButton />
+  const themeMode = useSelector((state: RootState) => state.settings?.themeMode ?? "system");
+  const systemColorScheme = useColorScheme();
+  const isDark = themeMode === "system" ? systemColorScheme === "dark" : themeMode === "dark";
+  const activeTheme = isDark ? DarkTheme : LightTheme;
 
-      <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(wallet)/setup/wallet-setup" />
-        <Stack.Screen name="(wallet)/seed/seed-phrase" />
-        <Stack.Screen name="(wallet)/seed/confirm-seed-phrase" />
-        <Stack.Screen name="(wallet)/setup/wallet-created-successfully" />
-        <Stack.Screen name="(wallet)/setup/wallet-import-options" />
-        <Stack.Screen name="(wallet)/seed/wallet-import-seed-phrase" />
-        <Stack.Screen name="(wallet)/unlock" />
-        <Stack.Screen name="(app)/index" />
-      </Stack>
-    </GestureHandlerRootView>
+  return (
+    <ThemeProvider theme={activeTheme}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <FloatingBackButton />
+
+        <Stack screenOptions={{ headerShown: false, gestureEnabled: true }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(wallet)/setup/wallet-setup" />
+          <Stack.Screen name="(wallet)/seed/seed-phrase" />
+          <Stack.Screen name="(wallet)/seed/confirm-seed-phrase" />
+          <Stack.Screen name="(wallet)/setup/wallet-created-successfully" />
+          <Stack.Screen name="(wallet)/setup/wallet-import-options" />
+          <Stack.Screen name="(wallet)/seed/wallet-import-seed-phrase" />
+          <Stack.Screen name="(wallet)/unlock" />
+          <Stack.Screen name="(app)/index" />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
 
@@ -395,9 +400,7 @@ function RootLayoutComponent() {
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <ThemeProvider theme={Theme}>
-            <InnerApp />
-          </ThemeProvider>
+          <InnerApp />
         </PersistGate>
       </Provider>
     </View>

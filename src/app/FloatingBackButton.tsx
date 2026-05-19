@@ -1,6 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Platform } from "react-native";
 import { useRouter, useSegments } from "expo-router";
+import { useTheme } from "styled-components/native";
 import LeftIcon from "../assets/svg/left-arrow.svg";
 
 const DISABLED_ROUTES = [
@@ -14,6 +15,7 @@ const DISABLED_ROUTES = [
 export default function FloatingBackButton() {
   const router = useRouter();
   const segments = useSegments();
+  const theme = useTheme();
 
   const lastSegment = segments[segments.length - 1];
 
@@ -37,7 +39,7 @@ export default function FloatingBackButton() {
       hitSlop={12}
       style={styles.container}
     >
-      <LeftIcon width={32} height={32} fill="#FFF" />
+      <LeftIcon width={32} height={32} fill={theme.colors.white} />
     </Pressable>
   );
 }

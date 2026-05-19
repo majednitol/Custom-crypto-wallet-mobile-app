@@ -196,7 +196,7 @@ export default function SetPasswordScreen() {
             >
               <InputIcon>🔑</InputIcon>
               <TextInput
-                style={localStyles.input}
+                style={[localStyles.input, { color: theme.colors.white }]}
                 secureTextEntry
                 placeholder="Enter password"
                 placeholderTextColor={theme.colors.lightGrey}
@@ -233,7 +233,7 @@ export default function SetPasswordScreen() {
             >
               <InputIcon>🔑</InputIcon>
               <TextInput
-                style={localStyles.input}
+                style={[localStyles.input, { color: theme.colors.white }]}
                 secureTextEntry
                 placeholder="Confirm password"
                 placeholderTextColor={theme.colors.lightGrey}
@@ -276,7 +276,6 @@ const localStyles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: "#FFFFFF",
     fontFamily: "OpenSans-Regular",
     fontSize: 16,
     height: 54,

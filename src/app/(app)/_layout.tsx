@@ -105,7 +105,7 @@ useEffect(() => {
 
   };
 
-  SystemUI.setBackgroundColorAsync("black");
+  SystemUI.setBackgroundColorAsync(theme.colors.background);
   prepare();
 
   // NOTE: Auto-lock AppState listener is in root _layout.tsx InnerApp.

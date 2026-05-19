@@ -285,7 +285,7 @@ const activeChainId = useSelector(
                 style={localStyles.inputWrapper}
               >
                 <TextInput
-                  style={localStyles.input}
+                  style={[localStyles.input, { color: theme.colors.white }]}
                   autoCapitalize="none"
                   multiline
                   returnKeyType="done"
@@ -353,7 +353,6 @@ const localStyles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: "#FFFFFF",
     fontFamily: "OpenSans-Regular",
     fontSize: 18,
     textAlignVertical: "top",
