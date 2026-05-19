@@ -78,25 +78,83 @@ export class EVMService {
     return isAddress(address);
   }
    async findNextUnusedWalletIndex(phrase: string, index: number = 0) {
+  const GAP_LIMIT = 5;
   let currentIndex = index;
   const mnemonic = Mnemonic.fromPhrase(phrase);
 
-  while (true) {
-    const path = `m/44'/60'/0'/0/${currentIndex}`;
-    const wallet = HDNodeWallet.fromMnemonic(mnemonic, path);
+  // Key chains to scan for account activity (covers mainnet + popular L2s + testnets)
+  const scanRpcUrls: string[] = [
+    "https://eth-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",     // ETH Mainnet
+    "https://polygon-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",  // Polygon
+    "https://arb-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",      // Arbitrum
+    "https://base-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",     // Base
+    "https://bsc-dataseed.binance.org/",                                 // BSC
+    "https://mainnet-rpc.scai.network",                                  // SecureChain Mainnet
+    "https://eth-sepolia.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",      // Sepolia testnet
+    "https://arb-sepolia.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",      // Arb Sepolia
+  ];
 
-    // Use this.network.chainId or this.network.name
-    const chainIdentifier = this.network.chainId.toString(); // or this.network.name if fetchTransactions expects a string
-    const transactions = Alchemy
-      ? await this.fetchTransactions(chainIdentifier, wallet.address)
-      : { transferHistory: [] };
+  // Create lightweight providers for balance checks
+  const providers = scanRpcUrls.map((url) => {
+    try {
+      return new JsonRpcProvider(url, undefined, { staticNetwork: true, batchMaxCount: 1 });
+    } catch {
+      return null;
+    }
+  }).filter(Boolean) as JsonRpcProvider[];
 
-    if (transactions.transferHistory.length === 0) break;
-
-    currentIndex += 1;
+  // Also include current active provider
+  if (this.provider && !providers.includes(this.provider)) {
+    providers.push(this.provider);
   }
 
-  return currentIndex > 0 ? currentIndex + 1 : 0;
+  let lastUsedIndex = -1;
+  let consecutiveUnused = 0;
+
+  while (consecutiveUnused < GAP_LIMIT) {
+    const path = `m/44'/60'/0'/0/${currentIndex}`;
+    const wallet = HDNodeWallet.fromMnemonic(mnemonic, path);
+    const address = wallet.address;
+
+    // Check balance across all key chains concurrently
+    let isUsed = false;
+    try {
+      const checks = providers.map(async (provider) => {
+        try {
+          const balance = await provider.getBalance(address);
+          return balance > 0n;
+        } catch {
+          return false;
+        }
+      });
+      const results = await Promise.all(checks);
+      isUsed = results.some(Boolean);
+    } catch {
+      isUsed = false;
+    }
+
+    // If balance check didn't find anything, also check tx history on current chain
+    if (!isUsed) {
+      try {
+        const chainIdentifier = this.network.chainId.toString();
+        const transactions = await this.fetchTransactions(chainIdentifier, address);
+        isUsed = transactions.transferHistory.length > 0;
+      } catch {
+        // ignore
+      }
+    }
+
+    if (isUsed) {
+      lastUsedIndex = currentIndex;
+      consecutiveUnused = 0;
+    } else {
+      consecutiveUnused++;
+    }
+
+    currentIndex++;
+  }
+
+  return lastUsedIndex >= 0 ? lastUsedIndex + 2 : 0;
 }
    async importAllActiveAddresses(mnemonicPhrase: string, index?: number) {
     const unusedIndex = index ?? (await this.findNextUnusedWalletIndex(mnemonicPhrase));

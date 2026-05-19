@@ -333,28 +333,60 @@ class SolanaService {
       throw new Error("Invalid mnemonic phrase ");
     }
 
+    const GAP_LIMIT = 5;
     const seed = mnemonicToSeedSync(mnemonicPhrase, "");
+
+    // Scan both mainnet and devnet to find all accounts
+    const connections = [
+      this.connection, // current network
+      new Connection("https://mainnet.helius-rpc.com/?api-key=4ea6a1a7-e963-4e68-8b02-5e072f7e77a8", "confirmed"),
+      new Connection("https://api.devnet.solana.com", "confirmed"),
+    ];
+
     let currentIndex = indexOffset;
-    while (true) {
+    let lastUsedIndex = -1;
+    let consecutiveUnused = 0;
+
+    while (consecutiveUnused < GAP_LIMIT) {
       const path = `m/44'/501'/${currentIndex}'/0'`;
       const keypair = Keypair.fromSeed(
         derivePath(path, seed.toString("hex")).key
       );
       const publicKey = keypair.publicKey;
-      const signatures = await this.connection.getSignaturesForAddress(
-        publicKey,
-        {
-          limit: 1,
-        }
-      );
 
-      if (signatures.length === 0) {
-        break;
+      // Check balance and signatures across all networks concurrently
+      let isUsed = false;
+      try {
+        const checks = connections.map(async (conn) => {
+          try {
+            const [balance, signatures] = await Promise.all([
+              conn.getBalance(publicKey),
+              conn.getSignaturesForAddress(publicKey, { limit: 1 }),
+            ]);
+            return balance > 0 || signatures.length > 0;
+          } catch {
+            return false; // Network unreachable, skip
+          }
+        });
+        const results = await Promise.all(checks);
+        isUsed = results.some(Boolean);
+      } catch {
+        isUsed = false;
       }
-      currentIndex += 1;
+
+      if (isUsed) {
+        lastUsedIndex = currentIndex;
+        consecutiveUnused = 0;
+      } else {
+        consecutiveUnused++;
+      }
+
+      currentIndex++;
     }
 
-    return currentIndex > 0 ? currentIndex + 1 : 0;
+    // Return: lastUsedIndex + 2 to include the last used index in collection
+    // (collectedUsedAddresses uses <= startingIndex which is unusedIndex - 1)
+    return lastUsedIndex >= 0 ? lastUsedIndex + 2 : 0;
   }
 
   async collectedUsedAddresses(mnemonicPhrase: string, unusedIndex: number) {
