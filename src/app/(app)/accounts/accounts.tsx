@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { View, FlatList, Dimensions, Platform, TouchableOpacity } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import styled, { useTheme } from "styled-components/native";
 import { debounce } from "lodash";
@@ -652,6 +653,25 @@ const AccountsIndex = () => {
     },
     []
   );
+  // Load cached accounts from AsyncStorage on mount for immediate UI availability
+  useEffect(() => {
+    const loadCache = async () => {
+      try {
+        const cachedAccounts = await AsyncStorage.getItem("manage_wallets_accounts_cache");
+        if (cachedAccounts) {
+          const parsed = JSON.parse(cachedAccounts);
+          if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+            setAccounts(parsed);
+            setPriceAndBalanceLoading(false);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load cached accounts:", err);
+      }
+    };
+    loadCache();
+  }, []);
+
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -671,6 +691,8 @@ const AccountsIndex = () => {
         );
 
         setAccounts(merged);
+        // Cache the successfully merged accounts list
+        await AsyncStorage.setItem("manage_wallets_accounts_cache", JSON.stringify(merged));
       } catch (err) {
         console.error("Failed fetching balances:", err);
       } finally {
