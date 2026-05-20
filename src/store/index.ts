@@ -32,7 +32,7 @@ import settingsReducer from "./settingsSlice";
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["ethereum", "solana", "biometrics", "erc20", "nft", "importedAccounts", "settings"],
+  whitelist: ["ethereum", "solana", "price", "biometrics", "erc20", "nft", "importedAccounts", "settings"],
 };
 
 const rootReducer = combineReducers({

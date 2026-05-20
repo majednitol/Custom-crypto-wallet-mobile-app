@@ -36,8 +36,6 @@ interface SendTransactionResponse {
 export class EVMService {
   private _provider: JsonRpcProvider | null = null;
   network: CustomNetwork;
-  isUnreachable: boolean = false;
-
   constructor(network: CustomNetwork) {
     this.network = network;
   }
@@ -54,7 +52,6 @@ export class EVMService {
         });
       } catch (error) {
         console.warn(`[EVM] Failed to create provider for ${this.network.chainName}:`, error);
-        this.isUnreachable = true;
         throw error;
       }
     }
@@ -62,15 +59,13 @@ export class EVMService {
   }
 
   async getBalance(address: AddressLike): Promise<bigint> {
-    if (this.isUnreachable) return BigInt(0);
     try {
       const balance = await this.provider.getBalance(address);
-      this.isUnreachable = false; // Reset on success
       return balance;
     } catch (error) {
       console.warn(`[EVM] Balance check failed for ${this.network.chainName}:`, error instanceof Error ? error.message : "Unknown error");
-      this.isUnreachable = true; // Mark as unreachable to prevent spam
-      return BigInt(0);
+      // Throw the error so the Redux thunk goes into the `.rejected` state, preserving old balance
+      throw error;
     }
   }
 
