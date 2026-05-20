@@ -38,6 +38,7 @@ import Button from "../../../components/Button/Button";
 import { placeholderArr } from "../../../utils/placeholder";
 import { evmServices, getEvmService } from "../../../services/EthereumService";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import BlockieAvatar from "../../../components/BlockieAvatar/BlockieAvatar";
 
 interface WalletContainerProps {
   theme: ThemeType;
@@ -102,8 +103,9 @@ const WalletSkeletonContainer = styled.View <WalletSkeletonContainerProps>`
 
 const AccountDetails = styled.View`
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
 `;
 
 const EditIconContainer = styled.TouchableOpacity`
@@ -135,7 +137,6 @@ const AccountTitle = styled.Text<{ theme: ThemeType }>`
   color: ${(props) => props.theme.colors.white};
   font-family: ${(props) => props.theme.fonts.families.openBold};
   font-size: ${(props) => props.theme.fonts.sizes.large};
-  margin-left: 12px;
   margin-bottom: 4px;
   text-align: left;
 `;
@@ -144,7 +145,6 @@ const PriceText = styled.Text<{ theme: ThemeType }>`
   color: ${(props) => props.theme.colors.lightGrey};
   font-family: ${(props) => props.theme.fonts.families.openRegular};
   font-size: ${(props) => props.theme.fonts.sizes.normal};
-  margin-left: 12px;
   text-align: left;
 `;
 
@@ -919,8 +919,16 @@ const AccountsIndex = () => {
           isLast={index === accounts.length - 1}
         >
           <AccountDetails>
-            <AccountTitle theme={theme}>{item.accountName}</AccountTitle>
-            <PriceText theme={theme}>{item.isImported ? "Imported" : balance}</PriceText>
+            <BlockieAvatar
+              address={item.walletDetails.ethereum?.address || item.walletDetails.solana?.address || `account-${index}`}
+              size={40}
+              borderWidth={2}
+              borderColor={item.isActiveAccount ? "rgba(240, 185, 11, 0.4)" : theme.colors.border}
+            />
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <AccountTitle theme={theme}>{item.accountName}</AccountTitle>
+              <PriceText theme={theme}>{item.isImported ? "Imported" : balance}</PriceText>
+            </View>
           </AccountDetails>
           <EditIconContainer
             onPress={() =>

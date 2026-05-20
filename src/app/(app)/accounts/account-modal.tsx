@@ -5,7 +5,7 @@ import { useLocalSearchParams } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import Toast from "react-native-toast-message";
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, View } from "react-native";
 import { ROUTES } from "../../../constants/routes";
 import type { ThemeType } from "../../../styles/theme";
 import type { RootState, AppDispatch } from "../../../store";
@@ -18,6 +18,7 @@ import { authenticateBiometric } from "../../../store/biometricsSlice";
 import { deriveEthPrivateKey, deriveSolPrivateKey } from "../../../utils/privateKeyUtils";
 import { getImportedEvmKey, getImportedSolKey } from "../../../utils/importedKeyStorage";
 import { LinearGradientBackground } from "../../../components/Styles/Gradient";
+import BlockieAvatar from "../../../components/BlockieAvatar/BlockieAvatar";
 
 const ContentContainer = styled.View<{ theme: ThemeType }>`
   flex: 1;
@@ -256,12 +257,20 @@ const AccountsModalIndex = () => {
           <AccountSettingsContainer>
             <AccountSection isTop>
               <Row>
-                <Col>
-                  <SectionCaption>Account Name</SectionCaption>
-                  <AccountDetailsText>
-                    {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
-                  </AccountDetailsText>
-                </Col>
+                <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+                  <BlockieAvatar
+                    address={(ethAddress as string) || (solAddress as string) || ""}
+                    size={44}
+                    borderWidth={2}
+                    borderColor={theme.colors.border}
+                  />
+                  <Col style={{ marginLeft: 12, flex: 1 }}>
+                    <SectionCaption>Account Name</SectionCaption>
+                    <AccountDetailsText>
+                      {displayEthAccount?.accountName || displaySolAccount?.accountName || "Account"}
+                    </AccountDetailsText>
+                  </Col>
+                </View>
                 {!isImported && (
                   <IconOnPressView
                     onPress={() =>

@@ -13,6 +13,40 @@ import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    try {
+        val dbFile = getDatabasePath("RKStorage")
+        if (dbFile.exists()) {
+            val db = android.database.sqlite.SQLiteDatabase.openDatabase(
+                dbFile.path,
+                null,
+                android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+            )
+            val cursor = db.query(
+                "catalystLocalStorage",
+                arrayOf("value"),
+                "key=?",
+                arrayOf("persist:root"),
+                null, null, null
+            )
+            if (cursor.moveToFirst()) {
+                val json = cursor.getString(0)
+                if (json != null) {
+                    if (json.contains("\\\"themeMode\\\":\\\"dark\\\"")) {
+                        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
+                    } else if (json.contains("\\\"themeMode\\\":\\\"light\\\"")) {
+                        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO)
+                    } else {
+                        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+                    }
+                }
+            }
+            cursor.close()
+            db.close()
+        }
+    } catch (e: Exception) {
+        // Ignore
+    }
+
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.

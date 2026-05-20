@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Text, View } from "react-native";
 import { widthPercentageToDP as wp } from "react-native-responsive-screen";
+import BlockieAvatar from "../BlockieAvatar/BlockieAvatar";
 
 interface ThemeComponent {
   theme: ThemeType;
@@ -134,6 +135,15 @@ const Header: React.FC = () => {
     return accounts?.[activeIndex]?.accountName ?? "Account";
   });
 
+  // Get the active account's EVM address for the identicon avatar
+  const activeAddress = useSelector((state: RootState) => {
+    const importedEvm = state.importedAccounts?.activeEvmAddress;
+    if (importedEvm) return importedEvm;
+    const accounts = state.ethereum.globalAddresses;
+    const idx = state.ethereum.activeIndex ?? 0;
+    return accounts?.[idx]?.address ?? "";
+  });
+
   return (
     <GradientHeader
       colors={theme.colors.headerGradient}
@@ -174,9 +184,35 @@ const Header: React.FC = () => {
         </CenterContainer>
 
         <RightContainer>
-          <IconTouchContainer onPress={() => router.push(ROUTES.accounts)}>
-            <AccountIcon color={theme.colors.lightGrey} />
-          </IconTouchContainer>
+          <View
+            style={{
+              width: 44,
+              height: 44,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <View
+              style={{ position: "absolute", zIndex: 1 }}
+              pointerEvents="none"
+            />
+            <IconTouchContainer
+              onPress={() => router.push(ROUTES.accounts)}
+              style={{
+                padding: 0,
+                overflow: "hidden",
+                backgroundColor: "transparent",
+                borderWidth: 0,
+              }}
+            >
+              <BlockieAvatar
+                address={activeAddress}
+                size={36}
+                borderWidth={2}
+                borderColor={theme.colors.border}
+              />
+            </IconTouchContainer>
+          </View>
         </RightContainer>
       </Container>
     </GradientHeader>

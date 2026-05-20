@@ -265,8 +265,10 @@ import FloatingBackButton from "./FloatingBackButton";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import { ThemeProvider } from "styled-components/native";
-import { AppState, AppStateStatus, View, useColorScheme, Appearance, Platform } from "react-native";
+import { AppState, AppStateStatus, View, useColorScheme, Platform, NativeModules } from "react-native";
 import * as SystemUI from "expo-system-ui";
+
+const { ThemeModule } = NativeModules;
 
 // Prevent auto hide for splash
 SplashScreen.preventAutoHideAsync();
@@ -344,13 +346,13 @@ function InnerApp() {
 
   // Sync Redux themeMode to Native System & Appearance
   useEffect(() => {
-    // 1. Force React Native's internal useColorScheme / Appearance engine to match user preference.
-    // Setting null restores OS-level listening for "system" mode.
-    Appearance.setColorScheme(themeMode === "system" ? null : themeMode);
-
-    // 2. Persist the chosen mode into iOS/Android native storage (so next launch's native splash screen aligns)
+    // Persist the chosen mode into iOS/Android native storage (so next launch's native splash screen aligns)
     if (Platform.OS !== "web") {
-      // 3. Immediately swap the root view background color to prevent white flashes during React Navigation transitions
+      // Use our custom native module to set Android night mode on the UI thread
+      if (ThemeModule) {
+        ThemeModule.setMode(themeMode === "system" ? "system" : themeMode);
+      }
+      // Immediately swap the root view background color to prevent white flashes during React Navigation transitions
       SystemUI.setBackgroundColorAsync(activeTheme.colors.background).catch(() => {});
     }
   }, [themeMode, activeTheme]);
