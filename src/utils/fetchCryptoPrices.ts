@@ -12,9 +12,8 @@ export const CHAINID_TO_COINGECKO_ID: Record<number, string | null> = {
   80002: "polygon-ecosystem-token", // Amoy
 
   // ───────────── Arbitrum ─────────────
-  42161: "ethereum",
-  421614: "ethereum", // Sepolia
-  42170: "ethereum",  // Nova
+  42161: "ethereum",  // Arbitrum
+  421614: "ethereum", // Arbitrum Sepolia
 
   // ───────────── Optimism ─────────────
   10: "ethereum",

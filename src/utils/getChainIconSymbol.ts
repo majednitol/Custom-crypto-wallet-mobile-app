@@ -4,7 +4,7 @@ export const getChainIconSymbol = (chainName: string, defaultSymbol: string, cha
   const id = Number(chainId);
 
   // 1. Explicit mappings for supported L2/Sidechain icons in the library
-  if (name.includes('arbitrum') || id === 42161 || id === 421614 || id === 42170) return 'arb';
+  if (name.includes('arbitrum') || id === 42161 || id === 421614) return 'arb';
   if (name.includes('optimism') || name.includes('op mainnet') || id === 10 || id === 11155420) return 'op';
   if (name.includes('polygon') || symbol === 'matic' || id === 137 || id === 80002) return 'matic';
   if (name.includes('avalanche') || symbol === 'avax' || id === 43114 || id === 43113) return 'avax';

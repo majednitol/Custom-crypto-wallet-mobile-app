@@ -68,16 +68,6 @@ const NETWORKS: CustomNetwork[] = [
     "explorerUrl": "https://sepolia.arbiscan.io"
   },
   {
-    "chainName": "Arbitrum Nova Mainnet",
-    "chainId": 42170,
-    "chainType": "EVM",
-    "rpcUrl": "https://arbnova-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",
-    "socketUrl": "wss://arbnova-mainnet.g.alchemy.com/v2/iQ_8RwrWNQWD7MLe5YNZJ",
-    "nftRpcUrl": "https://arbnova-mainnet.g.alchemy.com/nft/v3/iQ_8RwrWNQWD7MLe5YNZJ/getNFTsForOwner",
-    "symbol": "ETH",
-    "explorerUrl": "https://nova.arbiscan.io"
-  },
-  {
     "chainName": "OP Mainnet Mainnet",
     "chainId": 10,
     "chainType": "EVM",
